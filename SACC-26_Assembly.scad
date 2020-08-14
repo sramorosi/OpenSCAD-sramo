@@ -1,6 +1,6 @@
 // SACC Robot Arm Assembly
 //  Started on 3/24/2020 by SrAmo
-//  last modified 8/1/2020 by SrAmo
+//  last modified 8/14/2020 by SrAmo
 
 use <force_lib.scad>
 use <Robot_Arm_Parts_lib.scad>
@@ -248,14 +248,14 @@ module final_BC_arm (lenBC=9,r_pulley=1) {
     $fs=0.01; // minimum size of fragment (default is 2)
 
     difference () {
-        union () {
+        //union () {
         hollow_offset_link (length=lenBC,d_pin=hole_p25_inch,w=widthBC,t=widthBC,offset=widthBC/2.5,ang=45,wall=wall_t,
           pulley_r=r_pulley,d_grv=belt_d,right=false,$fn=48); 
         // union pulley
-        translate ([ 0,0,-bc_pulley_t*mm_inch])
-        scale ([mm_inch,mm_inch,mm_inch])
-            pulley_gt2_2 ( teeth = bc_pulley_teeth , pulley_t_ht = bc_pulley_t);
-        }
+        //translate ([ 0,0,-bc_pulley_t*mm_inch])
+        //scale ([mm_inch,mm_inch,mm_inch])
+        //    pulley_gt2_2 ( teeth = bc_pulley_teeth , pulley_t_ht = bc_pulley_t);
+        //}
         // c-bore for bearing on outside
         cylinder(h=3*widthBC,d=bearing_od,center=true);
         zip_tie_holes (arm_l=lenBC,arm_w=widthBC);
