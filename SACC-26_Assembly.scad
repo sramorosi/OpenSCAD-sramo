@@ -1,6 +1,6 @@
 // SACC Robot Arm Assembly
 //  Started on 3/24/2020 by SrAmo
-//  last modified 8/14/2020 by SrAmo
+//  last modified 8/28/2020 by SrAmo
 
 use <force_lib.scad>
 use <Robot_Arm_Parts_lib.scad>
@@ -21,16 +21,20 @@ display_base = false;
 display_ABarm = false;
 // Draw Final BC arm
 display_BCarm = false;
-// Draw Final Claw Attachment
-display_claw_attach= false;
 // Draw Final Claw 
 display_claw= false;
-// Draw Final Forks
+// Draw Final Claw Attachment
+display_claw_shooter= false;
+// Is the shooter curved or linear?
+curved_shooter=true;
+// Draw Final Forks (option to claw)
 display_fork= false;
 // Draw Final A Pulley
 display_A_pulley= false;
-// Upr Arm Pulley at A
+// BC Arm Pulley at A
 display_B_drive_pulley= false;
+// BC Arm Pulley at B
+display_B_drive_at_B_pulley= false;
 // Draw Final B double wide Pulley
 display_B_double_pulley= false;
 // Draw Final End (C) Pulley
@@ -53,7 +57,12 @@ if (display_assy) {
     }
 
 if (display_ABarm) rotate([-90,0,0]) final_AB_arm (lenAB=lenAB,r_pulley=bc_pulley_d/2,spr_dist_AB=spr_dist_AB);
-if (display_BCarm) rotate([-90,0,0]) final_BC_arm (lenBC=lenBC,r_pulley=bc_pulley_d/2);
+if (display_BCarm) {
+    rotate([-90,0,0])
+        final_BC_arm (lenBC=lenBC,r_pulley=bc_pulley_d/2);
+        if (display_all) color ("green") rotate([90,0,0])
+        B_Drive_at_B_Pulley ();
+}
 if (display_base) {
     difference () {
         final_base ();
@@ -62,12 +71,12 @@ if (display_base) {
     }
 }
 if (display_B_drive_pulley) rotate([180,0,0])final_B_drive_pulley ();
+if (display_B_drive_at_B_pulley) B_Drive_at_B_Pulley ();
 if (display_C_pulley) final_C_pulley ();
-if (display_claw_attach)  {
-    claw_attach(); // COMBINE THESE INTO ONE MODULE
-    color ("purple") claw_shooter();
+if (display_claw_shooter)  {
+    color ("purple") claw_shooter(curved=curved_shooter);
 }
-if (display_claw)  translate([.5,-.8,0]) rotate([0,-90,-90]) final_claw();
+if (display_claw)  final_claw();
 if (display_fork)  final_fork();
 if (display_B_double_pulley) final_bc_pulley (); 
 if (display_A_pulley) final_A_pulley (); 
@@ -110,8 +119,10 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
         // Draw the BC link
         color("blue",1) 
             translate([lenAB,0,-widthBC/2-wall_t-bearing_flange_t-.01]) 
-                rotate([0,0,B_angle-A_angle]) 
+                rotate([0,0,B_angle-A_angle]) {
                     final_BC_arm ();
+                rotate ([180,0,0]) B_Drive_at_B_Pulley ();
+                }
     }
     // Draw the end effector
     if (full) translate([c[0],c[1],c[2]-wall_t-bearing_flange_t-.01]) 
@@ -196,10 +207,9 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
 } 
 module end_effector_assy() {
     color("SpringGreen") final_C_pulley (); 
-    color ("lime",.5) translate([.5,.7,0]) rotate([0,90,-90]) final_claw();
-    color("green") claw_attach();
-    color ("purple") claw_shooter();
-    color ("red",.5) translate([claw_y_parts,.3,0]) rotate([0,90,-90]) servo_body();
+    color("green") final_claw();
+    color ("purple") claw_shooter(curved=curved_shooter);
+    color ("red",.5) translate([claw_y_parts+.3,.3,0]) rotate([0,90,-90]) servo_body();
 }
 module final_AB_arm (lenAB=9,r_pulley=1,spr_dist_AB=3) {
     $fa=$preview ? 6 : 1; // minimum angle fragment
@@ -248,23 +258,33 @@ module final_BC_arm (lenBC=9,r_pulley=1) {
     $fs=0.01; // minimum size of fragment (default is 2)
 
     difference () {
-        //union () {
+        union () {
         hollow_offset_link (length=lenBC,d_pin=hole_p25_inch,w=widthBC,t=widthBC,offset=widthBC/2.5,ang=45,wall=wall_t,
           pulley_r=r_pulley,d_grv=belt_d,right=false,$fn=48); 
-        // union pulley
-        //translate ([ 0,0,-bc_pulley_t*mm_inch])
-        //scale ([mm_inch,mm_inch,mm_inch])
-        //    pulley_gt2_2 ( teeth = bc_pulley_teeth , pulley_t_ht = bc_pulley_t);
-        //}
-        // c-bore for bearing on outside
+        // union HEX for pulley
+        translate ([ 0,0,-bc_pulley_t*mm_inch+bearing_flange_t])
+            hex (size=.9,l=bc_pulley_t*mm_inch);
+        }
+        // c-bore for bearing
         cylinder(h=3*widthBC,d=bearing_od,center=true);
         zip_tie_holes (arm_l=lenBC,arm_w=widthBC);
     }    
     if (display_all) {// add bearings
        translate([0,0,wall_t]) bearing_flng_qtr ();
-       translate([0,0,-bc_pulley_t*mm_inch]) rotate([180,0,0]) bearing_flng_qtr ();
+       translate([0,0,-bc_pulley_t*mm_inch+bearing_flange_t]) rotate([180,0,0]) bearing_flng_qtr ();
        translate([0,0,wBC_inside+2*wall_t]) bearing_flng_qtr();
    }
+}
+module B_Drive_at_B_Pulley () {
+    difference () {
+        scale ([mm_inch,mm_inch,mm_inch])
+           pulley_gt2_2 ( teeth = bc_pulley_teeth , pulley_t_ht = bc_pulley_t);
+        // add hex bore
+        hex (size=.903,l=bc_pulley_t*mm_inch+.1);
+
+        // c-bore for bearing
+        //cylinder(h=3*widthBC,d=bearing_od,center=true);
+    }
 }
 module zip_tie_holes (arm_l = 10,arm_w=1) {
     rotate([90,0,0]) {
@@ -330,7 +350,8 @@ module final_B_drive_pulley () {
 }
 
 module final_C_pulley(){
-    // Create robot arm end-effector interface
+    // Pulley at joint C
+    // This is the arm end-effector interface
     // center is 0,0,0 on xy plane, length is +x
     // The belt can be slipped over the pulley
     // The interface is a standard width
@@ -344,7 +365,7 @@ module final_C_pulley(){
             cylinder (t_at_C,d=end_pulley_d/1.5,center=true);
             translate ([0,0,-(end_pulley_t*mm_inch)/2])
                 scale ([mm_inch,mm_inch,mm_inch])
-                    pulley_gt2_2 ( teeth = end_pulley_teeth , pulley_t_ht = end_pulley_t  );
+                    pulley_gt2_2 ( teeth = end_pulley_teeth , pulley_t_ht = end_pulley_t,retainer=0,idler=0);
             ear();
             mirror ([0,0,1]) ear() ;// make a mirror copy
         }
@@ -403,54 +424,55 @@ module final_fork (t_forks=1.3,l_fork=2,d_fork=0.2) {
                 fork(l_fork,d_fork);
 }
 }
-module claw_attach(){
+module final_claw(){
     // Claw that attaches to End Effector
-    // center is 0,0,0 on xy plane, length is +x
-    // t_end is the end effector inteface thickness
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.05; // minimum size of fragment (default is 2)
-
-    difference () {
-        union () { 
-            // interface center
+    union () {
+        difference () {
+            union () { 
+                // interface center
+                translate ([End_pin_x,End_pin_y,0])
+                    cube([hole_p25_inch*3,hole_p25_inch*3,End_w],center=true);
+                // interface top
+                translate ([End_x,.5,-0.8]) cube([1.8,.25,2.4],center=false);
+                // top plate attachment (angled extion)
+                translate ([End_x+1.65,.6,-.8]) 
+                    rotate([0,0,-15]) 
+                    difference () {
+                        cube([.12,1,1.6],center=false);
+                        translate([0,.6,.4]) 
+                            rotate([0,90,0]) 
+                                cylinder(h=1,d=hole_M3_inch,center=true,$fn=16);
+                        translate([0,.6,1.2]) 
+                            rotate([0,90,0]) 
+                                cylinder(h=1,d=hole_M3_inch,center=true,$fn=16);
+                    }
+            }
+            // remove attach pin
             translate ([End_pin_x,End_pin_y,0])
-                cube([hole_p25_inch*3,hole_p25_inch*3,End_w],center=true);
-            // interface top
-            translate ([End_x,.5,-0.8]) cube([1.8,.25,2.4],center=false);
-            // top plate attachment (angled extion)
-            translate ([End_x+1.65,.6,-.8]) 
-                rotate([0,0,-15]) 
-                difference () {
-                    cube([.12,1,1.6],center=false);
-                    translate([0,.6,.4]) 
-                        rotate([0,90,0]) 
-                            cylinder(h=1,d=hole_M3_inch,center=true,$fn=16);
-                    translate([0,.6,1.2]) 
-                        rotate([0,90,0]) 
-                            cylinder(h=1,d=hole_M3_inch,center=true,$fn=16);
-                }
+                cylinder(2,d=hole_p25_inch,center=true,$fn=32);
+            // remove cylinder to clear pulley
+            cylinder(End_w*2,d=1.1*end_pulley_d,center=true);
+            // remove the servo interface
+            translate([claw_y_parts+.3,.35,0]) rotate([0,90,-90]) servo_body(vis=false,$fn=32);
+            // remove the top chamfer
+            rotate([90,0,0])
+                translate([1.2,.9,-1])
+                linear_extrude(height = 1)
+                        polygon(points=[[0,0],[.8,.8],[-.7,.7],[0,0]]);
+            // remove second top chamfer
+            rotate([90,0,0])
+                translate([3,1.3,-1])
+                linear_extrude(height = 1)
+                        polygon(points=[[0,0],[.8,.8],[-.7,.7],[0,0]]);
+            
         }
-        // remove attach pin
-        translate ([End_pin_x,End_pin_y,0])
-            cylinder(2,d=hole_p25_inch,center=true,$fn=32);
-        // remove cylinder to clear pulley
-        cylinder(End_w*2,d=1.1*end_pulley_d,center=true);
-        // remove the servo interface
-        translate([claw_y_parts+.3,.35,0]) rotate([0,90,-90]) servo_body(vis=false,$fn=32);
-        // remove the top chamfer
-        rotate([90,0,0])
-            translate([1.2,.9,-1])
-            linear_extrude(height = 1)
-                    polygon(points=[[0,0],[.8,.8],[-.7,.7],[0,0]]);
-        // remove ssecond top chamfer
-        rotate([90,0,0])
-            translate([3,1.3,-1])
-            linear_extrude(height = 1)
-                    polygon(points=[[0,0],[.8,.8],[-.7,.7],[0,0]]);
-        
     }
+    translate([.5,-.8,0]) rotate([0,-90,-90]) 
+    compliant_claw2 (l=6,w=4.6,t1=0.07,t2=1.5,pre_angle=15);
 }
-module claw_shooter () {
+module claw_shooter (curved=true) {
     union () { 
         // top plate attachment
         translate ([End_x+1.8,.7,-.8]) 
@@ -464,13 +486,15 @@ module claw_shooter () {
                         rotate([0,90,0]) 
                             cylinder(h=1,d=hole_M3_inch,center=true,$fn=16);
                 }
-                translate([5.,1.6,0])
-                    cube([3.5,.08,1.6],center=true);
-     /*       translate ([3.25,-4.41,0]) 
-                rotate([0,0,55])
-                rotate_extrude(angle=35,$fn=156) 
+                if (curved) {
+                    translate ([3.25,-4.41,0]) rotate([0,0,55]) 
+                    rotate_extrude(angle=35,$fn=156) 
                     polygon([[6,.8],[6.08,.8],[6.08,-.8],[6,-.8],[6,.8]]);
-   */ }
+                } else {
+                    translate([5.,1.6,0])
+                    cube([3.5,.08,1.6],center=true);
+                }
+    }
 }
 module final_base () {
     // Base of the arm
@@ -604,18 +628,19 @@ module final_bc_pulley () {
 
 }
 module final_A_pulley () {
-    // Pulley that drives the end effector wrist rotation (C)
+    // Pulley located at the middle of the A joint,
+    // that drives the end effector wrist rotation (C)
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.05; // minimum size of fragment (default is 2)
 
     difference () {
-        union () {
-            scale ([mm_inch,mm_inch,mm_inch])
+        scale ([mm_inch,mm_inch,mm_inch])
             pulley_gt2_2(teeth = end_pulley_teeth,pulley_t_ht=a_pulley_t+1,motor_shaft=bearing_od/mm_inch,retainer=0,idler=0);
-        }
         cylinder(h=1,d=bearing_od,center=true);
         translate ([0,0,(a_pulley_t+1)*mm_inch])
             cylinder(h=2*bearing_flange_t,d=bearing_flange_od,center=true);
+        cylinder(h=2*bearing_flange_t,d=bearing_flange_od,center=true);
+
     }
    if (display_all) {// add bearings
        rotate([180,0,0]) bearing_flng_qtr ();
@@ -624,31 +649,30 @@ module final_A_pulley () {
 
 }
 module final_D_pulley () {
+    // Bearing at the D servo, mouted to the base
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.05; // minimum size of fragment (default is 2)
 
-    ply_thk = 8; // mm
+    ply_thk = 10; // mm
     union () {
         difference () {
         scale ([mm_inch,mm_inch,mm_inch])
             // remove outer flange on pulley for arm down 
-            pulley_gt2_2 (teeth = end_pulley_teeth-2 ,pulley_t_ht = ply_thk ,motor_shaft=9,retainer=0 );
+            pulley_gt2_2 (teeth = end_pulley_teeth ,pulley_t_ht = ply_thk ,motor_shaft=9,retainer=1 );
         // four holes for attachment to horn
-        for (a=[0:90:270]) rotate([0,0,a]) translate([7.32*mm_inch,0,0]) cylinder(h=1,d=1.5*mm_inch,center=true,$fn=16);
+        for (a=[0:90:270]) rotate([0,0,a]) translate([7.32*mm_inch,0,0]) cylinder(h=1,d=2*mm_inch,center=true,$fn=16);
         }
         // add the boss on the ouside for the bearing
-        translate([0,0,ply_thk*mm_inch])
+        translate([0,0,(ply_thk-2)*mm_inch])
             difference () {
                 cylinder(h=bearing_t+.05,d=bearing_od+.25,center=false);
-                translate ([0,0,-.01]) cylinder(h=bearing_t+.07,d=bearing_od,center=false);
+                translate ([0,0,-.02]) 
+                    cylinder(h=bearing_t+.1,d=bearing_od,center=false);
             }
     }
    if (display_all) {// add bearings
-       //rotate([180,0,0]) bearing_flng_qtr ();
-       translate([0,0,ply_thk*mm_inch+bearing_t+.05]) bearing_flng_qtr ();
+       translate([0,0,(ply_thk-2)*mm_inch+bearing_t+.05]) bearing_flng_qtr ();
    }
 
 }
-module final_claw () {
-    compliant_claw2 (l=6,w=4.6,t1=0.07,t2=1.5,pre_angle=15);
-}
+

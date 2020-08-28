@@ -1,5 +1,5 @@
 // Robot Arm Configuration File
-//  last modified 7/29/2020 by SrAmo
+//  last modified 8/17/2020 by SrAmo
 
 // conversions
 mm_inch = 1/25.4;
@@ -15,10 +15,15 @@ bearing_flange_t=0.05; // inch
 // 1/4 ID bearing thickness (under the flange)
 bearing_t=0.155; // inch
 
+/*
+Arm lengths are the center to center distance.
+An 8" ctc is about 9.5" total length. This fits in x bed of Prusa i3.
+An 9" ctc is about 10.5" total length. This fits rotated 40 deg on bed of Prusa i3.
+*/
 // length of A-B arm, color = plum
 lenAB=9;     
 // length of B-C arm, color = blue
-lenBC=9;      
+lenBC=8;      
 // Arm wall thickness throughout
 wall_t=bearing_t;  
 
@@ -96,7 +101,7 @@ c_svo_z = -1.2;
 c_servo_ctr = [c_svo_x,c_svo_z,c_svo_y];
 
 // center A pulley (THIS DRIVE THE JOINT WIDTH)
-a_pulley_t = 11; // mm
+a_pulley_t = 12.25; // mm
 
 // extra lug y location
 extra_lug_y = (a_pulley_t*mm_inch)/2 + base_svo_lug_t + wall_t + 2*bearing_flange_t+.01;
