@@ -64,7 +64,7 @@ if (display_dog_leg) dog_leg ();
 if (display_fancy_dog_leg) fancy_dog_leg ();
 if (display_hollow_link) hollow_offset_link ();
 if (display_fork) color ("green") fork ();
-if (display_U_Claw) color ("yellow") compliant_claw (l=6,w=4.6,t1=0.075,t2=1.5);
+if (display_U_Claw) compliant_claw (l=6,w=4.6,t1=0.075,t2=1.5);
 if (display_V_Claw) color ("blue") compliant_claw2 (l=6,w=4.6,t1=0.075,t2=1.5,pre_angle = 15);
 if (display_pulley) pulley ();
 //if (display_pulley) translate ([0,0,1]) pulley (round=false);
