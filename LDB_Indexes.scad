@@ -1,14 +1,15 @@
 // Large Displacement Beam, Index Constants
 
 // Indexes into the DNA array start with Z
-Ztype = 0;     // first element of each list node,1=beam,2=external_load,3=disp_constraint
+Ztype = 0;     // first element of each list 
+    // All Q values should numbers that don't get used for angles or what not
     Qnode = 0;  // NOT IMPLEMENTED. Way to specify origin.
-    Qbeam = 1;  
-    Qresult = 10;  // beam analysis results
-    Qfork = 2;
-    Qload = 3;  
+    Qbeam = 11111;  
+    Qresult = 10000;  // beam analysis results
+    Qfork = 22222;
+    Qload = 33333;  
     Qdisp = 4;  // NOT IMPLEMENTED.
-    Qskip = 99;
+    Qskip = 99999;  
 // USED WITH Qbeam:
 Zlen = 1;   // beam length
 Zthk = 2;   // beam thickness
@@ -19,8 +20,8 @@ Zfx = 1;    // external force in global X
 Zfy = 2;    // external force in global Y
 Zm = 3;     // external moment about global Z 
 // USED WITH dx dy
-Zdx = 0;
-Zdy = 1;
+Zdx = 1;
+Zdy = 2;
 // USED WITH Qresult:
 Zbeamtype = 1;
 Zrad = 2;  // characteristic radius

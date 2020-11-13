@@ -12,9 +12,8 @@ module draw_beam_undeformed(dna,idx = 0) {
         w = dna[idx][Zw];
         z_ang = dna[idx][Zang];
         // draw the beam segment
-        color ("yellow") linear_extrude(height=w,center=true) hull() { 
+        color ("green") linear_extrude(height=w,center=true) hull() { 
             rotate([0,0,z_ang]) translate([L,0,0]) circle(d=t,$fn=16);
-            //circle(d=t,$fn=16);
         }
         // Recursive call generating the next beam
         rotate([0,0,z_ang]) translate([L,0,0])
@@ -33,17 +32,33 @@ module draw_beam_undeformed(dna,idx = 0) {
     // Note: that an undefined causes the recursion to stop
 }
 
-// recursive module that draws loads given beam dx and dy.
-module draw_loads(dxdy,loads,scale=1,idx = 0) {
+
+// recursive module that draws loads given beam node locations
+module draw_loads(nodes,loads,scale=1,idx = 0) {
     elem_type = loads[idx][Ztype];
-    if ((elem_type == Qload) || (elem_type == Qskip)) {
-        x = ((elem_type == Qskip) ? 0 : dxdy[idx][Zdx]);
-        y = ((elem_type == Qskip) ? 0 : dxdy[idx][Zdy]);
-        //z_ang = ((elem_type == Qskip) ? 0 : atan2(y,x) );
+//echo(idx=idx,elem_type=elem_type);
+    //if ((elem_type == Qload) || (elem_type == Qskip)) {
+    //    x = ((elem_type == Qskip) ? 0 : nodes[idx][Zdx]);
+    //    y = ((elem_type == Qskip) ? 0 : nodes[idx][Zdy]);
+    if (elem_type == Qload) {
+        // do nothing, Recursive call
+        x = nodes[idx][Zdx];
+        y = nodes[idx][Zdy];
+        // draw the beam segment
+        //color ("blue") linear_extrude(height=2,center=true) hull() { 
+        //    translate([x,y,0]) circle(d=.1,$fn=16); }
+
+        draw_loads(nodes,loads,scale,idx + 1);
+    } else if (elem_type == Qskip) {
+        x = nodes[idx][Zdx];
+        y = nodes[idx][Zdy];
         fx = loads[idx][Zfx];
         fy = loads[idx][Zfy];
         moment = loads[idx][Zm];
-//echo(idx=idx,elem_type=elem_type,x=x,y=y);
+        // draw the beam segment
+        //color ("blue") linear_extrude(height=2,center=true) hull() { 
+        //    translate([x,y,0]) circle(d=.1,$fn=16); }
+//echo(idx=idx,elem_type=elem_type,x=x,y=y,fx=fx,fy=fy,moment=moment);
         // draw forces and torques
         fmag = sqrt(fx*fx + fy*fy);
         if (abs(fmag)>0.1) color ("red") 
@@ -51,43 +66,16 @@ module draw_loads(dxdy,loads,scale=1,idx = 0) {
         if (abs(moment)>0.1) color ("blue")
             translate([x,y,0]) torque_arrow([0,0,0],mag=moment*scale);
         // Recursive call generating the next beam
-         translate([x,y,0]) draw_loads(dxdy,loads,scale,idx + 1);
+        draw_loads(nodes,loads,scale,idx + 1);
     } else if (elem_type == Qfork ) {
         // FORK, PROCESS TWO BEAM SEGMENTS
         // Recursive call generating the first fork
-        draw_loads(dxdy[idx][1],loads[idx][1],scale);
+        draw_loads(nodes[idx+1][1],loads[idx][1],scale,idx=0);
         // Recursive call generating the second fork
-        draw_loads(dxdy[idx][2],loads[idx][2],scale);
+        draw_loads(nodes[idx+1][2],loads[idx][2],scale,idx=0);
     }
 }
 
-// recursive module that draws loads VERTICALLY SPREAD given beam dx and dy.
-module draw_loads_V(dxdy,loads,scale=1,y=-.5,idx = 0) {
-    elem_type = loads[idx][Ztype];
-    if (elem_type == Qload) {
-        L = sqrt(dxdy[idx][Zdx]*dxdy[idx][Zdx] + dxdy[idx][Zdy]*dxdy[idx][Zdy]);
-        fx = loads[idx][Zfx];
-        fy = loads[idx][Zfy];
-        moment = loads[idx][Zm];
-        // draw forces and torques
-        fmag = sqrt(fx*fx + fy*fy);
- //echo(idx=idx,scale=scale);
-        if (abs(fmag)>0.1) 
-            color ("red") translate([0,y-.05,0]) square([L,.05],center=false);
-            color ("red") translate([L,y,0]) force_arrow([0,0,0],[fx,fy,0],mag=fmag*scale);
-        if (abs(moment)>0.1) 
-            color ("blue") translate([0,y,0]) square([L,.05],center=false);
-            color ("blue") translate([L,y,0]) torque_arrow([0,0,0],mag=moment*scale);
-        // Recursive call generating the next beam
-        translate([0,-.5,0]) draw_loads_V(dxdy,loads,scale,y,idx + 1);
-    } else if (elem_type == Qfork ) {
-        // FORK, PROCESS TWO BEAM SEGMENTS
-        // Recursive call generating the first fork
-        draw_loads_V(dxdy[idx][1],loads[idx][1],scale,y=-.2);
-        // Recursive call generating the second fork
-        draw_loads_V(dxdy[idx][2],loads[idx][2],scale,y=-1);
-    }
-}
 
 // recursive function to generate moment of inertia
 function gen_Iz(dna) =
@@ -108,16 +96,17 @@ function gen_Area(dna) =
      (dna[i][Ztype] == Qfork ? 
     [Qfork, gen_Area(dna[i][1]),gen_Area(dna[i][2])] : Qskip )) ];
 
-// sum angles along segments to get global angles, never changes
-function global_angles(dna,undeformed=true,prior_ang=0,def_angles=0) =
+// sum angles along segments to get global angles.
+//  undeformed = true performs the sum on the DNA tree
+function global_angles(dna,prior_ang=0) =
     let (n = len(dna))
     [ for (i=[0:1:n-1]) (dna[i][Ztype] == Qbeam ? 
-echo(undeformed=undeformed,i=i,prior_ang=prior_ang)
-    let (new_sum = (undeformed) ? sum_fwd(dna,i,Zang) : sum_fwd2(def_angles,i)) 
+    let (new_sum = sum_fwd(dna,i,Zang)) 
+//echo("ANGLES",i=i,prior_ang=prior_ang, new_sum=new_sum)
     new_sum+prior_ang : 
     (dna[i][Ztype] == Qfork ? 
-    let (new_prior_ang = new_sum)
-     [Qfork, global_angles(dna[i][1],undeformed,new_prior_ang,def_angles),global_angles(dna[i][2],undeformed,new_prior_ang,def_angles)] :
+    let (new_prior_ang = sum_fwd(dna,i-1,Zang) + prior_ang)
+     [Qfork, global_angles(dna[i][1],new_prior_ang),global_angles(dna[i][2],new_prior_ang)] :
     Qskip ) ) ];
     
 // recursive forward sumation function to sum "thing"
@@ -126,6 +115,7 @@ function sum_fwd(dna,i,thing,s=0) =
     let (val = dna[i][thing])
     (i==s ? val : val + sum_fwd(dna,i-1,thing,s));
 
+// Simple list sum fwd
 function sum_fwd2(list,i,s=0) = 
     let (val = list[i])
     (i==s ? val : val + sum_fwd2(list,i-1,s));
@@ -138,24 +128,58 @@ function sum_tail(dna,i,thing) =
     (i==n ? val : val + sum_tail(dna,i+1,thing));
 
 // recursive tail sumation function to sum "thing"  AND ASSUMING A TREE (NESTED VECTOR)
-// from the i'th element to the last (or n'th element) - remember elements are zero based
+// from the i'th element to the last (or n'th element)
 function sum_tail2(dna,i,thing) = 
     let (val = dna[i][thing])
     let (type = dna[i][Ztype]) 
 //echo(i=i,type=type,val=val)
     (type==Qfork ?  sum_tail2(dna[i][1],1,thing) + sum_tail2(dna[i][2],1,thing) : 
-        (type==Qload ? val + sum_tail2(dna,1+i,thing) : val ));
+        (type==Qload ? val + sum_tail2(dna,1+i,thing) : 
+        (val==undef ? 0 : val )));
 
-// recursive function to generate global delta x and y
-function gen_dxdy(dna,angles) =
+// recursive function to generate DX AND DY of undeformed beam
+function gen_dxdy_undeformed(dna,angles) =
     let (n = len(dna))
     [ for (i=[0:1:n-1]) 
+    ( dna[i][Ztype] == Qbeam ? 
         let (L = dna[i][Zlen])
         let (ang = angles[i]) 
-    ( dna[i][Ztype] == Qbeam ? 
-        [L*cos(ang),L*sin(ang)] : 
+        let (x = L*cos(ang))
+        let (y = L*sin(ang))
+//echo(i=i,L=L,ang=ang)
+        [Qbeam,x,y] : 
     (dna[i][Ztype] == Qfork ? 
-    [Qfork, gen_dxdy(dna[i][1],angles[i][1]),gen_dxdy(dna[i][2],angles[i][2])] : 
+    [Qfork, gen_dxdy_undeformed(dna[i][1],angles[i][1]),gen_dxdy_undeformed(dna[i][2],angles[i][2])] : 
+    [Qskip,0,0,0,0] )) ];  
+
+// recursive function to generate DX AND DY of deformed beam
+function gen_dxdy_deformed(dna,results,angles) =
+    let (n = len(dna))
+    [ for (i=[0:1:n-1]) 
+        let (x = results[i][Za])
+        let (y = results[i][Zb])
+        let (ang = angles[i]) 
+    ( dna[i][Ztype] == Qbeam ? 
+        [Qbeam,rot_x(x,y,ang),rot_y(x,y,ang)] : 
+    (dna[i][Ztype] == Qfork ? 
+    [Qfork, gen_dxdy_deformed(dna[i][1],results[i][1],angles[i][1]),
+        gen_dxdy_deformed(dna[i][2],results[i][2],angles[i][2])] : 
+    [Qskip,0,0,0,0] )) ];  
+
+// recursive function to generate global nodes
+function gen_nodes(dxdy,origin=[Qbeam,0,0]) =
+    let (n = len(dxdy))
+    [ origin, for (i=[0:1:n-1]) 
+        let (x = sum_fwd(dxdy,i,Zdx) + origin[Zdx])
+        let (y = sum_fwd(dxdy,i,Zdy) + origin[Zdy])
+    ( dxdy[i][Ztype] == Qbeam ? 
+        [Qbeam,x,y] : 
+    (dxdy[i][Ztype] == Qfork ? 
+        let (x2 = sum_fwd(dxdy,i-1,Zdx) + origin[Zdx])
+        let (y2 = sum_fwd(dxdy,i-1,Zdy) + origin[Zdy])
+//echo("NODE FORK",x2=x2,y2=y2)
+    [Qfork, gen_nodes(dxdy[i][1],origin=[Qbeam,x2,y2]),
+            gen_nodes(dxdy[i][2],origin=[Qbeam,x2,y2]) ] : 
     [Qskip,0,0,0,0] )) ];  
 
 // generate a loads tree from the dna tree, to make the programming easier to read
@@ -173,9 +197,13 @@ function loads_to_beams(dna) =
 // recursive function to spread the external forces and moments from tail of tree to root
 function spread_ext_loads(ext_loads) =
     let (n = len(ext_loads))
+    //echo("SPREAD EXT LOADS",n=n)
     [ for (i=[0:1:n-1]) (ext_loads[i][Ztype] == Qload ? 
-        [Qload, sum_tail2(ext_loads,i,Zfx), sum_tail2(ext_loads,i,Zfy),sum_tail2(ext_loads,i,Zm)]: 
-    (ext_loads[i][Ztype] == Qfork ? [Qfork, spread_ext_loads(ext_loads[i][1]), spread_ext_loads(ext_loads[i][2])] :
+    // echo(Qload,i=i,sum_tail2(ext_loads,i,Zfx))
+    [Qload,sum_tail2(ext_loads,i,Zfx),sum_tail2(ext_loads,i,Zfy),sum_tail2(ext_loads,i,Zm)]: 
+    (ext_loads[i][Ztype] == Qfork ? 
+    [Qfork, spread_ext_loads(ext_loads[i][1]), spread_ext_loads(ext_loads[i][2])] :
+    //echo(Qskip,i=i)
     [Qskip,ext_loads[i][Zfx],ext_loads[i][Zfy],ext_loads[i][Zm]] ) ) ];
 
 // recursive function to rotate the internal forces from a global system to a beam-local system.  Moments are copied
@@ -204,7 +232,9 @@ function moments_due_to_forces(int_loads, dna) =
     :
                 let (fy = int_loads[i+1][Zfy])
                 let (dx = dna[i+1][Zlen])
-                [Qload, fy*dx ] 
+                let (m = (fy*dx == undef ? 0 : fy*dx))
+    //echo(Qload,i=i,fy=fy,dx=dx)
+                [Qload, m ] 
             ) : 
             (int_loads[i][Ztype] == Qfork ? 
         [Qfork, moments_due_to_forces(int_loads[i][1], dna[i][1]), moments_due_to_forces(int_loads[i][2], dna[i][2])] :
@@ -340,14 +370,17 @@ module draw_beam_deformed(dna,angles,results,idx = 0) {
 }
 
 // recursive function to add deflected angles to initial angles
-function add_angles(initial,results) =
+function add_angles(initial,results,prior_ang = 0) =
     let (n = len(initial))
     [ for (i=[0:1:n-1]) (results[i][Ztype] == Qresult ? 
         let (ang1 = initial[i])
-        let (ang2 = (i==0 ? 0 : results[i-1][Zthetaend]))
+        let (ang2 = (i==0 ? prior_ang : sum_fwd(results,i-1,Zthetaend) + prior_ang ))
 //echo(i=i,ang1=ang1,ang2=ang2)
         ang1+ang2  : 
     (results[i][Ztype] == Qfork ? 
-     [Qfork, add_angles(initial[i][1],results[i][1]),add_angles(initial[i][2],results[i][2])] :
+        let (ang3 = sum_fwd(results,i-1,Zthetaend) + prior_ang )
+//echo("FORK",i=i,ang3=ang3)
+     [Qfork, add_angles(initial[i][1],results[i][1],ang3),
+             add_angles(initial[i][2],results[i][2],ang3)] :
        Qskip ) )  ];
 

@@ -159,24 +159,26 @@ module dog_leg (d1=10,ang=45,d2=5,w=2,t=1) {
     // First length is d1, turn is ang, second length is d2
     // Thickness is t, positive z from zero
     // Width is w
+    // Sharp knee is better for printing
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.02; // minimum size of fragment (default is 2)
     dx = d1 + d2*cos(ang); //x of end of leg
     dy = d2*sin(ang);      // y of end of leg
     Pdist = sqrt(dx*dx+dy*dy);
-    fx=d1-tan(ang/2)*(w/2);
+    xtra=tan(ang/2)*(w/2);
+    fx=d1-xtra;
     fs = 0.02*Pdist;  // inside chamfer size
     union () {
         translate([0,-w/2,0]) // first leg
-            cube([d1,w,t],center=false);
+            cube([d1+xtra,w,t],center=false);
         translate([d1,0,0])   // second leg
             rotate([0,0,ang])
-                translate([0,-w/2,0])
-                    cube([d2,w,t],center=false);
+                translate([-xtra,-w/2,0])
+                    cube([d2+xtra,w,t],center=false);
         translate([dx,dy,0])   // rounded end
             cylinder(h=t,d=w,center=false);
-        translate([d1,0,0])    // rounded knee
-            cylinder(h=t,d=w,center=false);
+        //translate([d1,0,0]) // rounded knee, bad for printing
+        //    cylinder(h=t,d=w,center=false);
         linear_extrude(height=t,convexity=10) // add inside chamfer
             polygon([[fx,w/2],[fx-fs,w/2],[fx+fs,w/2+fs*tan(ang)],[fx+fs,w/2],[fx,w/2]]);
     }

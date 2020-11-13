@@ -23,7 +23,7 @@ An 9" ctc is about 10.5" total length. This fits rotated 40 deg on bed of Prusa 
 // length of A-B arm, color = plum
 lenAB=9;     
 // length of B-C arm, color = blue
-lenBC=8;      
+lenBC=9;      
 // Arm wall thickness throughout
 wall_t=bearing_t;  
 

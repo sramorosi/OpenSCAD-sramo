@@ -7,6 +7,8 @@ Future: auto goal seek.
 9/11/2020: Converted OpenSCAD as-is to Python, that is, converted single tree, first iteration, openscad compliant code.
 
 Verification:
+Print canteliver beam and take photos of deflected beam in front of grid paper
+
 9/11/2020: Investigated force vs moment beam accuracy.  
 Test Case: Four inch Cantilevel beam (8 segment) with 10 lb end load, expected results (based on Roark formulas):
 pts=[[0,0],[0.4961, 0.0626],[0.9639,0.2397],[1.3822,0.5147],[1.7340,0.8715],[2.0056,1.2936],[2.1826,1.7647],[2.2438,2.2685],[2.262,2.7887],[0,2.7887],[0,0]]
@@ -15,37 +17,50 @@ Conclusion: complex combined loading formulas from section A.1.3 don't help accu
 A Q of 1.2 yield results for the vertical loaded cantilever beam test case (8 seg) that are close to Roark formula results.
 Future: Add condition for mostly pure axial tensile loading (rope), and pure compression loading (add eccentricity).
 
-ADDITIONS:
-ADD BRANCHES.  Implement in OpenSCAD first.
+MAJOR ENHANCEMENTS:
+ADD BRANCHES.  
+10/8/2020 ==> Implemented in OpenSCAD! Called this code LDB (Large Displacement Beam).
 After many attempts at a data structure that supports branches, I settled on using Nested Vectors (Trees).
-The benefit of this is that the user and programmer does not need to keep track of offsets in the vectors.
+The benefit of this is that the user and the programmer do not need to keep track of offsets in the vectors.
+Write structure like writing nested curly brackets.  Indent each level and it's not so hard to keep track of.
 I have also merged the loads vector with the beam vector.  The plan is to have a single nested vector (DNA) decribe any structural arrangement.
 Tree = [[beam,x,x,x], [fork, [[beam,x,x,x],[beam,x,x,x]] , [[beam,x,x,x],[beam,x,x,x]] ] , [beam,x,x,x],[beam,x,x,x]]
 
-DNA = [[Qbeam,1.5,t,w,0],
-[Qbeam,1.5,t,w,20],
-[Qfork, 
-    [ [Qbeam,1.5,t,2*w,90],[Qbeam,.5,t,w,90],[Qload,0,0,1] ] , 
-    [ [Qbeam,1,t,w,-45], [Qbeam,.2,t,w,-30], [Qbeam,.2,t,w,-15], [Qload,2,2,0] ] 
-    ]
-];
+ISSUES (as of 11/5/2020) WITH LDB in OpenSCAD:
 
-ECHO: DNA = [[1, 1.5, 0.15, 0.8, 0], [1, 1.5, 0.15, 0.8, 20], [2, [[1, 1.5, 0.15, 1.6, 90], [1, 0.7, 0.15, 0.8, 90], [3, 0, 0.5, -0.2]], [[1, 1, 0.15, 0.8, -45], [1, 0.4, 0.15, 0.8, -30], [1, 0.2, 0.15, 0.8, -15], [3, 1, 0.2, 0]]]]ECHO: Iz = [0.000225, 0.000225, [2, [0.00045, 0.000225, 9999], [0.000225, 0.000225, 0.000225, 9999]]]
-ECHO: Area = [0.12, 0.12, [2, [0.24, 0.12, 8888], [0.12, 0.12, 0.12, 8888]]]
-ECHO: initial_ang = [0, 20, [2, [110, 200, 6666], [-25, -55, -70, 6666]]]
-ECHO: nodes_un = [[1.5, 0], [1.40954, 0.51303], [2, [[-0.51303, 1.40954], [-0.469846, -0.17101], 7777], [[0.906308, -0.422618], [0.114715, -0.16383], [0.068404, -0.187939], 7777]]]
-ECHO: Ext_loads = [[3, 0, 0, 0], [3, 0, 0, 0], [2, [[3, 0, 0, 0], [3, 0, 0, 0], [3, 0, 0, 1]], [[3, 0, 0, 0], [3, 0, 0, 0], [3, 0, 0, 0], [3, 2, 1.2, 0]]]]
-ECHO: Int_loads = [[3, 2, 1.2, 1], [3, 2, 1.2, 1], [2, [[3, 0, 0, 1], [3, 0, 0, 1], [3, 0, 0, 1]], [[3, 2, 1.2, 0], [3, 2, 1.2, 0], [3, 2, 1.2, 0], [3, 2, 1.2, 0]]]]
+11/6/2020: RESOLVED FOR SINGLE BRANCH. STILL HAVE ISSUE WITH MULTI BRANCH. Get external forces to display on deformed beam.  
+11/7/2020: RESOLVED FOR TREES, BUT SUM ANGLE AT FORK DOES NOT MATCH...DEFLECTIONS ON WRONG SIZE OF BRANCH? SEE FORK2 Presently works for undeformed beam, not deformed.
+11/8/2020: RESOLVED SUB ANGLE WITH MULTI LEVEL FORKS.
+11/6/2020: CONCLUDED THAT SECOND ITERATION RESULTS WERE WORSE THAN FIRST. 
 
-ECHO: int_loads_temp_local = [[3, 1, 0.7, -0.2], [3, 1.17911, 0.315765, -0.2], [2, [[3, 0.469846, -0.17101, -0.2], [3, -0.17101, -0.469846, -0.2], [99, 0, 0, 0]], [[3, 0.821784, 0.60388, 0], [3, 0.409746, 0.933867, 0], [3, 0.154082, 1.0081, 0], [99, 0, 0, 0]]]]
-ECHO: fy1 = [99, 0, 0, 0], dx1 = [1, 0.7, 0.15, 0.8, 90], fy2 = [3, 0.154082, 1.0081, 0], dx2 = [1, 0.4, 0.15, 0.8, -30]
+Tree results show that deflections are not being updated by large deflections.  This is a problem for loads, not moments.
+May need to step the loads up in increments, as was in the old code. 
+IDEA: LOAD GRADUALLY. Difficult to code in OpenSCAD.  Try Python.
 
-ADD DISPLACEMENT CONSTRAINTS
+11/9/2020: RESOLVED. Add ORIGIN, so that starting point of structure can be moved.  Will be very helpfull in Compliant Claw.
 
-BUG: LARGE DISPLACEMENTS NOT MATHAMATICALLY STABLE.  IDEA: LOAD GRADUALLY. Difficult to code in OpenSCAD.  Try Python.
+Perform data quality check!  provide output (tree depth, number of branches, number of beams, number of forces) 
+Check for correct number of fields for each leaf.
+Check if at least one non-zero force exists.
+Stop if there are data quality problems.
+
+Write deformed DNA at the end, so model can be restarted from deformed shape.
+
+the code has two versions of sum_fwd and sum_tail, one for list, one for tree.  Do I need both?
+
+11/5/2020: RESOLVED.  Multi tree branch works (see Tree).
+
+11/5/2020:  RESOLVED: FORK model does not sum angle at fork correctly:
+DON'T NEED DEFORMED VERSION OF SUM_ANGLES, JUST ADD RESULTS TO UNDEFORMED TREE.
+
+DISPLACEMENT CONSTRAINTS: 
+11/8/2020: experimented with Compliant Claw.  Loads at node is magnitude and vector, or Fx and Fy. Need to adjust both variables to meet displacement constraint.
+Not intuitive how the variables meet position.
+Load on other part of structure influences load at displacemen constraint.
 
 VALIDATE: COMPARE WITH THEORETICAL AND SINGLE BEAM MODELS
-V-LOAD, 2 SEG, 4 SEG, 6 SEG
+Normal-LOAD, 2 SEG, 4 SEG, 6 SEG
+Consider physical test of large displacement.
 
 STRESS CALCULATIONS NEED TO BE validated
 
@@ -59,60 +74,3 @@ DONE (9/6/2020): UPDATE U BEAM TO MATCH CLAW DESIGN. Get dims from Onshape.
 
 DONE (9/6/2020): CREATE VIDEO (gif) showing claw design.  Document progress before major rewrite.
 
-// CANTELIVER BEAM WITH FORCE, 4 SEGMENT
-ECHO: "INPUT [length,t,w,ang]", dna = [[0.75, 0.15, 0.8, 0], [0.75, 0.15, 0.8, 0], [0.75, 0.15, 0.8, 0], [0.75, 0.15, 0.8, 0]]
-ECHO: "INPUT FORCE GLOBAL SYS", F_ext = [[0, 0], [0, 0], [0, 0], [0, 10]]
-ECHO: "SEGMENTS MUST MATCH", n = 4, n_F = 4, n_M = 4, n_sub = [4, 4, 4, 4]
-ECHO: "INERTIA", Iz = [0.000225, 0.000225, 0.000225, 0.000225]
-ECHO: "AREA", Area = [0.12, 0.12, 0.12, 0.12]
-ECHO: "SEG ANG NO LOAD", ang0 = [0, 0, 0, 0, 0]
-ECHO: "SEG dx,dy NO LOAD", d0 = [[0.75, 0], [0.75, 0], [0.75, 0], [0.75, 0]]
-
-NUMBER OF ITERATIONS = B
-INITIALIZE C = 0  XX[0][i][j] = 0;
-ECHO: "INTERNAL FORCES", F_int[0] = [[0, 0], [0, 0], [0, 0], [0, 0]]
-
-FOR ITERATION C = 1/B TO FULL IN B STEPS
-SCALE EXTERNAL FORCES BY C
-SOLVE THE FOLLOWING USING THE PRIOR ITERATION
-
-
-ECHO: "INT FRC LOCAL BEAM", Fl_int0 = [[0, 10], [0, 10], [0, 10], [0, 10]]
-ECHO: "INT MOMENTS DUE TO LOAD, EACH", M = [7.5, 7.5, 7.5, 7.5]
-ECHO: "INT MOMENTS SUM", M0 = [30, 22.5, 15, 7.5, 0]
-ECHO: "TYPE LOAD,F=0,M=1", type0 = [1, 1, 1, 0]
-ECHO: "n=-FX/FY", n0 = [0, 0, 0, 0]
-ECHO: "gamma,Kbsc", PRBM0 = [[0.7346, 1.5164], [0.7346, 1.5164], [0.7346, 1.5164], [0.852144, 2.65485]]
-ECHO: "K spring", K0 = [154.673, 154.673, 154.673, 270.795]
-ECHO: "THETA spring", theta0_0 = [13.1539, 10.3756, 7.59738, 2.93912]
-ECHO: "THETA spring", theta0 = [13.1003, 10.3422, 7.57946, 2.93734]
-ECHO: "SEG ANG LOADED", ang1 = [0, 19.8653, 35.5483, 47.0418, 50.6841]
-ECHO: "dx LOCAL LOADED", dx0 = [0, 0.735661, 0.663341, 0.564053, 0.486558]
-ECHO: "dx LOCAL LOADED", dy0 = [0, 0.124876, 0.344841, 0.49237, 0.570592]
-ECHO: "X LOADED", X0 = [0, 0.735661, 1.399, 1.96305, 2.44961]
-ECHO: "Y LOADED", Y0 = [0, 0.124876, 0.469717, 0.962087, 1.53268]
-
-ECHO: "#### END OF FIRST ITERATION ####"
-
-ECHO: "INT FRC LOCAL BEAM", Fl_int1 = [[0, 10], [3.3981, 9.40494], [5.81389, 8.13626], [7.31851, 6.81465]]
-ECHO: "INT MOMENTS EACH", M_1 = [7.35661, 6.63341, 5.64053, 4.86558]
-ECHO: "INT MOMENTS SUM", M1 = [24.4961, 17.1395, 10.5061, 4.86558, 0]
-ECHO: "TYPE LOAD,F=0,M=1", type1 = [1, 1, 0, 0]
-ECHO: "n=-FX/FY", n1 = [0, -0.36131, -0.714566, -1.07394]
-ECHO: "gamma,Kbsc", PRBM1 = [[0.7346, 1.5164], [0.7346, 1.5164], [0.837033, 2.62453], [0.834878, 2.61373]]
-ECHO: "K spring", K1 = [154.673, 154.673, 267.702, 266.601]
-ECHO: "THETA spring", theta1 = [11.1151, 8.15426, 3.13806, 1.6706]
-ECHO: "SEG ANG LOADED", ang2 = [0, 16.8549, 29.22, 33.1112, 35.1827]
-ECHO: "dx LOCAL LOADED", dx1 = [0, 0.739665, 0.689792, 0.636966, 0.618014]
-ECHO: "dx LOCAL LOADED", dy1 = [0, 0.106212, 0.290635, 0.395656, 0.424844]
-ECHO: "X LOADED", X1 = [0, 0.739665, 1.42946, 2.06642, 2.68444]
-ECHO: "Y LOADED", Y1 = [0, 0.106212, 0.396847, 0.792504, 1.21735]
-
-ECHO: "#### END OF SECOND ITERATION ####"
-
-ECHO: max_size = 3.98229, max_force = 20, f_scale = 0.0497787, m_scale = 0.020321
-ECHO: "MODULE TORQUE_ARROW; small mag = ", 0.0988736
-ECHO: "MODULE TORQUE_ARROW; small mag = ", 0
-ECHO: "MAX STRESS DUE TO MOMENT", bend_stress = [8165.38, 8032.01, 5372.81, 3068.76]
-ECHO: "MAX STRESS DUE AXIAL LOAD", axial_stress = [0, 28.3175, 48.4491, 60.9876]
-ECHO: "Margin of Safety", MS = [-0.237178, -0.21268, 0.193278, 0.544277]

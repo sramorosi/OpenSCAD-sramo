@@ -257,13 +257,19 @@ module final_BC_arm (lenBC=9,r_pulley=1) {
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.01; // minimum size of fragment (default is 2)
 
+    hex_h = bc_pulley_t*mm_inch;
     difference () {
         union () {
         hollow_offset_link (length=lenBC,d_pin=hole_p25_inch,w=widthBC,t=widthBC,offset=widthBC/2.5,ang=45,wall=wall_t,
           pulley_r=r_pulley,d_grv=belt_d,right=false,$fn=48); 
         // union HEX for pulley
-        translate ([ 0,0,-bc_pulley_t*mm_inch+bearing_flange_t])
-            hex (size=.9,l=bc_pulley_t*mm_inch);
+        translate ([ 0,0,-hex_h+bearing_flange_t])
+            hex (size=.9,l=hex_h);
+     // triangular support for printing
+     rotate([0,90,0])
+        translate([-wall_t/3,bearing_od/2+wall_t,0])
+        linear_extrude(height = 0.036)
+            polygon(points=[[0,0],[hex_h,0],[0,hex_h],[0,0]]);
         }
         // c-bore for bearing
         cylinder(h=3*widthBC,d=bearing_od,center=true);
