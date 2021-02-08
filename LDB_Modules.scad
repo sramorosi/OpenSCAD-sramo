@@ -34,21 +34,16 @@ module draw_beam_undeformed(dna,idx = 0) {
 
 
 // recursive module that draws loads given beam node locations
-module draw_loads(nodes,loads,scale=1,idx = 0) {
+module draw_loads(nodes,loads,scale=1,node_color="blue",idx = 0) {
     elem_type = loads[idx][Ztype];
-//echo(idx=idx,elem_type=elem_type);
-    //if ((elem_type == Qload) || (elem_type == Qskip)) {
-    //    x = ((elem_type == Qskip) ? 0 : nodes[idx][Zdx]);
-    //    y = ((elem_type == Qskip) ? 0 : nodes[idx][Zdy]);
     if (elem_type == Qload) {
         // do nothing, Recursive call
         x = nodes[idx][Zdx];
         y = nodes[idx][Zdy];
         // draw the beam segment
-        //color ("blue") linear_extrude(height=2,center=true) hull() { 
-        //    translate([x,y,0]) circle(d=.1,$fn=16); }
-
-        draw_loads(nodes,loads,scale,idx + 1);
+        color(node_color) linear_extrude(height=2,center=true) hull() { 
+            translate([x,y,0]) circle(d=.1,$fn=16); }
+        draw_loads(nodes,loads,scale,node_color,idx + 1);
     } else if (elem_type == Qskip) {
         x = nodes[idx][Zdx];
         y = nodes[idx][Zdy];
@@ -56,8 +51,8 @@ module draw_loads(nodes,loads,scale=1,idx = 0) {
         fy = loads[idx][Zfy];
         moment = loads[idx][Zm];
         // draw the beam segment
-        //color ("blue") linear_extrude(height=2,center=true) hull() { 
-        //    translate([x,y,0]) circle(d=.1,$fn=16); }
+        color(node_color) linear_extrude(height=2,center=true) hull() { 
+            translate([x,y,0]) circle(d=.1,$fn=16); }
 //echo(idx=idx,elem_type=elem_type,x=x,y=y,fx=fx,fy=fy,moment=moment);
         // draw forces and torques
         fmag = sqrt(fx*fx + fy*fy);
@@ -66,18 +61,32 @@ module draw_loads(nodes,loads,scale=1,idx = 0) {
         if (abs(moment)>0.1) color ("blue")
             translate([x,y,0]) torque_arrow([0,0,0],mag=moment*scale);
         // Recursive call generating the next beam
-        draw_loads(nodes,loads,scale,idx + 1);
+        draw_loads(nodes,loads,scale,node_color,idx + 1);
     } else if (elem_type == Qfork ) {
         // FORK, PROCESS TWO BEAM SEGMENTS
         // Recursive call generating the first fork
-        draw_loads(nodes[idx+1][1],loads[idx][1],scale,idx=0);
+        draw_loads(nodes[idx+1][1],loads[idx][1],scale,node_color,idx=0);
         // Recursive call generating the second fork
-        draw_loads(nodes[idx+1][2],loads[idx][2],scale,idx=0);
+        draw_loads(nodes[idx+1][2],loads[idx][2],scale,node_color,idx=0);
     }
 }
 
+// module that draws the loads at ground (not recursive)
+module draw_ground_reactions(results,scale=1,origin=[0,0,0],z_rot=0,out=true) {
+    fx = -results[0][ZPx];
+    fy = -results[0][ZPy];
+    moment = -results[0][ZPm];
+    // draw forces and torques
+    fmag = sqrt(fx*fx + fy*fy);
+    if (abs(fmag)>0.1) color ("red") 
+        translate(origin) rotate ([0,0,z_rot]) force_arrow([0,0,0],[fx,fy,0],mag=fmag*scale);
+    if (abs(moment)>0.1) color ("blue")
+        translate(origin) rotate ([0,0,z_rot]) torque_arrow([0,0,0],mag=moment*scale);
+    if (out) echo("GROUND REACTIONS ",fx=rot_x(fx,fy,z_rot),fy=rot_y(fx,fy,z_rot),moment=moment);
+}
+    
 
-// recursive function to generate moment of inertia
+// recursive function to generate moment of inertia (Iz) of each beam
 function gen_Iz(dna) =
     let (n = len(dna))
     [ for (i=[0:1:n-1]) (dna[i][Ztype] == Qbeam ? 
@@ -88,7 +97,7 @@ function gen_Iz(dna) =
 //  simple function to calculate moment of inertia about Z axis
 function Iz_func(w=1,t=.1) = ((w*t*t*t)/12);
     
-// recursive function to generate Area (no summation)
+// recursive function to generate cross section Area of each beam
 function gen_Area(dna) =
     let (n = len(dna))
     [ for (i=[0:1:n-1]) (dna[i][Ztype] == Qbeam ? 
@@ -97,7 +106,6 @@ function gen_Area(dna) =
     [Qfork, gen_Area(dna[i][1]),gen_Area(dna[i][2])] : Qskip )) ];
 
 // sum angles along segments to get global angles.
-//  undeformed = true performs the sum on the DNA tree
 function global_angles(dna,prior_ang=0) =
     let (n = len(dna))
     [ for (i=[0:1:n-1]) (dna[i][Ztype] == Qbeam ? 
@@ -109,33 +117,41 @@ function global_angles(dna,prior_ang=0) =
      [Qfork, global_angles(dna[i][1],new_prior_ang),global_angles(dna[i][2],new_prior_ang)] :
     Qskip ) ) ];
     
-// recursive forward sumation function to sum "thing"
+// recursive forward summation function to sum "thing"
 // from the start (or s'th element) to the i'th element - remember elements are zero based
 function sum_fwd(dna,i,thing,s=0) = 
     let (val = dna[i][thing])
     (i==s ? val : val + sum_fwd(dna,i-1,thing,s));
 
-// Simple list sum fwd
-function sum_fwd2(list,i,s=0) = 
-    let (val = list[i])
-    (i==s ? val : val + sum_fwd2(list,i-1,s));
-
-// recursive tail sumation function to sum "thing"  ASSUMING A FLAT VECTOR
-// from the i'th element to the last (or n'th element) - remember elements are zero based
-function sum_tail(dna,i,thing) = 
-    let (n = len(dna)-1)
-    let (val = dna[i][thing])
-    (i==n ? val : val + sum_tail(dna,i+1,thing));
-
-// recursive tail sumation function to sum "thing"  AND ASSUMING A TREE (NESTED VECTOR)
+// recursive tail summation function to sum "thing"  AND ASSUMING A TREE (NESTED VECTOR)
 // from the i'th element to the last (or n'th element)
-function sum_tail2(dna,i,thing) = 
+function sum_tail2(dna,i,thing,vec_type=Qload) = 
     let (val = dna[i][thing])
     let (type = dna[i][Ztype]) 
-//echo(i=i,type=type,val=val)
-    (type==Qfork ?  sum_tail2(dna[i][1],1,thing) + sum_tail2(dna[i][2],1,thing) : 
-        (type==Qload ? val + sum_tail2(dna,1+i,thing) : 
-        (val==undef ? 0 : val )));
+    (type==Qfork ?  sum_tail2(dna[i][1],1,thing,vec_type) + 
+                    sum_tail2(dna[i][2],1,thing,vec_type) : 
+//echo("SUM ",i=i,type=type,val=val)
+        ((type==vec_type || type==Qskip) ? 
+                val + sum_tail2(dna,1+i,thing,vec_type) : 
+                (val==undef ? 0 : val )));
+
+// recursive function to find maximum "thing"  ASSUMING A TREE (NESTED VECTOR)
+function max_tree(tree,i=0,thing) = 
+    let (val = tree[i][thing])
+    let (type = tree[i][Ztype]) 
+//echo("MAX ",i=i,type=type,val=val)
+    (type==Qfork ?  max(max_tree(tree[i][1],1,thing),max_tree(tree[i][2],1,thing)) : 
+        (type==Qskip ? max(-9999999,max_tree(tree,1+i,thing)) :
+        (type==undef ? -99999999 : max(val,max_tree(tree,1+i,thing)))));
+
+// recursive function to find minimum "thing"  ASSUMING A TREE (NESTED VECTOR)
+function min_tree(tree,i=0,thing) = 
+    let (val = tree[i][thing])
+    let (type = tree[i][Ztype]) 
+//echo("MIN ",i=i,type=type,val=val)
+    (type==Qfork ?  min(min_tree(tree[i][1],1,thing),min_tree(tree[i][2],1,thing)) : 
+        (type==Qskip ? min(9999999,min_tree(tree,1+i,thing)) :
+        (type==undef ? 99999999 : min(val,min_tree(tree,1+i,thing)))));
 
 // recursive function to generate DX AND DY of undeformed beam
 function gen_dxdy_undeformed(dna,angles) =
@@ -189,7 +205,7 @@ function loads_to_beams(dna) =
         let (fx = dna[i][Zfx])
         let (fy = dna[i][Zfy])
         let (moment = dna[i][Zm])
-        [Qskip,fx,fy,moment] : 
+        [Qskip,fx,fy,moment] :  
     (dna[i][Ztype] == Qfork ? 
      [Qfork, loads_to_beams(dna[i][1]),loads_to_beams(dna[i][2])] :
        [Qload,0,0,0,0] ) ) ];
@@ -199,7 +215,7 @@ function spread_ext_loads(ext_loads) =
     let (n = len(ext_loads))
     //echo("SPREAD EXT LOADS",n=n)
     [ for (i=[0:1:n-1]) (ext_loads[i][Ztype] == Qload ? 
-    // echo(Qload,i=i,sum_tail2(ext_loads,i,Zfx))
+//echo(Qload,i=i,sum_tail2(ext_loads,i,Zfy))
     [Qload,sum_tail2(ext_loads,i,Zfx),sum_tail2(ext_loads,i,Zfy),sum_tail2(ext_loads,i,Zm)]: 
     (ext_loads[i][Ztype] == Qfork ? 
     [Qfork, spread_ext_loads(ext_loads[i][1]), spread_ext_loads(ext_loads[i][2])] :
@@ -218,26 +234,39 @@ function rotate_int_loads(int_loads,beam_angles) =
     (int_loads[i][Ztype] == Qfork ? 
     [Qfork, rotate_int_loads(int_loads[i][1],beam_angles[i][1]), rotate_int_loads(int_loads[i][2],beam_angles[i][2])] :  [Qskip,0,0,0,0] ) ) ];
 
-// calculate moments due to forces on current beam from  beam(s) down the tree
-function moments_due_to_forces(int_loads, dna) = 
+// recursive function to scale the internal forces and moments
+function scale_int_loads(int_loads,scale=1) = 
     let (n = len(int_loads))
     [ for (i=[0:1:n-1]) (int_loads[i][Ztype] == Qload ? 
-        (int_loads[i+1][Ztype] == Qfork ? 
+        let (fx = int_loads[i][Zfx] * scale)
+        let (fy = int_loads[i][Zfy] * scale)
+        let (moment = int_loads[i][Zm] * scale)
+        [Qload, fx,fy,moment ]: 
+    (int_loads[i][Ztype] == Qfork ? 
+    [Qfork, scale_int_loads(int_loads[i][1],scale), scale_int_loads(int_loads[i][2],scale)] :  [Qskip,0,0,0,0] ) ) ];
+
+// calculate moments due to forces on current beam from  beam(s) down the tree
+function moments_due_to_forces(loads, dna, angles) = 
+    let (n = len(loads))
+    [ for (i=[0:1:n-1]) (loads[i][Ztype] == Qload ? 
+        (loads[i+1][Ztype] == Qfork ? 
                 // At a fork need to reach down into the tree
-                let (fy1 = int_loads[i+1][1][0][Zfy])
+                let (fy1 = loads[i+1][1][0][Zfy])
                 let (dx1 = dna[i+1][1][0][Zlen])
-                let (fy2 = int_loads[i+1][2][0][Zfy])
+                let (fy2 = loads[i+1][2][0][Zfy])
                 let (dx2 = dna[i+1][2][0][Zlen])
                 [Qload, fy1*dx1 + fy2*dx2 ] 
     :
-                let (fy = int_loads[i+1][Zfy])
-                let (dx = dna[i+1][Zlen])
-                let (m = (fy*dx == undef ? 0 : fy*dx))
-    //echo(Qload,i=i,fy=fy,dx=dx)
+                let (fx = loads[i+1][Zfx])
+                let (fy = loads[i+1][Zfy])
+                let (ang = angles[i+1])
+                let (dx = dna[i+1][Zlen]*cos(ang))
+                let (dy = dna[i+1][Zlen]*sin(ang))
+                let (m = (fy*dx == undef ? 0 : fy*dx-fx*dy))
                 [Qload, m ] 
             ) : 
-            (int_loads[i][Ztype] == Qfork ? 
-        [Qfork, moments_due_to_forces(int_loads[i][1], dna[i][1]), moments_due_to_forces(int_loads[i][2], dna[i][2])] :
+            (loads[i][Ztype] == Qfork ? 
+        [Qfork, moments_due_to_forces(loads[i][1], dna[i][1]), moments_due_to_forces(loads[i][2], dna[i][2])] :
     [Qskip,0,0,0,0] ) ) ];
 
 // recursive function to sum moments from tail of tree to root
@@ -273,40 +302,42 @@ function rot_x (x,y,a) = x*cos(a)-y*sin(a);
 
 function rot_y (x,y,a) = x*sin(a)+y*cos(a);
     
-function compute_results(dna,loads,I,area,E,Ftu,rho) = 
+function compute_results(dna,loads,I,area,E,failure_stress,density) = 
     let (n = len(dna))
     [ for (i=[0:1:n-1]) (loads[i][Ztype] == Qload ? 
-        let (L = dna[i][Zlen])   // FUTURE, ADJUST BASED ON X LOAD
+        let (L = dna[i][Zlen])   // FUTURE, ADJUST L BASED ON X LOAD
         let (fx = loads[i][Zfx])  // axial load
         let (fy = loads[i][Zfy])  // bending load
         let (moment = loads[i][Zm])
         let (Iz = I[i])
-        let (a = area[i])
+        let (Area = area[i])
         let (bt = beam_type(fy,moment,L))
-        let (K = spring_rate(bt,Iz,L,E))       // force per radian
-        let (cr = characteristic_radius(bt))
-        let (theta = spring_angle(bt,K,fy,moment,cr,L)) // degrees
+        let (K = spring_rate(bt,Iz,L,E))       // force per radian // DEAD CODE
+        let (cr = characteristic_radius(bt))   // DEAD CODE
+        let (theta = spring_angle(bt,fy,moment,L,E,Iz)) // degrees.  THETA NEEDS TO CONVERGE.
         let (t_rad = theta * PI / 180)               // radians
         let (theta_end = end_angle(bt,theta))           // degrees
         let (a = a_position(L,cr,theta))
         let (b = b_position(L,cr,theta))
-        let (m_total = moment + fx * b + fy * a)
+        let (m_total = moment - fx * b + fy * a)
         let (c = dna[i][Zthk] / 2)              // half thickness
         let (stressmax = m_total*c/Iz + fx/a)
         let (stressmin = -m_total*c/Iz + fx/a)
-        let (ms = (abs(stressmax) > abs(stressmin) ? 1-abs(stressmax)/Ftu : 1-abs(stressmin)/Ftu))
+        let (ms = (abs(stressmax) > abs(stressmin) ? failure_stress/abs(stressmax)-1 : failure_stress/abs(stressmin)-1))
         let (energy = 0.5* K * (t_rad*t_rad))  // PE = 1/2 * K * x ^2
-        let (weight = a*L*rho)
-//echo(n=n,fx=fx,fy=fy,m_total=m_total,stressmax=stressmax,stressmin=stressmin,energy=energy)
-        [Qresult,bt,cr,K,theta,theta_end,a,b,stressmax,stressmin,energy,weight,ms] : 
+        let (weight = Area*L*density)
+echo(i=i,theta=theta,fx=fx,fy=fy,moment=moment,a=a,b=b,m_total=m_total)
+        [Qresult,bt,cr,K,theta,theta_end,a,b,stressmax,stressmin,energy,weight,ms,fx,fy,m_total] : 
     (loads[i][Ztype] == Qfork ? 
-     [Qfork, compute_results(dna[i][1],loads[i][1],I[i][1],area[i][1],E,Ftu,rho),
-             compute_results(dna[i][2],loads[i][2],I[i][2],area[i][2],E,Ftu,rho)] :
-       [Qskip,0,0,0,0,0,0,0,0] ) ) ];
+     [Qfork, compute_results(dna[i][1],loads[i][1],I[i][1],area[i][1],E,failure_stress,density),
+             compute_results(dna[i][2],loads[i][2],I[i][2],area[i][2],E,failure_stress,density)] :
+       [Qskip,0,0,0,0,0,0,0,0,0,0,0,0] ) ) ];
 
 // get beam type from forces 
+// PE = 1/2 * K * x ^2
+// check energy of both?
 function beam_type(fy=1,m=.2,L=1) = 
-    ((abs(fy*L)>abs(m) )? Zvertforce : Zendmoment );  // 0 use A.1.2 vertical force constants,  1 use A.1.5 moment
+    ((abs(fy*L)>(abs(m)/2) )? Zvertforce : Zendmoment );  // 0 use A.1.2 vertical force constants,  1 use A.1.5 moment
     
 function characteristic_radius(bt) = 
     (bt == Zvertforce ? 0.85 : 0.7346);
@@ -314,9 +345,33 @@ function characteristic_radius(bt) =
 function spring_rate(bt,i,len,E) = 
     (bt == Zvertforce ? 2.258*E*i/len : 1.5164*E*i/len);
     
-function spring_angle(bt,K,fy,moment,cr,L) =
+function spring_angle(bt,fy,moment,L,E,inertia) =
+// RETURE THE ANGLE GIVEN THE LOAD (DEGREES)
+// Theta is a function of  COSINE THETA.  Need to iterate a few times to decrease the error.
     let (rad_deg = 180/PI)
-    (bt == Zvertforce ? rad_deg*(fy/K)*cr*L : rad_deg*(moment/K + (fy/K)*cr*L) );
+    let (fm = moment/L)
+    let (force = fm + fy)
+    let (Kforce = 2.258*E*inertia/L)
+    let (Kmoment = 1.5164*E*inertia/L)
+    let (CRforce = 0.85)
+    let (CRmoment = 0.7346)
+    let (ang_est = rad_deg*(moment/(Kforce)))
+    let (angle1 = rad_deg*(force/Kforce)*CRforce*L*cos(ang_est))
+    let (angle2 = rad_deg*(force/Kforce)*CRforce*L*cos(angle1))
+    let (angle3 = rad_deg*(force/Kforce)*CRforce*L*cos(angle2))
+    let (angle4 = rad_deg*(force/Kforce)*CRforce*L*cos(angle3))
+    let (error1 = angle1-ang_est)
+    let (error2 = angle2-angle1)
+    let (error3 = angle3-angle2)
+    let (error4 = angle4-angle3)
+//echo(bt=bt,error1=error1,error2=error2,error3=error3,error4=error4)
+    //rad_deg*(force/Kmoment)*L;
+    //rad_deg*(force/Kforce)*CRforce*L*cos(angle4);
+    //(bt == Zvertforce ? rad_deg*(fy/K)*cr*L*cos(angle4) : rad_deg*((fm+fy)/K)*L );
+    (bt == Zvertforce ? rad_deg*(fy/Kforce)*CRforce*L*cos(angle4) : 
+                  rad_deg*(fm/Kmoment)*L ); // best for pure moments?
+    //           rad_deg*(fm/Kmoment)*L*CRmoment*cos(angle4) + rad_deg*(fy/Kforce)*CRforce*L*cos(angle4) );
+    //(bt == Zvertforce ? rad_deg*(fy/K)*cr*L*cos(angle4) : rad_deg*(moment/K + (fy/K)*cr*L*cos(angle4)) );
     
 function end_angle(bt,angle) = 
     (bt == Zvertforce ? angle*1.24 : angle*1.5164);
@@ -383,4 +438,70 @@ function add_angles(initial,results,prior_ang = 0) =
      [Qfork, add_angles(initial[i][1],results[i][1],ang3),
              add_angles(initial[i][2],results[i][2],ang3)] :
        Qskip ) )  ];
+
+// recursive function to count the number of branches
+function count_branches(dna,i=0,count=0) =
+    let (type = dna[i][Ztype]) 
+    (type == Qbeam || type == Qload || type == QdispX ? count_branches(dna,i+1,1)  : 
+        (type == Qfork ? ( count_branches(dna[i][1],0,1) + 
+                        count_branches(dna[i][2],0,1) + count) : count ) );
+    
+// recursive function to count the tree depth
+function tree_depth(dna,i=0,depth=0) =
+    let (type = dna[i][Ztype]) 
+    (type == Qbeam || type == Qload || type == QdispX ? tree_depth(dna,i+1,depth)  : 
+        (type == Qfork ? ( max(tree_depth(dna[i][1],0,0), 
+                        tree_depth(dna[i][2],0,0)) + 1) : depth ) );
+
+// recursive function to count the number of beams and check data
+function count_beams(dna,i=0,count=0) =
+    let (type = dna[i][Ztype]) 
+    (type == Qbeam ? 
+        let (length=(dna[i][Zlen] == 0 ? echo("** FOUND ZERO LENGTH BEAM **",i=i):0))
+        let (thick=(dna[i][Zthk] == 0 ? echo("** FOUND ZERO THICKNESS BEAM **",i=i):0))
+        let (width=(dna[i][Zw] == 0 ? echo("** FOUND ZERO WIDTH BEAM **",i=i):0))
+//echo("BEAM",i=i,count=count)
+        count_beams(dna,i+1,count+1) 
+    : (type == Qfork ?(count_beams(dna[i][1],0,1)+count_beams(dna[i][2],0,1)) 
+    : (type == undef ? count : count_beams(dna,i+1,count)) ) );
+
+// recursive function to count the number of loads and check data
+function count_loads(dna,i=0,count=0) =
+    let (type = dna[i][Ztype]) 
+    (type == Qload ? 
+        let (Fx=dna[i][Zfx])
+        let (Fy=dna[i][Zfy])
+        let (m=dna[i][Zm])
+        let (sum=(Fx+Fy+m == 0 ? echo("** FOUND ZERO LOAD LOAD **",i=i):0))
+        count_loads(dna,i+1,count+1)  
+    : (type == Qfork ? ( count_loads(dna[i][1],0,count) + 
+                        count_loads(dna[i][2],0,count)) 
+    : (type == undef ? count : count_loads(dna,i+1,count) ) ) );
+
+// recursive function to find load target displacement and compare to actual displacement
+function check_displacement_target(dna,def_nodes,init_nodes) =
+    let (n = len(dna))
+    [ for (i=[0:1:n-1]) (dna[i][Ztype] == Qload ? 
+        let (x_targ = dna[i][Ztargetx])
+        let (x_node = def_nodes[i][Zdx])
+        let (x_err = x_targ-x_node)
+        let (fx = dna[i][Zfx])
+        let (x_init = init_nodes[i][Zdx])
+        let (Kx = fx/(x_node-x_init))
+        let (NEW_fx = Kx*(x_targ-x_init))
+echo(i=i,x_targ=x_targ,x_node=x_node,x_err=x_err,fx=fx,x_init=x_init,Kx=Kx,NEW_fx=NEW_fx)
+        let (y_targ = dna[i][Ztargety])
+        let (y_node = def_nodes[i][Zdy])
+        let (y_err = y_targ-y_node)
+        let (fy = dna[i][Zfy])
+        let (y_init = init_nodes[i][Zdy])
+        let (Ky = fy/(y_node-y_init))
+        let (NEW_fy = Ky*(y_targ-y_init))
+echo(i=i,y_targ=y_targ,y_node=y_node,y_err=y_err,fy=fy,y_init=y_init,Ky=Ky,NEW_fy=NEW_fy)
+        [Qdisp,x_targ,y_targ,x_node,y_node] : 
+    (dna[i][Ztype] == Qfork ? 
+     [Qfork, 
+    check_displacement_target(dna[i][1],def_nodes[i+1][1],init_nodes[i+1][1]),
+    check_displacement_target(dna[i][2],def_nodes[i+1][2],init_nodes[i+1][2])] :
+       [Qskip,0,0,0,0] ) ) ];
 

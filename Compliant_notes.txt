@@ -1,13 +1,41 @@
 TO-DO List: 
 
-Python:
-Future: add A.1.5 Moment equations
-Future: calculate internal forces, local system (apply angles), that is, update moments based on deflections.
-Future: auto goal seek.
-9/11/2020: Converted OpenSCAD as-is to Python, that is, converted single tree, first iteration, openscad compliant code.
+12/13/2020: To Do: Add reaction arrows at ground.
 
-Verification:
-Print canteliver beam and take photos of deflected beam in front of grid paper
+12/13/2020: calculated results for test with reaction differ between Draw_Beam_Deformed and computed nodes, after reaction point. (calculated vs calculated)
+
+12/13/2020: To Do: run test with reaction point at x = 5, y = 0.
+
+12/13/2020: test_545g has significant displacement difference between measured and calculated. (test vs calculated)
+
+12/13/2020: Resolved a bug with multiple loads on a beam (testing deflection constraints). Multiple loads on a beam gave obvious bad results.
+The internal loads weren't being summed correctly.  Problem was that Sum_Tail2 function stopped when it encountered a Qskip, and it needed to 
+skip over the skip and keep going.
+
+12/06/2020: Modified/improved the test setup. Added a ground block. Added holes in board for bolts to act as reaction points.  
+Ran a few different test setup with different reactions points. See photos.  This is in preparation for adding deflection constraints.
+
+Verification: make polycarbonate canteliver beam and take photos of deflected beam in front of grid paper. Done 11/22/2020
+Difficulty matching at large displacement/large rotation. Seems to be due to the cosine error. large angle oscilations. 
+Seems due to the switch between the vertical force and moment load beam formulations.  
+
+fix the initial zero load node calculation to not be bad code??
+
+12/13/2020: Add DISPLACEMENT CONSTRAINTS QdispX, QdispY.  Keep it simple.  
+11/8/2020: experimented with Compliant Claw setting loads to meet displacements.  Need to adjust multiple loads to meet displacement constraint. interrelated. 
+11/21/2020: idea: once loaded, apply small additional load at that position to get a local spring rate, and sping rate at other loads...
+Might need linear matrix math.
+Not intuitive how the variables meet position.
+Load on other part of structure influences load at displacemen constraint.
+11/22/2020: IMPLEMENTED check_displacement_target function. Using the 2 fields beyond loads to specify a target x and y position of the load.
+need simple test case.  verification test? 
+
+WRITE SPRING RATE AT LOADS (Kx, Ky).. done?
+WRITE DX,DY TARGET ERROR... ADD X,Y TARGET TO LOAD (DF=K*DX).. done, seems off.
+
+Python: Convert LDB.
+Future: auto goal seek?
+9/11/2020: Converted OpenSCAD as-is to Python, that is, converted single tree, first iteration, openscad compliant code.
 
 9/11/2020: Investigated force vs moment beam accuracy.  
 Test Case: Four inch Cantilevel beam (8 segment) with 10 lb end load, expected results (based on Roark formulas):
@@ -35,34 +63,52 @@ ISSUES (as of 11/5/2020) WITH LDB in OpenSCAD:
 
 Tree results show that deflections are not being updated by large deflections.  This is a problem for loads, not moments.
 May need to step the loads up in increments, as was in the old code. 
-IDEA: LOAD GRADUALLY. Difficult to code in OpenSCAD.  Try Python.
+11/19/2020: RESOLVED. LOAD GRADUALLY. 
 
 11/9/2020: RESOLVED. Add ORIGIN, so that starting point of structure can be moved.  Will be very helpfull in Compliant Claw.
 
-Perform data quality check!  provide output (tree depth, number of branches, number of beams, number of forces) 
-Check for correct number of fields for each leaf.
-Check if at least one non-zero force exists.
-Stop if there are data quality problems.
+11/14/2020: RESOLVED: Perform data quality check! Stop if there are data quality problems.  provide output:
+Short functions that return counts:
+number of branches:  function count_branches(dna) : information only "model contains xx branches"
+if branches >= 1 then "model contains 
+	tree depth:  function get_tree_depth(dna)  : information only  
+	number of beams: function count_beams(dna) : don't proceed if zero. Check if beam values are non-zero.  Provide count for information
+	number of forces: function count_forces(dna) : Proceed if zero force value ($t=0). Check if at least one non-zero force exists. echo warnin. Provide count for information
+		if count_beams > 0 proceed else "no beams found in model"
+
+Future data quality checks:
+number of moments:  ??? need to seperate forces and moments, so that we can proceed differently wih moments??  future
+Check for correct number of fields for each leaf. ?? check length?  
+
+11/19/2020: RESOLVED: WRITE MAX AND MIN STRESS, MAX AND MIN DISPLACEMENT
+11/21/2020: RESOLVED: WRITE TOTAL WEIGHT
+11/21/2020: RESOLVED: WRITE TOTAL ENERGY
+
+Move E, Ftu, rho to indexes file so not as many variables are passed?
+11/23/2020: RESOLVED: rename Ftu to Failure_stress (one value)
+Introduce idea of minimum MS or safety factor.
+Adjust colors show red at min MS or safety factor.
+11/23/2020: RESOLVED: Echo E, Ftu, rho at begining of analysis.
 
 Write deformed DNA at the end, so model can be restarted from deformed shape.
+SET TARGET MS, CHANGE GAGES TO MEET TARGET MS.
 
-the code has two versions of sum_fwd and sum_tail, one for list, one for tree.  Do I need both?
+MAKE A SUPER TREE!
+
+11/14/2020: RESOLVED. only one version of both now. the code has two versions of sum_fwd and sum_tail, one for list, one for tree.  Do I need both?
 
 11/5/2020: RESOLVED.  Multi tree branch works (see Tree).
 
 11/5/2020:  RESOLVED: FORK model does not sum angle at fork correctly:
 DON'T NEED DEFORMED VERSION OF SUM_ANGLES, JUST ADD RESULTS TO UNDEFORMED TREE.
 
-DISPLACEMENT CONSTRAINTS: 
-11/8/2020: experimented with Compliant Claw.  Loads at node is magnitude and vector, or Fx and Fy. Need to adjust both variables to meet displacement constraint.
-Not intuitive how the variables meet position.
-Load on other part of structure influences load at displacemen constraint.
 
 VALIDATE: COMPARE WITH THEORETICAL AND SINGLE BEAM MODELS
 Normal-LOAD, 2 SEG, 4 SEG, 6 SEG
 Consider physical test of large displacement.
 
 STRESS CALCULATIONS NEED TO BE validated
+11/19/2020:  RESOLVED INCORRECT MARGIN OF SAFETY CALCULATION
 
 CHECK BEAM COMLUM STABILITY??  Convergence problem?  Test in Python.
 

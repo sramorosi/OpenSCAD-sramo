@@ -1,9 +1,10 @@
 // Robot Arm Parts Object Library
 //  Started on 4/6/2020 by SrAmo
-//  last modified 7/26/2020 by SrAmo
+//  last modified FEB 7 2021 by SrAmo
 use <force_lib.scad>
 use <Pulley-GT2_2.scad>
-include <SACC-26-Configuration.scad>
+
+include <Part-Constants.scad>
 
 // Rounded Cube
 display_round_cube = false;
@@ -262,7 +263,6 @@ module compliant_claw2(l=5,w=4.6,t1=0.075,t2=1,r=claw_corner,pre_angle=0) {
     $fs=0.05; // minimum size of fragment (default is 2)
     lug_t=0.17;
     poly_z = t2/2-lug_t/2;
-    
     module subtract_1 () {
         linear_extrude(height = 2)
         polygon(points=[[0,0],[-.4,-poly_z/2],[-1.4,-poly_z],[-2,-poly_z],[-2,1],[0,0]]);
@@ -272,10 +272,11 @@ module compliant_claw2(l=5,w=4.6,t1=0.075,t2=1,r=claw_corner,pre_angle=0) {
             polygon(points=[[-t2/3,0],[0,t2/3],[t2/3,0],[-t2/3,0]]);
     }
     
-    half_claw ();
-    mirror([1,0,0]) half_claw ();
+    half_claw (link_adjust=.32); // modify link location this side
+    mirror([1,0,0]) half_claw (link_adjust=0); 
     
-module half_claw () {    
+module half_claw (link_adjust=.3) {    
+echo(t1=t1,t2=t2);    
     // The cylinder part of the claw
     rotate([0,0,-90])
         translate([-r-t1,w/2-r,0])
@@ -299,10 +300,6 @@ module half_claw () {
            translate([0,2*r,0]) rotate([90,0,0])
             linear_extrude(height = 2*r)
                 polygon(points=[[0,1],[.1,1],[.8,0],[-.1,-.1],[0,1]]);
-           // subtract claw attach hole
-            //rotate ([90,0,0])
-            //    translate ([.3,t2/2,0])
-            //        cylinder (h=1,d=hole_M3_inch,center=true,$fn=32);
         }
         // The long Finger and the link to the servo
         // Multiple transformations to the preload
@@ -311,15 +308,17 @@ module half_claw () {
         translate ([r,0,0]) { // x=r
             difference () {
                 union() {
-                translate ([-1.2,claw_servo_y-r,0])rotate ([0,0,90])
+                    // Link to the servo
+                translate ([-1.2,link_adjust+claw_servo_y-r,0]) rotate ([0,0,90])
                     lug (r=0.2,w=t1,h=.6,t=t2,d=hole_servo_bushing,$fn=32);
-                translate ([-1.3,claw_servo_y-r-t1/2,0]) cube([1.3,t1,t2]);
+                translate ([-1.3,link_adjust+claw_servo_y-r-t1/2,0]) cube([1.3,t1,t2]);
                 }
                 // subtract lug features
                 translate ([0,0,0]) rotate ([-90,0,0]) subtract_1();
                 translate ([0,2,t2]) rotate ([90,0,0]) subtract_1();
 }
             difference () {
+                // Long finger
                 cube([t1,l-r,t2],center=false);
                 // subtract end chamfers
                 translate ([-.1,l-r+t1,-t1]) rotate ([90,0,90]) subtract_2();
