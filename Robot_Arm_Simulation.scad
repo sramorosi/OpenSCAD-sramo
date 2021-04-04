@@ -1,7 +1,7 @@
 // Robot Arm Simulation tool
 //  SACC = Servo Arm with Compliant Claw
 //  Started on 3/24/2020 by SrAmo
-//  last modified FEB 7 2021 by SrAmo
+//  last modified APR 1 2021 by SrAmo
 /*  >>>>> Introduction <<<<<
 
     The purpose of this tool is to:
@@ -24,24 +24,28 @@
     
     Parameters can be modified during animation!
 */
-
-use <force_lib.scad>
-use <Robot_Arm_Parts_lib.scad>
-use <Robot_Arm_Assembly.scad>
 //###### USE ONE CONFIG FILE AT A TIME #######//
 //include <SACC-26-Configuration.scad>
 include <InputArm-Configuration.scad>
+
+//###### USE ONE ASSEMBLY FILE AT A TIME #######//
+//include <SACC_Assembly.scad>
+use <InputArm_Assembly.scad>
+
+use <force_lib.scad>
+use <Robot_Arm_Parts_lib.scad>
+
 
 // Check to display assembly
 display_assembly = true;
 // Check to display all of the assembly
 display_full = false;
 // Check to display and echo forces and torques 
-display_forces = false; 
+//display_forces = false; 
 // Check to display reach path 
 display_reach = true; 
 // Check to ECHO Calculations
-Echo_Calculations = false;
+//Echo_Calculations = false;
 
 // angle limits at the B joint. Angle is 0 when BC in line with AB
 max_B_to_A = 45; // max angle of B to AB arm
@@ -68,61 +72,62 @@ lim2_M = lim2y/(1-lim2x);
 lim1_B = lim1y;
 lim2_B = -lim2_M*lim2x;
 
-//echo(min_A=min_A,max_A=max_A,min_B=min_B,max_B=max_B);
-//echo(lim1x=lim1x,lim1y=lim1y,lim2x=lim2x,lim2y=lim2y);
-//echo(lim1_M=lim1_M,lim2_M=lim2_M,lim1_B=lim1_B,lim2_B=lim2_B);
+echo (lenAB=lenAB,lenBC=lenBC);
+echo (min_A=min_A,max_A=max_A,A_range=(max_A-min_A));
+echo (min_B=min_B,max_B=max_B,B_range=(max_B-min_B));
+echo(lim1x=lim1x,lim1y=lim1y,lim2x=lim2x,lim2y=lim2y);
+echo(lim1_M=lim1_M,lim2_M=lim2_M,lim1_B=lim1_B,lim2_B=lim2_B);
+
+steps = 20;
+
+// USE LIST COMPREHENSIONS TO FILL ARRAYS
+angles = [ for (a = [0 : steps-1]) get_angles_from_t(a/steps,min_A,max_A,min_B,max_B)];
+// angle[0] = A, angle[1] = B
+//echo(angles=angles);
+
+b = [ for (a = [0 : steps-1]) [lenAB*cos(angles[a][0]),lenAB*sin(angles[a][0]),0] ];
+    
+cx = [ for (a = [0 : steps-1]) get_CX(angles[a])];
+cx_min=min(cx);
+cx_max=max(cx);
+x_range = cx_max-cx_min;
+echo (cx_min=cx_min,cx_max=cx_max,x_range=x_range);
+cy = [ for (a = [0 : steps-1]) get_CY(angles[a])];
+cy_min=min(cy);
+cy_max=max(cy);
+y_range = cy_max-cy_min;
+echo (cy_min=cy_min,cy_max=cy_max,y_range=y_range);
+max_range = (x_range > y_range) ? x_range : y_range;
 
 throw_max_A = max_A; // max A back position for throw
 throw_min_A = throw_max_A - 100; // min A for throw
 
 // Angle of End Effector
-C_angle = 0;
+C_angle = 0;   
 
-// Maximum payload weight (thing being lifted)
-payload=1.5;         
-// weight of end effector with no payload
-end_weight=0.5;   
-combined_weight = payload+end_weight;
-
-// A spring free length
-A_spr_free_len = 4.5;
-// A spring rate K (force/distance)
-A_spr_k = 1.4;
-A_spr_pt_gnd = [0,spr_dist_ground,0];   // spring attach point on ground
-// B spring free length
-B_spr_free_len = 1.0; 
-// B spring rate K (force/distance)
-B_spr_k = 5; 
+if (calc_forces) {
+    // HAVING TO DO WITH WEIGHTS AND FORCES
+    // Maximum payload weight (thing being lifted)
+    payload=1.5;         
+    // weight of end effector with no payload
+    end_weight=0.5;   
+    combined_weight = payload+end_weight;
     
-// optimized spring rate
-optimum_A_spr_k=1*(combined_weight*lenAB/2)/((sqrt(0.751*lenAB*lenAB)-lenAB/2)*(lenAB/4));  
-
-if (Echo_Calculations) {
-    echo (min_A=min_A,max_A=max_A,A_range=(max_A-min_A));
-    echo (min_B=min_B,max_B=max_B,B_range=(max_B-min_B));
+    // A spring free length (NO SPRING IN SOME CONFIGURATIONS)
+    A_spr_free_len = 4.5;
+    // A spring rate K (force/distance)
+    A_spr_k = 1.4;
+    A_spr_pt_gnd = [0,spr_dist_ground,0];   // spring attach point on ground
+    // B spring free length
+    B_spr_free_len = 1.0; 
+    // B spring rate K (force/distance)
+    B_spr_k = 5; 
     echo (end_weight=end_weight,payload=payload,combined_weight=combined_weight);
-    echo (lenAB=lenAB,lenBC=lenBC);
     
-    steps = 20;
-    
-    // USE LIST COMPREHENSIONS TO FILL ARRAYS
-    angles = [ for (a = [0 : steps-1]) get_angles_from_t(a/steps,min_A,max_A,min_B,max_B)];
-    // angle[0] = A, angle[1] = B
-    //echo(angles=angles);
-
-    b = [ for (a = [0 : steps-1]) [lenAB*cos(angles[a][0]),lenAB*sin(angles[a][0]),0] ];
-        
-    cx = [ for (a = [0 : steps-1]) get_CX(angles[a])];
-    cx_min=min(cx);
-    cx_max=max(cx);
-    echo (cx_min=cx_min,cx_max=cx_max,x_range=cx_max-cx_min);
-    cy = [ for (a = [0 : steps-1]) get_CY(angles[a])];
-    cy_min=min(cy);
-    cy_max=max(cy);
-    echo (cy_min=cy_min,cy_max=cy_max,y_range=cy_max-cy_min);
-    
+    // optimized spring rate
+    optimum_A_spr_k=1*(combined_weight*lenAB/2)/((sqrt(0.751*lenAB*lenAB)-lenAB/2)*(lenAB/4));  
     //
-    // A SPRING, HELPS THE A MOTOR
+    // The A spring helps the Joint A MOTOR
     A_spr_pt_AB = [ for (a = [0 : steps-1]) [spr_dist_AB*cos(angles[a][0]),spr_dist_AB*sin(angles[a][0]),0] ];
     A_spr_length = [ for (a = [0 : steps-1]) norm(vector_subtract(A_spr_pt_AB[a],A_spr_pt_gnd)) ];
     A_spr_len_min=min(A_spr_length);
@@ -200,7 +205,7 @@ if (display_assembly) {
     }
 }
 
-if (display_forces) internal_loads (A_angle,B_angle,C_angle);
+if (calc_forces) internal_loads (A_angle,B_angle,C_angle);
     
 if (display_reach) plot_limits (80); // turn off for 3d rendering
     
@@ -375,8 +380,8 @@ module inverse (c=[10,10,0]) {
 } 
 module plot_limits(n=20){
     // plot the expected limits of range of motion
-    $fs=.15;
-    r=0.15;
+    $fs=max_range/200;
+    r=max_range/120; // calculated based on evelope
     
     for (i=[0:1/n:1]){
         color("salmon") 
@@ -387,7 +392,7 @@ module plot_limits(n=20){
 module plot_throw(n=20){
     // plot the expected limits of range of motion
     $fn=8;
-    r=0.1;
+    r=max_range/120;
     
     for (i=[0:1/n:1]){
         color("blue") 

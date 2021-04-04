@@ -1,10 +1,27 @@
 // Robot Arm Parts Object Library
 //  Started on 4/6/2020 by SrAmo
-//  last modified FEB 7 2021 by SrAmo
+//  last modified APR 2 2021 by SrAmo
 use <force_lib.scad>
 use <Pulley-GT2_2.scad>
 
 include <Part-Constants.scad>
+
+// THIS STUFF SHOULD BE IN AN INCLUDE OR SOMETHING
+end_pulley_t = 9; // mm
+// Interface at C Pulley (End Effector)
+// Horizontal distance from C joint to back plate
+End_x=1.2; 
+// Horizontal distance from C to pin
+End_pin_x = End_x - hole_p25_inch*1.5;
+// Vertical distance from C joint to pin
+End_pin_y=1.0;
+End_angle = atan2(End_pin_y,End_pin_x);
+// End effector interface width. 
+End_w = end_pulley_t*mm_inch;  // inch
+// y location of servo relative to claw
+claw_servo_y=1.9; 
+claw_y_parts = claw_servo_y+End_pin_x-.6;
+
 
 // Rounded Cube
 display_round_cube = false;
@@ -56,6 +73,8 @@ display_M5_RHS = false;
 display_hex = false;
 // display tube barb (for hooking ends of tube together)
 display_barb = false;
+// display P090S Potentiometer
+display_P090S_pot = true;
 
 
 if (display_round_cube) rounded_cube();
@@ -86,6 +105,7 @@ if (display_qtr_flng_bearing) bearing_flng_qtr ();
 if (display_M5_RHS) M5_RHS (length=20);
 if (display_hex) hex ();
 if (display_barb) tube_barb ();
+if (display_P090S_pot) P090S_pot(L=20,negative=true);
     
 if (display_3_pt_cube) {
     p = [[0,0,0] , [10,0,-20], [-30,20,10] ];
@@ -169,7 +189,8 @@ module dog_leg (d1=10,ang=45,d2=5,w=2,t=1) {
     xtra=tan(ang/2)*(w/2);
     fx=d1-xtra;
     fs = 0.02*Pdist;  // inside chamfer size
-    union () {
+    translate ([0,-dy,0]) 
+        union () {
         translate([0,-w/2,0]) // first leg
             cube([d1+xtra,w,t],center=false);
         translate([d1,0,0])   // second leg
@@ -178,13 +199,11 @@ module dog_leg (d1=10,ang=45,d2=5,w=2,t=1) {
                     cube([d2+xtra,w,t],center=false);
         translate([dx,dy,0])   // rounded end
             cylinder(h=t,d=w,center=false);
-        //translate([d1,0,0]) // rounded knee, bad for printing
-        //    cylinder(h=t,d=w,center=false);
         linear_extrude(height=t,convexity=10) // add inside chamfer
             polygon([[fx,w/2],[fx-fs,w/2],[fx+fs,w/2+fs*tan(ang)],[fx+fs,w/2],[fx,w/2]]);
     }
 }
-module fancy_dog_leg (d1=10,ang=45,d2=4,w=2,t=1,d_pin=0.25,wall=0.2) {
+module fancy_dog_leg (d1=30,ang=45,d2=4,w=15,t=15,d_pin=0.25,wall=0.2) {
     // Create dog leg with center and pin-holes removed
     // padeye is the same thing as a lug 
     // The padeyes will fit a pin of diameter d_pin
@@ -204,7 +223,7 @@ module fancy_dog_leg (d1=10,ang=45,d2=4,w=2,t=1,d_pin=0.25,wall=0.2) {
             cylinder(h=t*2,d=d_pin,center=false);
         
         // cylinder to make clevis
-        translate([dx-w/.74,2*w,t_inside+wall])   
+        translate([dx-w,w,t_inside+wall])   
             rotate([-15,90,-90])
             rounded_cube([t_inside,4*w_inside,d1+d2],fillet_r,center=false);
         
@@ -214,8 +233,7 @@ module fancy_dog_leg (d1=10,ang=45,d2=4,w=2,t=1,d_pin=0.25,wall=0.2) {
             rounded_cube([t_inside,w_inside,d1+d2],fillet_r,center=false);
     }
 }
-module hollow_offset_link (length=20,d_pin=0.5,w=2,t=2,offset=1,
-        ang=45,wall=0.1,pulley_r=1,d_grv=0.1,right=true) {
+module hollow_offset_link (length=50,d_pin=2,w=15,t=15,offset=5,ang=45,wall=2,right=true) {
     // Create a Hollow Offset Link on xy plane along the X axis 
     // First joint is at [0,0], Second joint is at [length,0]
     // padeye is the same thing as a lug 
@@ -255,7 +273,7 @@ module fork (l_fork=2,d_fork=0.2) {
                 cube([d_fork,d_fork,l_fork],center=false);
     }
 }
-module compliant_claw2(l=5,w=4.6,t1=0.075,t2=1,r=claw_corner,pre_angle=0) {
+module compliant_claw2(l=5,w=4.6,t1=0.075,t2=1,r=0.7,pre_angle=0) {
     // U shaped claw with a pre angle
     // implement corner chamfers
     // Draws half and uses mirror
@@ -675,11 +693,49 @@ module hex (size=0.5,l=1) {
     linear_extrude(height=l,convexity=10) 
         polygon( points=[[x,y1],[0,y2],[-x,y1],[-x,-y1],[0,-y2],[x,-y1],[x,y1]] );
 }
+module P090S_pot (L=20,negative=false) {
+    // units are in metric
+    // negative means this will be used as a difference
+    
+    // body
+    if (!negative) cube([10,12,5.1],center=true);
+    if (negative) {
+        translate([0,0,-5]) cube([10.5,17,15.1],center=true);
+        cylinder(h=7,d=7.2,center=true,$fn=48);
+        translate([2.7,-3.8,0]) cylinder(h=7,d=2.5,center=true,$fn=24);
+        translate([-2.7,3.8,0]) cylinder(h=7,d=2.5,center=true,$fn=24);
 
+    }
+    // shaft F-Type
+    translate([0,0,L/2-4.3]) difference () {
+        cylinder(h=L,d=6.2,center=true,$fn=48);
+        translate ([-5,1.45,3]) cube(10); // key
+        // note: the T term should be a function of L
+    }
+    // pins (3)
+    lenPin=3+1.7+2.55;
+    translate([0,7,-lenPin]) elect_pin();
+    translate([-2.5,7,-lenPin]) elect_pin();
+    translate([2.5,7,-lenPin]) elect_pin();
+    // clip
+    clip();
+    mirror([1,0,0]) clip();
+     
+    module elect_pin() {
+        // 1 mm diamater electric pin
+        cylinder(h=lenPin,r=.5,$fn=8);
+        translate([0,0,7]) rotate([90,0,0]) cylinder(h=7,r=.5,$fn=8);
+    }
+    module clip() {
+        translate([4.9,0,2.5]) rotate([90,90,0])
+        linear_extrude(3,center=true)
+            polygon([[0,0],[8.5,0],[9.5,.8],[10.5,0],[13,0],[13,-1],[0,-1],[0,0]]);
+    }
+}
 
 module tube_barb (ID=4.763, OD=6.35) {
     // barb to connect two ends of tube into a loop
-    // ASSUMING METRIC
+    // UNITS ARE METRIC
     $fn=24;
     barb ();
     mirror ([0,0,1]) barb(); 
@@ -726,3 +782,20 @@ module rotFromTo(di,do)
     children();
   else
     mirror(do/norm(do)+di/norm(di)) mirror(di) children();
+  
+module zip_tie_holes (arm_l = 10,arm_w=1,dholes = 1) {
+    rotate([90,0,0]) {
+        translate ([.15*arm_l,.35*arm_w,-arm_w]) 
+            cylinder(h=4*arm_w,d=dholes,center=true);
+        translate ([.15*arm_l,.65*arm_w,-arm_w]) 
+            cylinder(h=4*arm_w,d=dholes,center=true);
+        translate ([.5*arm_l,.35*arm_w,-arm_w]) 
+            cylinder(h=4*arm_w,d=dholes,center=true);
+        translate ([.5*arm_l,.65*arm_w,-arm_w]) 
+            cylinder(h=4*arm_w,d=dholes,center=true);
+        translate ([.85*arm_l,.35*arm_w,-arm_w]) 
+            cylinder(h=4*arm_w,d=dholes,center=true);
+        translate ([.85*arm_l,.65*arm_w,-arm_w]) 
+            cylinder(h=4*arm_w,d=dholes,center=true);
+    }
+}

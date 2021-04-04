@@ -19,6 +19,8 @@ lenAB=9;
 lenBC=9;      
 // Arm wall thickness throughout
 wall_t=bearing_t;  
+// Joint/Pin size throughout
+pinSize = hole_p25_inch;
 
 // Number of teeth in BC ARM pulleys
 bc_pulley_teeth = 80;
@@ -79,7 +81,13 @@ wBC_inside = widthBC - 2*wall_t;
 echo (widthAB=widthAB,widthBC=widthBC,wAB_inside=wAB_inside,wBC_inside=wBC_inside);
 
 
-// Interface at C Pulley (End Effector)
+// End effector offsets from C to grip/load point
+LengthEnd=[5,0,0.0];   
+
+
+
+// TO BE FIXED (ALSO IN ROBOT ARM PARTS)
+
 // Horizontal distance from C joint to back plate
 End_x=1.2; 
 // Horizontal distance from C to pin
@@ -89,14 +97,8 @@ End_pin_y=1.0;
 End_angle = atan2(End_pin_y,End_pin_x);
 // End effector interface width. 
 End_w = end_pulley_t*mm_inch;  // inch
-// End effector offsets from C to grip/load point
-LengthEnd=[5,0,0.0];   
-
 // y location of servo relative to claw
 claw_servo_y=1.9; 
-// big claw radius
-claw_corner = 0.7;
 claw_y_parts = claw_servo_y+End_pin_x-.6;
-
 
 

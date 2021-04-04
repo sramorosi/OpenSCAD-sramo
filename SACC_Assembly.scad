@@ -58,16 +58,16 @@ if (display_assy) {
         }
     }
 
-if (display_ABarm) rotate([-90,0,0]) final_AB_arm (r_pulley=bc_pulley_d/2);
+if (display_ABarm) rotate([-90,0,0]) final_AB_arm ();
 if (display_BCarm) {
     rotate([-90,0,0])
-        final_BC_arm (r_pulley=bc_pulley_d/2);
+        final_BC_arm ();
         if (display_all && typeRobotArm) color ("green") rotate([90,0,0])
         B_Drive_at_B_Pulley ();
 }
 if (display_base) {
     difference () {
-        final_base ();
+        robot_arm_base ();
         if (clip_yz) // x = 0 cut 
             translate ([-20,-10,-10]) cube (20,center=false);
     }
@@ -179,12 +179,21 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
             
         // B drive belt (displayed with base assembly)
         color("navy") pt_pt_belt([0,0,-1.2],[b[0],b[1],-1.2],d=belt_d,r_pulley=bc_pulley_d/2,round=false);
+    } else {
+        // type is an input arm
+        translate([0,0,-12]) P090S_pot (); // joint A pot
+        translate([b[0],b[1],-12]) P090S_pot (); // joint B pot
     }
 
     // BASE    
     color("green",.5)
         rotate([-90,0,0])
-            if (typeRobotArm) final_base (); 
+            if (typeRobotArm) {
+                robot_arm_base (); 
+            } else {
+                // type is input arm
+                input_arm_base ();
+            }
 
     if (full && typeRobotArm) {
         // Draw springs
@@ -217,15 +226,13 @@ module end_effector_assy() {
         color ("red",.5) translate([claw_y_parts+.3,.3,0]) rotate([0,90,-90]) servo_body();
     }
 }
-module final_AB_arm (r_pulley=1) {
+module final_AB_arm () {
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.01; // minimum size of fragment (default is 2)
 
     difference () {
         union () {
-            hollow_offset_link(length=lenAB,d_pin=hole_p25_inch,w=widthAB,
-                t=widthAB,offset=widthAB/2.5,ang=45,wall=wall_t,
-                pulley_r=r_pulley,d_grv=belt_d,right=true,$fn=48); 
+            hollow_offset_link(length=lenAB,d_pin=pinSize,w=widthAB,t=widthAB,offset=widthAB/2.5,ang=45,wall=wall_t,right=true,$fn=48); 
             
             if (typeRobotArm) {
                 // add the spring attachment boss
@@ -255,20 +262,19 @@ module final_AB_arm (r_pulley=1) {
         
         zip_tie_holes (arm_l=lenAB,arm_w=widthAB);
    }
-   if (display_all) {// add bearings
+   if (display_all && typeRobotArm) {// add bearings
        translate([0,0,wall_t]) bearing_flng_qtr ();
        translate([0,0,wAB_inside+wall_t]) rotate([180,0,0]) bearing_flng_qtr ();
    }
 }
 
-module final_BC_arm (r_pulley=1) {
+module final_BC_arm () {
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.01; // minimum size of fragment (default is 2)
 
     difference () {
         union () {
-        hollow_offset_link (length=lenBC,d_pin=hole_p25_inch,w=widthBC,t=widthBC,offset=widthBC/2.5,ang=45,wall=wall_t,
-          pulley_r=r_pulley,d_grv=belt_d,right=false,$fn=48); 
+        hollow_offset_link (length=lenBC,d_pin=pinSize,w=widthBC,t=widthBC,offset=widthBC/2.5,ang=45,wall=wall_t,right=false,$fn=48); 
         if (typeRobotArm) {
             // union HEX for pulley
             hex_h = bc_pulley_t*mm_inch;
@@ -287,7 +293,7 @@ module final_BC_arm (r_pulley=1) {
             zip_tie_holes (arm_l=lenBC,arm_w=widthBC);
         }
     }    
-    if (display_all) {// add bearings
+    if (display_all && typeRobotArm) {// add bearings
        translate([0,0,wall_t]) bearing_flng_qtr ();
        translate([0,0,-bc_pulley_t*mm_inch+bearing_flange_t]) rotate([180,0,0]) bearing_flng_qtr ();
        translate([0,0,wBC_inside+2*wall_t]) bearing_flng_qtr();
@@ -514,7 +520,59 @@ module claw_shooter (curved=true) {
                 }
     }
 }
-module final_base () {
+module input_arm_base () {
+    // Base of the input arm
+    $fa=$preview ? 6 : 1; // minimum angle fragment
+    $fs=$preview ? 0.05 : 0.03; // minimum size of fragment (default is 2)
+
+    base_w = 30;
+    base_l = 30;
+    base_t = 2;
+    base_z_top = 10;
+    
+    base_y_shift = 1;
+    
+    // parameters for the 4 attach bolts
+    hole_space = 20;
+    x_b = hole_space/2;
+    y_b = hole_space/2;
+
+    difference () {
+        union () {
+            translate([0,base_y_shift,-base_z_top- base_t/2])
+                rounded_cube(size=[base_w,base_l,base_t],r=2,center=true);
+            
+            // B  Side
+            color("blueviolet") translate([0,10,-base_z_top])
+                rotate([90,0,0]) 
+                    lug (r=5,w=base_w/1.6,h=base_z_top,t=2);      
+
+            
+            // A  Side
+            color("yellow") translate([0,-10,-base_z_top])
+                rotate([90,0,0]) 
+                    lug (r=5,w=base_w/1.6,h=base_z_top,t=2);    
+            
+        }
+        // subtract joint A bore
+        translate([0,0,0])
+            rotate([90,0,0])
+                cylinder(h=base_l*2,d=4,center=true);
+    
+        // subtract A servo interface
+        
+        // subtract the 4 base mounting bolt holes
+        translate([x_b,y_b+base_y_shift,-base_z_top])
+                cylinder(h=base_t*3,d=4,center=true);
+        translate([x_b,-y_b+base_y_shift,-base_z_top])
+                cylinder(h=base_t*3,d=4,center=true);
+        translate([-x_b,-y_b+base_y_shift,-base_z_top])
+                cylinder(h=base_t*3,d=4,center=true);
+        translate([-x_b,y_b+base_y_shift,-base_z_top])
+                cylinder(h=base_t*3,d=4,center=true);
+    }
+}
+module robot_arm_base () {
     // Base of the arm
     //   Nothing elegant about this code.
     $fa=$preview ? 6 : 1; // minimum angle fragment
