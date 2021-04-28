@@ -1,6 +1,6 @@
 // Robot Arm Parts Object Library
 //  Started on 4/6/2020 by SrAmo
-//  last modified APR 2 2021 by SrAmo
+//  last modified APR 26 2021 by SrAmo
 use <force_lib.scad>
 use <Pulley-GT2_2.scad>
 
@@ -105,7 +105,10 @@ if (display_qtr_flng_bearing) bearing_flng_qtr ();
 if (display_M5_RHS) M5_RHS (length=20);
 if (display_hex) hex ();
 if (display_barb) tube_barb ();
-if (display_P090S_pot) P090S_pot(L=20,negative=true);
+if (display_P090S_pot) {
+    P090S_pot(L=20,negative=true);
+    translate([20,0,0]) P090S_pot(L=20,negative=false);
+}
     
 if (display_3_pt_cube) {
     p = [[0,0,0] , [10,0,-20], [-30,20,10] ];
@@ -701,9 +704,17 @@ module P090S_pot (L=20,negative=false) {
     if (!negative) cube([10,12,5.1],center=true);
     if (negative) {
         translate([0,0,-5]) cube([10,17,15.1],center=true);
-        cylinder(h=7,d=7.2,center=true,$fn=48);
-        translate([2.7,-3.8,0]) cylinder(h=7,d=2.5,center=true,$fn=24);
-        translate([-2.7,3.8,0]) cylinder(h=7,d=2.5,center=true,$fn=24);
+        cylinder(h=7,d=7.2,center=true,$fn=48); // ring around the shaft
+        
+        // two bumps around the shaft
+        translate([2.7,3.8,0]) cylinder(h=7,d=2.5,center=true,$fn=24);
+        translate([-2.7,-3.8,0]) cylinder(h=7,d=2.5,center=true,$fn=24);
+        
+        // barb slots for wire connector
+        translate([1.6,8.4,-5-7.9]) cube([1.22,1,15.1],center=false);
+        translate([1.6,8.4,-8]) cube([1.5,1,10],center=false);
+        translate([-1.22-1.6,8.4,-5-7.9]) cube([1.22,1,15.1],center=false);
+        translate([-1.22-1.9,8.4,-8]) cube([1.5,1,10],center=false);
 
     }
     // shaft F-Type

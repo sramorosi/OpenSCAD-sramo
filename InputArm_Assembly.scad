@@ -1,13 +1,13 @@
 // Input Arm Assembly
 //  Design for Human Input Arm that drives Robot Arm
-//  last modified APR 4 2021 by SrAmo
+//  last modified APR 26 2021 by SrAmo
 include <InputArm-Configuration.scad>
 use <force_lib.scad>
 use <Robot_Arm_Parts_lib.scad>
 use <Pulley-GT2_2.scad>
 
 // Draw the Input Arm Assembly
-display_assy = true;
+display_assy = false;
 // Draw the extra?? stuff
 display_all = false;
 // Section cut Assy at X = 0?
@@ -19,7 +19,7 @@ display_base = false;
 // Draw Final arm (shared)
 display_arm = false;
 // Draw Final Claw 
-display_claw= false;
+display_claw= true;
 
 if (display_assy) {
     difference () {
@@ -33,7 +33,10 @@ if (display_assy) {
 
 if (display_arm)  final_arm(length=lenAB);
 if (display_base) input_arm_base();
-if (display_claw)  final_hand();
+if (display_claw)  {
+    final_hand();
+    translate([0,30,0]) final_finger();
+}
     
 module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
     // calculate b and c positions from angles
@@ -89,28 +92,26 @@ module offset_link (length=100,d_pin=2,w=15,t=15,offset=5,ang=45,wall=2) {
     difference () {
         translate ([length/2,0,0])
             union () {  
+                
                 dog_leg (d1,ang,d2,w,t);
                 mirror ([1,0,0]) // make a mirror copy
                     dog_leg (d1,ang,d2,w,t);
+                
+                // pot bracket
                 translate([length/2,0,0]) mirror([0,0,1]) 
                     rotate([0,0,-90+ang])
-                        translate([0,-4,0])
-                        cube([w,13,15],center=true); // pot bracket
-                // zip tie boss
-                translate([3,0,t/2]) cylinder(h=t,d=5.8,center=true);
+                        translate([0,-5,0]) cube([w,14,15],center=true); 
                 
             };
         translate([-w/1.4,-w*1.1,t/2+pot_lug_t/2]) 
-            cube([1.4*w,2.2*w,t],center=false); // lug removal
+            cube([1.5*w,2.2*w,t],center=false); // lug removal
         translate([-w/1.4,-w*1.1,t/2-pot_lug_t/2]) mirror([0,0,1]) 
-            cube([2*w,2.2*w,t],center=false); // lug removal, pot side
+            cube([1.5*w,2.2*w,t],center=false); // lug removal, pot side
 
         translate([length-w/1.4,-w*1.1,t/2-pot_lug_t/2-.3]) 
             cube([1.4*w,2.2*w,pot_lug_t+.6],center=false); // clevis remove
         translate([length,0,t/2])
            cylinder(h=t,d=d_pin,center=false); // pin remove 
-        // zip tie hole
-        //translate([length/2-3,0,t/2.1]) cylinder(h=t*2,d=6,center=true);
     }
 }
 
@@ -121,33 +122,78 @@ module final_arm (length=10) {
     mirror([0,1,0]) 
     difference () {
         offset_link(length=length,d_pin=pinSize,w=widthAB,t=armt,offset=widthAB/2,ang=45,wall=wall_t,$fn=48); 
+        // remove the potentiometer interfaces
         translate([0,0,1]) rotate([0,0,45]) P090S_pot(negative=true);
         translate([length,0,1]) rotate([0,0,135]) P090S_pot(negative=true);
-        //zip_tie_holes
-        translate([length/2+3,0,widthAB]) cylinder(h=3*widthAB,d=3,center=true);
-        translate([length/2+3,-6,widthAB]) cylinder(h=3*widthAB,d=3,center=true);
+        // remove wire holes
+        //   long hole
+        translate([length/2,-widthAB+wire_hole_offset,armt/2]) 
+            rotate ([0,92,0]) cylinder(h=length,d=wire_hole_dia,center=true);
+        //   diagonal hole 1
+        translate([length/4,-widthAB+wire_hole_offset,armt/2]) 
+            rotate ([0,120,0]) 
+                translate([0,0,length/2]) cylinder(h=length,d=wire_hole_dia,center=true);
+        //   diagonal hole 1
+        translate([length/1.3,-widthAB+wire_hole_offset,armt/2]) 
+            rotate ([0,-135,0]) 
+                translate([0,0,length/2]) cylinder(h=length,d=wire_hole_dia,center=true);
+        //   donut hole
+        translate([0,0,armt/2-1]) rotate_extrude(convexity = 10, $fn = 48) {
+            translate([widthAB/1.3, 0, 0]) circle(d=wire_hole_dia*1.2, $fn = 48);
+            translate([widthAB/1.7, 0, 0]) circle(d=wire_hole_dia*1.2, $fn = 48);
+        }
+        // twist tie hole
+        translate([widthAB,-widthAB/2,0]) cylinder(h=4*widthAB,d=wire_hole_dia,center=true);
    }
 }
-
-module final_hand(length=35,dog_angle=15){
-    // Claw that attaches to End Effector
-    $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.05; // minimum size of fragment (default is 2)
-    difference () {
-        offset_link(length=length,d_pin=pinSize,w=widthAB,t=armt,offset=widthAB/6,ang=dog_angle,wall=wall_t,$fn=48); 
-        translate([0,0,1]) rotate([0,0,dog_angle]) P090S_pot(negative=true);
-        translate([length,0,1]) rotate([0,0,dog_angle+90]) P090S_pot(negative=true);
-        //zip_tie_holes
-        translate([length/2,0,widthAB]) cylinder(h=3*widthAB,d=3,center=true);
-        translate([length/2,-6,widthAB]) cylinder(h=3*widthAB,d=3,center=true);
-   }
-   translate([length+5,-20,0]) difference() {
+module finger_ring() {
+       // Finger Ring
+   difference() {
        cylinder(h=armt,d=20,center=false);
        translate([0,0,-armt/2]) cylinder(h=2*armt,d=16,center=false);
    }
-   translate([length-5,-8,0]) rotate([0,0,-90+dog_angle]) cube([7,10,armt],center=false);
+   translate([-4,-19,0]) cube([8,10,armt],center=false);
+}
+module final_hand(length=35,dog_angle=10){
+    // Claw that attaches to End Effector
+    $fa=$preview ? 6 : 1; // minimum angle fragment
+    $fs=0.05; // minimum size of fragment (default is 2)
+    w=15;
+    t=15;
+    offset=5;
+    difference () {
+    d2 = offset/sin(dog_angle);   // length of second segment
+    d1 = length/2 - d2*cos(dog_angle); // length of first segment
+    fillet_r = t/4;        
+    difference () {
+        translate ([length/2,0,0])
+            union () {  
+                
+                rotate([90,0,0]) dog_leg (d1,dog_angle,d2,w,t);
+                mirror ([1,0,0]) // make a mirror copy
+                    dog_leg (d1,dog_angle,d2,w,t);
+                
+                // pot bracket
+                //translate([length/2,0,0]) mirror([0,0,1]) rotate([0,0,-90+dog_angle])
+                //        translate([0,-5,0]) cube([w,14,15],center=true); 
+                
+            };
+        translate([-w/1.4,-w*1.1,t/2+pot_lug_t/2]) 
+            cube([1.5*w,2.2*w,t],center=false); // lug removal
+        translate([-w/1.4,-w*1.1,t/2-pot_lug_t/2]) mirror([0,0,1]) 
+            cube([1.5*w,2.2*w,t],center=false); // lug removal, pot side
+
+        //translate([length-w/1.4,-w*1.1,t/2-pot_lug_t/2-.3]) 
+        //    cube([1.4*w,2.2*w,pot_lug_t+.6],center=false); // clevis remove
+        } 
+        translate([0,0,-2]) rotate([0,0,dog_angle]) P090S_pot(negative=true);
+        translate([length,0,1]) rotate([90,0,0]) P090S_pot(negative=true);
+    }
+    translate([20,10,30]) rotate([90,0,0]) finger_ring();
+
 }
 module final_finger() {
+    finger_ring();
 }
 module input_arm_base () {
     // Base of the input arm
@@ -170,8 +216,13 @@ module input_arm_base () {
             
            rotate([-90,-45,0]) 
             translate([-lenAB,0,-base_l/2+armt/2]) 
-                final_arm(length=lenAB);
-        }
+                mirror([0,1,0]) 
+                difference () {
+                    offset_link(length=lenAB,d_pin=pinSize,w=widthAB,t=armt,offset=widthAB/2,ang=45,wall=wall_t,$fn=48); 
+                    // remove the potentiometer interfaces
+                    translate([lenAB,0,1]) rotate([0,0,135]) P090S_pot(negative=true);
+                }
+       }
         // remove the extra part of the arm
         translate([-base_w,-base_l,-30-base_z_top-base_t]) 
             cube([2*base_w,2*base_l,30],center=false);
@@ -184,5 +235,13 @@ module input_arm_base () {
                 cylinder(h=base_t*3,d=4,center=true);
         translate([-x_b,y_b,-base_z_top])
                 cylinder(h=base_t*3,d=4,center=true);
+        // remove wire donut hole
+        translate([0,4 ,0]) rotate([90,0,0]) 
+            rotate_extrude(convexity = 10, $fn = 48) 
+            translate([widthAB, 0, 0]) circle(d=wire_hole_dia*1.5, $fn = 48);
+       // twist tie hole
+        translate([-10,0,-base_z_top+4]) rotate([90,0,0])
+            cylinder(h=4*widthAB,d=wire_hole_dia,center=true);
+
     }
 }
