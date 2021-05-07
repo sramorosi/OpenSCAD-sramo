@@ -707,8 +707,8 @@ module P090S_pot (L=20,negative=false) {
         cylinder(h=7,d=7.2,center=true,$fn=48); // ring around the shaft
         
         // two bumps around the shaft
-        translate([2.7,3.8,0]) cylinder(h=7,d=2.5,center=true,$fn=24);
-        translate([-2.7,-3.8,0]) cylinder(h=7,d=2.5,center=true,$fn=24);
+        translate([2.7,-3.8,0]) cylinder(h=7,d=2.5,center=true,$fn=24);
+        translate([-2.7,3.8,0]) cylinder(h=7,d=2.5,center=true,$fn=24);
         
         // barb slots for wire connector
         translate([1.6,8.4,-5-7.9]) cube([1.22,1,15.1],center=false);
