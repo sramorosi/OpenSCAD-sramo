@@ -38,7 +38,7 @@ display_dog_leg = false;
 // Fancy Dog Leg (hollow with clevis and pin hole)
 display_fancy_dog_leg = false;
 // Hollow offset link (two fancy dog legs, mirrored about x=0)
-display_hollow_link = false;
+display_hollow_link = true;
 // Fork attachment for End
 display_fork = false;
 // Compliant U Claw for End (90 deg fixed)
@@ -74,7 +74,7 @@ display_hex = false;
 // display tube barb (for hooking ends of tube together)
 display_barb = false;
 // display P090S Potentiometer
-display_P090S_pot = true;
+display_P090S_pot = false;
 
 
 if (display_round_cube) rounded_cube();
@@ -206,7 +206,7 @@ module dog_leg (d1=10,ang=45,d2=5,w=2,t=1) {
             polygon([[fx,w/2],[fx-fs,w/2],[fx+fs,w/2+fs*tan(ang)],[fx+fs,w/2],[fx,w/2]]);
     }
 }
-module fancy_dog_leg (d1=30,ang=45,d2=4,w=15,t=15,d_pin=0.25,wall=0.2) {
+module fancy_dog_leg (d1=50,ang=45,d2=20,w=15,t=25,d_pin=1,wall=3) {
     // Create dog leg with center and pin-holes removed
     // padeye is the same thing as a lug 
     // The padeyes will fit a pin of diameter d_pin
@@ -222,21 +222,21 @@ module fancy_dog_leg (d1=30,ang=45,d2=4,w=15,t=15,d_pin=0.25,wall=0.2) {
     difference() {
         dog_leg(d1,ang,d2,w,t);
         
-        translate([dx,dy,-t/2])   // hole for pin
+        translate([dx,0,-t/2])   // hole for pin
             cylinder(h=t*2,d=d_pin,center=false);
         
-        // cylinder to make clevis
-        translate([dx-w,w,t_inside+wall])   
+        // remove rounded cube to make clevis
+        translate([dx-1.05*w,w,t_inside+wall])   
             rotate([-15,90,-90])
             rounded_cube([t_inside,4*w_inside,d1+d2],fillet_r,center=false);
         
-        // hollow the first leg
-        translate([-d2/2,-w_inside/2,t_inside+wall]) 
-            rotate([0,90,0])
-            rounded_cube([t_inside,w_inside,d1+d2],fillet_r,center=false);
+        // hollow the leg
+//        translate([-d2/2,-w_inside/2,t_inside+wall]) 
+//            rotate([0,90,0])
+//            rounded_cube([t_inside,w_inside,d1+d2],fillet_r,center=false);
     }
 }
-module hollow_offset_link (length=50,d_pin=2,w=15,t=15,offset=5,ang=45,wall=2,right=true) {
+module hollow_offset_link (length=50,d_pin=2,w=10,t=10,offset=5,ang=45,wall=2) {
     // Create a Hollow Offset Link on xy plane along the X axis 
     // First joint is at [0,0], Second joint is at [length,0]
     // padeye is the same thing as a lug 
@@ -253,16 +253,16 @@ module hollow_offset_link (length=50,d_pin=2,w=15,t=15,offset=5,ang=45,wall=2,ri
     d1 = length/2 - d2*cos(ang); // length of first dog leg segment
     fillet_r = t/4;        
     difference () {
-        translate ([length/2,offset,0])
+        translate ([length/2,0,0])
             rotate ([0,0,180]) // flip the offset up
-            union () {  // not sure what union?
+            union () {  // not sure what union does?
                 fancy_dog_leg (d1,ang,d2,w,t,d_pin,wall);
                 mirror ([1,0,0]) // make a mirror copy
                     fancy_dog_leg (d1,ang,d2,w,t,d_pin,wall);
             }
-        translate([length/2,0,w/2])
-            rotate([90,0,0])
-            rounded_cube([length,0.6*w,t],fillet_r,center=true);
+//        translate([length/2,0,w/2])
+//            rotate([90,0,0])
+//            rounded_cube([length,0.6*w,t],fillet_r,center=true);
     }
 }
 
@@ -297,7 +297,6 @@ module compliant_claw2(l=5,w=4.6,t1=0.075,t2=1,r=0.7,pre_angle=0) {
     mirror([1,0,0]) half_claw (link_adjust=0); 
     
 module half_claw (link_adjust=.3) {    
-echo(t1=t1,t2=t2);    
     // The cylinder part of the claw
     rotate([0,0,-90])
         translate([-r-t1,w/2-r,0])
