@@ -7,20 +7,7 @@ use <Pulley-GT2_2.scad>
 include <Part-Constants.scad>
 
 // THIS STUFF SHOULD BE IN AN INCLUDE OR SOMETHING
-end_pulley_t = 9; // mm
-// Interface at C Pulley (End Effector)
-// Horizontal distance from C joint to back plate
-End_x=1.2; 
-// Horizontal distance from C to pin
-End_pin_x = End_x - hole_p25_inch*1.5;
-// Vertical distance from C joint to pin
-End_pin_y=1.0;
-End_angle = atan2(End_pin_y,End_pin_x);
-// End effector interface width. 
-End_w = end_pulley_t*mm_inch;  // inch
-// y location of servo relative to claw
-claw_servo_y=1.9; 
-claw_y_parts = claw_servo_y+End_pin_x-.6;
+claw_servo_x=10; 
 
 
 // Rounded Cube
@@ -76,7 +63,6 @@ display_barb = false;
 // display P090S Potentiometer
 display_P090S_pot = false;
 
-
 if (display_round_cube) rounded_cube();
 if (display_lug) lug();
 if (display_simple_link) simple_link(l=1.8,w=0.5,t=0.17);
@@ -84,8 +70,8 @@ if (display_dog_leg) dog_leg ();
 if (display_fancy_dog_leg) fancy_dog_leg ();
 if (display_hollow_link) hollow_offset_link ();
 if (display_fork) color ("green") fork ();
-if (display_U_Claw) compliant_claw (l=6,w=4.6,t1=0.075,t2=1.5);
-if (display_V_Claw) color ("blue") compliant_claw2 (l=6,w=4.6,t1=0.075,t2=1.5,pre_angle = 15);
+if (display_U_Claw) compliant_claw ();
+if (display_V_Claw) color ("blue") compliant_claw2 ();
 if (display_pulley) pulley ();
 //if (display_pulley) translate ([0,0,1]) pulley (round=false);
 if (display_spacer) spacer ();
@@ -114,7 +100,22 @@ if (display_3_pt_cube) {
     p = [[0,0,0] , [10,0,-20], [-30,20,10] ];
     cubeOnThreePoints(p); 
 }
-
+module zip_tie_holes (arm_l = 10,arm_w=1) {
+    rotate([90,0,0]) {
+        translate ([.15*arm_l,.35*arm_w,-arm_w]) 
+            cylinder(h=arm_w,d=hole_M5,center=true);
+        translate ([.15*arm_l,.65*arm_w,-arm_w]) 
+            cylinder(h=arm_w,d=hole_M5,center=true);
+        translate ([.5*arm_l,.35*arm_w,-arm_w]) 
+            cylinder(h=arm_w,d=hole_M5,center=true);
+        translate ([.5*arm_l,.65*arm_w,-arm_w]) 
+            cylinder(h=arm_w,d=hole_M5,center=true);
+        translate ([.85*arm_l,.35*arm_w,-arm_w]) 
+            cylinder(h=arm_w,d=hole_M5,center=true);
+        translate ([.85*arm_l,.65*arm_w,-arm_w]) 
+            cylinder(h=arm_w,d=hole_M5,center=true);
+    }
+}
 module rounded_cube(size=[10,20,10],r=1,center=true) {
     // Create a rounded cube in the xy plane, flat on the Z ends
     // Creates 4 cylinders and then uses hull
@@ -138,7 +139,7 @@ module rounded_cube(size=[10,20,10],r=1,center=true) {
             cylinder(h=size[2],r=r,center=true);       
     }  
 }
-module lug (r=1,w=3,h=2,t=.2,d=0.02) {
+module lug (r=1,w=3,h=2,t=.2,d=0.1) {
     // Create a lug part on the xy plane, thickness t from z=0
     //   base is on y=0 and has width w
     //   center of lug is at [0,h] with radius r
@@ -255,14 +256,18 @@ module hollow_offset_link (length=50,d_pin=2,w=10,t=10,offset=5,ang=45,wall=2) {
     difference () {
         translate ([length/2,0,0])
             rotate ([0,0,180]) // flip the offset up
-            union () {  // not sure what union does?
+            union () {
                 fancy_dog_leg (d1,ang,d2,w,t,d_pin,wall);
                 mirror ([1,0,0]) // make a mirror copy
                     fancy_dog_leg (d1,ang,d2,w,t,d_pin,wall);
             }
-//        translate([length/2,0,w/2])
-//            rotate([90,0,0])
-//            rounded_cube([length,0.6*w,t],fillet_r,center=true);
+        // subtract the long hole
+        translate([length/2,offset,w/2])
+            rotate([0,90,0])
+            cylinder(h=length,d=w/2,center=true);
+        // subtract the zip tie holes    
+        zip_tie_holes (arm_l=length,arm_w=w);
+
     }
 }
 
@@ -276,78 +281,88 @@ module fork (l_fork=2,d_fork=0.2) {
                 cube([d_fork,d_fork,l_fork],center=false);
     }
 }
-module compliant_claw2(l=5,w=4.6,t1=0.075,t2=1,r=0.7,pre_angle=0) {
+module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4) {
     // U shaped claw with a pre angle
+    //    t1 = general compliant thickness
+    //    t2 = height of part
     // implement corner chamfers
     // Draws half and uses mirror
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.05; // minimum size of fragment (default is 2)
-    lug_t=0.17;
     poly_z = t2/2-lug_t/2;
     module subtract_1 () {
-        linear_extrude(height = 2)
-        polygon(points=[[0,0],[-.4,-poly_z/2],[-1.4,-poly_z],[-2,-poly_z],[-2,1],[0,0]]);
+        linear_extrude(height = t2)
+        polygon(points=[[0,0],[-t2/4,-poly_z/2],[-t2/1,-poly_z],[-t2*2,-poly_z],[-t2*2,t2/2],[0,0]]);
     }    
     module subtract_2 () {
-        linear_extrude(height = 1)
+        linear_extrude(height = t2)
             polygon(points=[[-t2/3,0],[0,t2/3],[t2/3,0],[-t2/3,0]]);
     }
     
-    half_claw (link_adjust=.32); // modify link location this side
-    mirror([1,0,0]) half_claw (link_adjust=0); 
+    // DRAW THE CLAW HALVES
+    half_claw (link_adjust=20); // modify link location this side
+    mirror([1,0,0]) half_claw (link_adjust=5); 
+    // Add a cube to connect the back plate
+   translate([-r/2,0,0]) cube([r,r,t2],center=false);
     
-module half_claw (link_adjust=.3) {    
-    // The cylinder part of the claw
-    rotate([0,0,-90])
-        translate([-r-t1,w/2-r,0])
-        rotate([0,0,-90]) 
-        rotate_extrude(angle=180+pre_angle,convexity = 20)
-            translate([r, 0, 0])
-                square([t1,t2],center=false); // on X,Z plane
-    // Everything else
-    union () {
-       difference () {
-           // top of the U, flat cube
-           x9 = w/2-2*r;  // local x
-           //echo(x9=x9);
-           back_height = 2.2; // match claw interface
-           translate([0,r,0]) cube([x9,3*t1,back_height],center=false);
-           // remove top chamfers
-           translate([0,2*r,0]) rotate([90,0,0])
-            linear_extrude(height = 2*r)
-                polygon(points=[[x9,back_height-.6],[x9+.2,back_height+.1],[x9-.6,back_height],[x9,back_height-.6]]);
-           // remove bottom chamfers
-           translate([0,2*r,0]) rotate([90,0,0])
-            linear_extrude(height = 2*r)
-                polygon(points=[[0,1],[.1,1],[.8,0],[-.1,-.1],[0,1]]);
-        }
-        // The long Finger and the link to the servo
-        // Multiple transformations to the preload
-        translate([w/2-r,r+t1,0])
-        rotate([0,0,pre_angle]) 
-        translate ([r,0,0]) { // x=r
-            difference () {
-                union() {
-                    // Link to the servo
-                translate ([-1.2,link_adjust+claw_servo_y-r,0]) rotate ([0,0,90])
-                    lug (r=0.2,w=t1,h=.6,t=t2,d=hole_servo_bushing,$fn=32);
-                translate ([-1.3,link_adjust+claw_servo_y-r-t1/2,0]) cube([1.3,t1,t2]);
+    module half_claw (link_adjust=0) {    
+        // The cylinder part of the claw
+        rotate([0,0,-90])
+            translate([-r-t1,width/2-r,0])
+            rotate([0,0,-90]) 
+            rotate_extrude(angle=180+pre_angle,convexity = 20)
+                translate([r, 0, 0])
+                    square([t1,t2],center=false); // on X,Z plane
+        // Everything else
+        union () {
+           difference () {
+               // top of the U, flat cube
+               x9 = width/2-2*r;  // local x
+               //echo(x9=x9);
+               back_height = t2; // match claw interface
+               
+               // back plate
+               translate([0,r,0]) cube([x9,3*t1,back_height],center=false);
+               // remove top chamfers
+//               translate([0,2*r,0]) rotate([90,0,0])
+//                linear_extrude(height = 2*r)
+//                    polygon(points=[[x9,back_height-.6],[x9+.2,back_height+.1],[x9-.6,back_height],[x9,back_height-.6]]);
+               // remove bottom chamfers
+//               translate([0,2*r,0]) rotate([90,0,0])
+//                linear_extrude(height = 2*r)
+//                    polygon(points=[[0,1],[.1,1],[.8,0],[-.1,-.1],[0,1]]);
+            }
+            // The long Finger and the link to the servo
+            // Multiple transformations to the preload
+            y_link = link_adjust+(claw_servo_x+r);
+            translate([width/2-r,r+t1,0])
+            rotate([0,0,pre_angle]) 
+            translate ([r,0,0]) { // x=r
+                difference () {
+                    union() {
+                        // Link to the servo
+                    echo(y_link=y_link);
+                    translate ([-t2,y_link,0]) rotate ([0,0,90])
+                        lug (r=1.5*hole_servo_bushing,w=t1,h=t2/3,t=t2,d=hole_servo_bushing,$fn=32);
+                    translate ([-t2,y_link-t1/2,0]) cube([t2,t1,t2]);
+                    //translate ([0,t2*1.5,t2]) rotate ([90,0,0]) subtract_1();
+
+                    }
+                    // subtract lug features
+                    translate ([0,t2/2,0]) rotate ([-90,0,0]) subtract_1();
+                    translate ([0,t2*1.5,t2]) rotate ([90,0,0]) subtract_1();
+    }
+                difference () {
+                    // Long finger
+                    cube([t1,len-r,t2],center=false);
+                    // subtract end chamfers
+                    translate ([-t2/10,len-r+t1,-t1]) rotate ([90,0,90]) subtract_2();
+                    translate ([t2/2,len-r+t1,t2+1]) rotate ([-90,0,90]) subtract_2();
                 }
-                // subtract lug features
-                translate ([0,0,0]) rotate ([-90,0,0]) subtract_1();
-                translate ([0,2,t2]) rotate ([90,0,0]) subtract_1();
-}
-            difference () {
-                // Long finger
-                cube([t1,l-r,t2],center=false);
-                // subtract end chamfers
-                translate ([-.1,l-r+t1,-t1]) rotate ([90,0,90]) subtract_2();
-                translate ([.5,l-r+t1,t2+.05]) rotate ([-90,0,90]) subtract_2();
             }
         }
     }
-}
-
+    
 }
 module compliant_claw(l=5,w=4.6,t1=0.075,t2=1) {
     // original version. U shaped.
@@ -367,17 +382,17 @@ module compliant_claw(l=5,w=4.6,t1=0.075,t2=1) {
             cube([2*w,4,3*t2],center=false);
         rotate ([90,0,0])
             translate ([.3,t2/2,0])
-                cylinder (h=1,d=hole_M3_inch,center=true);
+                cylinder (h=1,d=hole_M3,center=true);
         rotate ([90,0,0])
             translate ([-.3,t2/2,0])
-                cylinder (h=1,d=hole_M3_inch,center=true);
+                cylinder (h=1,d=hole_M3,center=true);
     }
     rotate ([0,0,90])
         translate ([1.8,-w/2,t2/2-0.17/2])
-            lug (r=0.25,w=1,h=0.5,t=0.17,d=hole_M3_inch);
+            lug (r=0.25,w=1,h=0.5,t=0.17,d=hole_M3);
     rotate ([0,0,-90])
         translate ([-1.8,-w/2,t2/2-0.17/2])
-            lug (r=0.25,w=1,h=0.5,t=0.17,d=hole_M3_inch);
+            lug (r=0.25,w=1,h=0.5,t=0.17,d=hole_M3);
     }
 }
 module pulley(r=2,t=.5,d_pin=0.25,d_grv=0.25,round=true){
@@ -487,8 +502,8 @@ module pt_pt_belt (from=[1,1,1],to=[-1,0,1], d = 0.1,r_pulley=.3,round=true){
     
     // default is round belt
     // if round = false, then draw a GT2-6 belt
-    gt2t=0.04; // thickness (1 mm)
-    gt2w=0.236; // width (6 mm)
+    gt2t=1; // thickness (1 mm)
+    gt2w=6; // width (6 mm)
     
     vec=vector_subtract(to,from);
     length=norm(vec);
@@ -568,7 +583,6 @@ module balance_weight(l=3,r=1,t=.5,d_pin=0.25,d_grv=0.25){
     difference () {
         union () {
            translate ([0,0,t/2])
-            scale ([mm_inch,mm_inch,mm_inch])
             pulley_gt2_2 ( teeth = 80 , pulley_t_ht = 7);
             cylinder(t,r=r,center=true);
         };
@@ -578,13 +592,13 @@ module balance_weight(l=3,r=1,t=.5,d_pin=0.25,d_grv=0.25){
             cylinder(4*t,d=d_pin,center=true);
     }
 }
-module servo_horn (l=0.96, d1=.6, d2=.27, t=.31){
+module servo_horn (l=25, d1=15.25, d2=7.5, t=7.4){
     // Create servo horn on xy plane, spline center at 0,0,0
     // horn length l pointing along x axis
     // spline end dia d1, other end d2, thickness t, from z=0 up
     // used for BOOLEAN SUBTRACTION
     $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.01; // minimum size of fragment (default is 2)
+    $fs=0.1; // minimum size of fragment (default is 2)
     difference () {
         union () {
         translate([0,0,t/2])
@@ -611,13 +625,13 @@ module servo_body (vis=true){
     difference () {
         union () {
         translate([-svo_shaft,0,-svo_d/2]) // main body
-            rounded_cube(size=[svo_l,svo_w,svo_d],r=.03,center=true,$fn=24); 
+            rounded_cube(size=[svo_l,svo_w,svo_d],r=.8,center=true,$fn=24); 
         
         translate([-svo_shaft,0,-svo_flange_d-svo_flange_t/2])  // flange
-            rounded_cube(size=[svo_flange_l,svo_w,svo_flange_t],r=.03,center=true);
+            rounded_cube(size=[svo_flange_l,svo_w,svo_flange_t],r=.8,center=true);
         
-        translate([-svo_shaft,0,-.35])
-            cube(size=[svo_flange_l,.1,.12],center=true); // gussetts
+        translate([-svo_shaft,0,-8.9])
+            cube(size=[svo_flange_l,2.54,3.05],center=true); // gussetts
         
         // cylinders for screw starts
         translate([svo_screw_l/2-svo_shaft,svo_screw_w/2,-svo_flange_d])
@@ -630,13 +644,13 @@ module servo_body (vis=true){
             cylinder(h=2*svo_shaft,d=hole_no6_screw,center=true);
         }
         // subtract main axis cyl for visulization
-        if (vis) cylinder (h=4*svo_d,d=0.16,center=true);
+        if (vis) cylinder (h=4*svo_d,d=4,center=true);
     }
 }
-module servo_shim (l=2.4,w=1,t=0.1) {
+module servo_shim (l=61,w=25.4,t=2.54) {
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.03; // minimum size of fragment (default is 2)
-    flange_z = -.38;
+    flange_z = -9.65;
     difference () {
         translate([-svo_shaft,0,flange_z+t/2]) cube([l,w,t],center=true);
         servo_body (vis=false,$fn=16);
@@ -646,14 +660,13 @@ module GT2_2_idle_pulley () {
     $fs=0.1; // minimum size of fragment (default is 2)
     // draw in inches (always scaled)
     color ("Silver") 
-    scale ([mm_inch,mm_inch,mm_inch])
-        translate ([0,0,4.25])
+        translate ([0,0,GT2pulleyt/2])
         difference () {
-            cylinder(h=8.5,d=18,center=true);
-            cylinder(h=9,d=5,center=true);
+            cylinder(h=GT2pulleyt,d=GT2pulleyd+6,center=true);
+            cylinder(h=GT2pulleyt+1,d=hole_M5,center=true);
             difference () {
-                cylinder(h=6.5,d=20,center=true);
-                cylinder(h=8,d=12,center=true);
+                cylinder(h=GT2pulleyt-2,d=GT2pulleyd+8,center=true);
+                cylinder(h=GT2pulleyt,d=GT2pulleyd,center=true);
             }
     }
 }
@@ -678,7 +691,6 @@ module M5_RHS (length=10) {
     // draw in inches (always scaled)
     $fs=0.1; // minimum size of fragment (default is 2)
     color ("DarkSlateGrey") 
-    scale ([mm_inch,mm_inch,mm_inch])
     union () {
         cylinder(h=length,d=4.8,center=false);
         //cylinder(h=9,d=5,center=true);
