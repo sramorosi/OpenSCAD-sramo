@@ -1,6 +1,6 @@
 // Robot Arm Parts Object Library
 //  Started on 4/6/2020 by SrAmo
-//  last modified APR 26 2021 by SrAmo
+//  last modified July 9 2021 by SrAmo
 use <force_lib.scad>
 use <Pulley-GT2_2.scad>
 
@@ -8,7 +8,6 @@ include <Part-Constants.scad>
 
 // THIS STUFF SHOULD BE IN AN INCLUDE OR SOMETHING
 claw_servo_x=10; 
-
 
 // Rounded Cube
 display_round_cube = false;
@@ -25,13 +24,13 @@ display_dog_leg = false;
 // Fancy Dog Leg (hollow with clevis and pin hole)
 display_fancy_dog_leg = false;
 // Hollow offset link (two fancy dog legs, mirrored about x=0)
-display_hollow_link = true;
+display_hollow_link = false;
 // Fork attachment for End
 display_fork = false;
 // Compliant U Claw for End (90 deg fixed)
 display_U_Claw = false;
 // Compliant adjustable Claw (Variable angle)
-display_V_Claw = false;
+display_V_Claw = true;
 // Pulley for round belt
 display_pulley = false;
 // Spacer or Washer
@@ -101,19 +100,20 @@ if (display_3_pt_cube) {
     cubeOnThreePoints(p); 
 }
 module zip_tie_holes (arm_l = 10,arm_w=1) {
+    zip_hole_d = hole_M3;
     rotate([90,0,0]) {
         translate ([.15*arm_l,.35*arm_w,-arm_w]) 
-            cylinder(h=arm_w,d=hole_M5,center=true);
+            cylinder(h=4*arm_w,d=zip_hole_d,center=true);
         translate ([.15*arm_l,.65*arm_w,-arm_w]) 
-            cylinder(h=arm_w,d=hole_M5,center=true);
+            cylinder(h=4*arm_w,d=zip_hole_d,center=true);
         translate ([.5*arm_l,.35*arm_w,-arm_w]) 
-            cylinder(h=arm_w,d=hole_M5,center=true);
+            cylinder(h=4*arm_w,d=zip_hole_d,center=true);
         translate ([.5*arm_l,.65*arm_w,-arm_w]) 
-            cylinder(h=arm_w,d=hole_M5,center=true);
+            cylinder(h=4*arm_w,d=zip_hole_d,center=true);
         translate ([.85*arm_l,.35*arm_w,-arm_w]) 
-            cylinder(h=arm_w,d=hole_M5,center=true);
+            cylinder(h=4*arm_w,d=zip_hole_d,center=true);
         translate ([.85*arm_l,.65*arm_w,-arm_w]) 
-            cylinder(h=arm_w,d=hole_M5,center=true);
+            cylinder(h=4*arm_w,d=zip_hole_d,center=true);
     }
 }
 module rounded_cube(size=[10,20,10],r=1,center=true) {
@@ -267,7 +267,6 @@ module hollow_offset_link (length=50,d_pin=2,w=10,t=10,offset=5,ang=45,wall=2) {
             cylinder(h=length,d=w/2,center=true);
         // subtract the zip tie holes    
         zip_tie_holes (arm_l=length,arm_w=w);
-
     }
 }
 
@@ -290,11 +289,11 @@ module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4)
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.05; // minimum size of fragment (default is 2)
     poly_z = t2/2-lug_t/2;
-    module subtract_1 () {
+    module subtract_1 () { // profile of links to servo
         linear_extrude(height = t2)
-        polygon(points=[[0,0],[-t2/4,-poly_z/2],[-t2/1,-poly_z],[-t2*2,-poly_z],[-t2*2,t2/2],[0,0]]);
+        polygon(points=[[0,0],[-t2/4,-poly_z/2],[-t2/0.93,-poly_z],[-t2*2,-poly_z],[-t2*2,t2/2],[0,0]]);
     }    
-    module subtract_2 () {
+    module subtract_2 () { // triangle removal on end of claw
         linear_extrude(height = t2)
             polygon(points=[[-t2/3,0],[0,t2/3],[t2/3,0],[-t2/3,0]]);
     }
@@ -315,45 +314,34 @@ module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4)
                     square([t1,t2],center=false); // on X,Z plane
         // Everything else
         union () {
-           difference () {
-               // top of the U, flat cube
-               x9 = width/2-2*r;  // local x
-               //echo(x9=x9);
-               back_height = t2; // match claw interface
-               
-               // back plate
-               translate([0,r,0]) cube([x9,3*t1,back_height],center=false);
-               // remove top chamfers
-//               translate([0,2*r,0]) rotate([90,0,0])
-//                linear_extrude(height = 2*r)
-//                    polygon(points=[[x9,back_height-.6],[x9+.2,back_height+.1],[x9-.6,back_height],[x9,back_height-.6]]);
-               // remove bottom chamfers
-//               translate([0,2*r,0]) rotate([90,0,0])
-//                linear_extrude(height = 2*r)
-//                    polygon(points=[[0,1],[.1,1],[.8,0],[-.1,-.1],[0,1]]);
-            }
+           // top of the U, flat cube
+           x9 = width/2-2*r;  // local x
+           //echo(x9=x9);
+           back_height = t2; // match claw interface
+           
+           // back plate
+           translate([0,r,0]) cube([x9,3.5*t1,back_height],center=false);
             // The long Finger and the link to the servo
             // Multiple transformations to the preload
             y_link = link_adjust+(claw_servo_x+r);
             translate([width/2-r,r+t1,0])
             rotate([0,0,pre_angle]) 
             translate ([r,0,0]) { // x=r
+                // Long finger thicker section
+                cube([2*t1,len/1.5-r,t2],center=false);
                 difference () {
                     union() {
                         // Link to the servo
-                    echo(y_link=y_link);
-                    translate ([-t2,y_link,0]) rotate ([0,0,90])
-                        lug (r=1.5*hole_servo_bushing,w=t1,h=t2/3,t=t2,d=hole_servo_bushing,$fn=32);
-                    translate ([-t2,y_link-t1/2,0]) cube([t2,t1,t2]);
-                    //translate ([0,t2*1.5,t2]) rotate ([90,0,0]) subtract_1();
-
+                        translate ([-t2,y_link,0]) rotate ([0,0,90])
+                            lug (r=1.5*hole_servo_bushing,w=t1,h=t2/3,t=t2,d=hole_servo_bushing,$fn=32);
+                        translate ([-t2,y_link-t1/2,0]) cube([t2,t1,t2]);
                     }
                     // subtract lug features
                     translate ([0,t2/2,0]) rotate ([-90,0,0]) subtract_1();
                     translate ([0,t2*1.5,t2]) rotate ([90,0,0]) subtract_1();
-    }
+                }
                 difference () {
-                    // Long finger
+                    // Long finger full length
                     cube([t1,len-r,t2],center=false);
                     // subtract end chamfers
                     translate ([-t2/10,len-r+t1,-t1]) rotate ([90,0,90]) subtract_2();
@@ -805,19 +793,3 @@ module rotFromTo(di,do)
   else
     mirror(do/norm(do)+di/norm(di)) mirror(di) children();
   
-module zip_tie_holes (arm_l = 10,arm_w=1,dholes = 1) {
-    rotate([90,0,0]) {
-        translate ([.15*arm_l,.35*arm_w,-arm_w]) 
-            cylinder(h=4*arm_w,d=dholes,center=true);
-        translate ([.15*arm_l,.65*arm_w,-arm_w]) 
-            cylinder(h=4*arm_w,d=dholes,center=true);
-        translate ([.5*arm_l,.35*arm_w,-arm_w]) 
-            cylinder(h=4*arm_w,d=dholes,center=true);
-        translate ([.5*arm_l,.65*arm_w,-arm_w]) 
-            cylinder(h=4*arm_w,d=dholes,center=true);
-        translate ([.85*arm_l,.35*arm_w,-arm_w]) 
-            cylinder(h=4*arm_w,d=dholes,center=true);
-        translate ([.85*arm_l,.65*arm_w,-arm_w]) 
-            cylinder(h=4*arm_w,d=dholes,center=true);
-    }
-}

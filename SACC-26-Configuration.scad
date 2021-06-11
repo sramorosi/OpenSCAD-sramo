@@ -64,7 +64,6 @@ wAB_inside = widthAB - 2*wall_t;
 wBC_inside = widthBC - 2*wall_t;
 echo (widthAB=widthAB,widthBC=widthBC,wAB_inside=wAB_inside,wBC_inside=wBC_inside);
 
-
 // End effector offsets from C to grip/load point
 LengthEnd=[125,0,0.0];   // mm
 
@@ -77,7 +76,7 @@ End_pin_y=0;
 // End effector interface width. 
 End_w = 10;  // mm
 // x location of servo relative to pin
-claw_servo_x=48.26 + End_pin_x; // 1.9 inch = 48.26 mm relative to claw back plate
+claw_servo_x=63 + End_pin_x; // 63 mm relative to claw back plate
 
 // COMPLIANT CLAW parameters
 claw_length = 150;

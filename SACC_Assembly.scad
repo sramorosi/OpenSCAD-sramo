@@ -112,7 +112,7 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
         }
     // C Servo
     color ("red",.5) 
-        translate([c[0],c[1],c[2]-widthBC/2]) {
+        translate([c[0],c[1],c[2]-widthBC/2+1.5]) {
             rotate([0,0,-45]) servo_body();
             rotate([0,0,C_angle])
                 servo_horn();
@@ -200,7 +200,7 @@ module final_BC_arm () {
                 hex (size=22.86,l=hex_h);
             
             // boss for servo
-            translate([lenBC,0,-2.5])
+            translate([lenBC,0,-1])
                 rotate([0,0,-45])
                     translate([-10,0,0])
                     rounded_cube(size=[svo_screw_l+5,svo_w+5,5],r=7,center=true);
@@ -209,7 +209,7 @@ module final_BC_arm () {
         cylinder(h=3*widthBC,d=bearing_od,center=true);
             
         // subtract A servo interface
-        translate([lenBC,0,svo_flange_d-5])
+        translate([lenBC,0,svo_flange_d-3.5])
             rotate([0,0,-45])
                 servo_body (vis=false);
 
@@ -219,7 +219,7 @@ module final_BC_arm () {
    translate([0,0,wBC_inside+2*wall_t]) bearing_flng_qtr();
 }
 
-module tube_arm (length=50, w=10, t=1) {
+module tube_arm (length=50, w=10, t=1) { // NOT USED PRESENTLY
     $fa=$preview ? 6 : 1; // minimum angle fragment
 
     color("blue") difference () {
@@ -358,7 +358,7 @@ module final_fork (t_forks=1.3,l_fork=2,d_fork=0.2) {
 }
 module final_claw(){
     // DRAW THE COMPLIANT CLAW
-    servo_plate_t = 7;
+    servo_plate_t = 8;
     back_plate_w = claw_width - 4*claw_radius;
     $fa=$preview ? 6 : 1; // minimum angle fragment
     union () {
@@ -369,40 +369,15 @@ module final_claw(){
                     cube([hole_p25_inch*3,hole_p25_inch*3,End_w],center=true);
                 // interface top
                 translate ([End_x+claw_radius,claw_height/2-servo_plate_t,-back_plate_w/2+5]) 
-                    cube([35,servo_plate_t,back_plate_w+10],center=false);
-                /* top plate attachment (angled extention) 
-                translate ([End_x+1.65,.6,-.8]) 
-                    rotate([0,0,-15]) 
-                    difference () {
-                        cube([.12,1,1.6],center=false);
-                        translate([0,.6,.4]) 
-                            rotate([0,90,0]) 
-                                cylinder(h=1,d=hole_M3_inch,center=true,$fn=16);
-                        translate([0,.6,1.2]) 
-                            rotate([0,90,0]) 
-                                cylinder(h=1,d=hole_M3_inch,center=true,$fn=16); 
-                    } */
+                    cube([50,servo_plate_t,back_plate_w+10],center=false);
             }
             // remove attach pin
             translate ([End_pin_x,End_pin_y,0])
                 cylinder(2*End_w,d=hole_p25_inch,center=true,$fn=32);
-            // remove cylinder to clear pulley
-            //cylinder(End_w*2,d=1.1*end_pulley_d,center=true);
 
             // remove the servo interface
             translate([claw_servo_x,claw_height/2-svo_flange_d,0]) rotate([0,90,-90]) servo_body(vis=false,$fn=32);
-            
-            /* remove the top chamfer
-            rotate([90,0,0])
-                translate([1.2,.9,-1])
-                linear_extrude(height = 1)
-                        polygon(points=[[0,0],[.8,.8],[-.7,.7],[0,0]]);
-            // remove second top chamfer
-            rotate([90,0,0])
-                translate([3,1.3,-1])
-                linear_extrude(height = 1)
-                        polygon(points=[[0,0],[.8,.8],[-.7,.7],[0,0]]); */
-            
+                        
         }
     }
     translate([End_x,-claw_height/2,0]) rotate([0,-90,-90])     
@@ -456,7 +431,6 @@ module robot_arm_base () {
     y1=a_pulley_t/2+base_svo_lug_t+bearing_flange_t;
     // Inside AB link, A side
     y2 = -a_pulley_t/2-bearing_flange_t;
-    //echo(y1=y1,y2=y2);
     
     difference () {
         union () {
