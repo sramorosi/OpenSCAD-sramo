@@ -1,6 +1,6 @@
 // Robot Arm Configuration File
 // ALL UNITS ARE IN MM
-//  last modified JUNE 8 2021 by SrAmo
+//  last modified JUNE 16 2021 by SrAmo
 
 include <Part-Constants.scad>
 
@@ -30,15 +30,6 @@ AB_pulley_t = 10; // mm, note subtract 2 mm for flanges
 AB_boss_t = 7.112; // 0.28 inch = 7.112 mm
 a_svo_boss = 7.112; // 0.28 inch = 7.112 mm
 
-// spring attach pt on ground up from A
-spr_dist_ground = 50.8; // 2 inch = 50.8 mm
-// spring attach pt on AB arm from A
-spr_dist_AB = 172.72; // 6.8 inch = 172.72 mm
-spr_pt_gnd = [0,spr_dist_ground,0];   // spring attach point on ground
-
-// radius of B spring attachment, opposite from C on BC
-B_spr_r = 19.812; // 0.78 inch = 19.812 mm
-
 // BASE RELATED POSITIONING and dimensions
 base_z_top = 45.72;  // 1.8 inch = 45.72 mm
 // translation distance for face of A servo
@@ -51,7 +42,7 @@ base_svo_lug_t = 6.35; // 0.25 inch = 6.35 mm
 // center A pulley (THIS DRIVES THE JOINT WIDTH)
 a_pulley_t = 12.25; // mm
 
-// extra lug y location
+// extra lug y location, USED IN THE BASE
 extra_lug_y = (a_pulley_t*mm_inch)/2 + base_svo_lug_t + wall_t + 2*bearing_flange_t+.01;
 
 // A-B arm width. The section is square.
@@ -62,10 +53,7 @@ widthBC=widthAB;
 wAB_inside = widthAB - 2*wall_t;
 // BC Slot inside (calculated)
 wBC_inside = widthBC - 2*wall_t;
-echo (widthAB=widthAB,widthBC=widthBC,wAB_inside=wAB_inside,wBC_inside=wBC_inside);
-
-// End effector offsets from C to grip/load point
-LengthEnd=[125,0,0.0];   // mm
+//echo (widthAB=widthAB,widthBC=widthBC,wAB_inside=wAB_inside,wBC_inside=wBC_inside);
 
 // Horizontal distance from C joint to claw back plate
 End_x=50.8; // 2 inch = 50.8 mm
@@ -83,4 +71,54 @@ claw_length = 150;
 claw_width = 120;
 claw_height = 38;
 claw_radius = 18;
+
+// DEFINITION OF WEIGHTS AND SPRINGS
+// Maximum payload weight (thing being lifted) (g)
+payload=680;  // g     
+// weight of end effector with no payload (g)
+end_weight=250;  // g
+// End effector offsets from C to grip/load point. USED for Loads
+LengthEnd=[125,0,0.0];   // mm
+
+// SPRING TO HELP JOINT A AND TO HELP JOINT B ARE OPTIONAL
+
+// True if there is a sprint helping joint A
+Spring_at_A = true;
+// A spring free length (NO SPRING IN SOME CONFIGURATIONS)
+A_spr_free_len = 56; // mm
+// A spring rate K (force/distance)
+A_spr_k = 17; // 17 g/mm
+// spring attach pt on base up from A
+spr_dist_base = 50.8; // 2 inch = 50.8 mm
+// spring attach pt on AB arm from A
+spr_dist_AB = 172.7; // 6.8 inch = 172.72 mm
+A_spr_pt_gnd = [0,spr_dist_base,0];   // spring attach point on base
+
+// True if there is a sprint helping joint B
+Spring_at_B = true;
+// B spring free length
+B_spr_free_len = 56; // mm
+// B spring rate K (force/distance)
+B_spr_k = 45; // 39 g/mm
+// B spring attach pt on base up from A
+B_spr_dist_base = 130; // mm
+// radius of B spring attachment, opposite from C on BC
+B_spr_r = 50; // 0.78 inch = 19.812 mm
+B_spr_pt_gnd = [0,B_spr_dist_base,0];   // spring attach point on base
+
+
+// DEFINITION OF ARM ANGLES
+// When looking at the arm in the XY view (Top), Pos X to the right
+// When the AB arm is horizontal pointing right from A, is 0 deg (pos CCW)
+// When the BC arm is horizontal pointing right from A, is 0 deg (pos CCW)
+// angle limits at the B joint. Angle is 0 when BC in line with AB
+// ANGLE ranges are defined in the configuration file
+max_B_to_A = 45; // max angle of B to AB arm
+min_B_to_A = -150; // min angle of B to AB arm
+
+A_range = 160; // max angle range degrees of A servo
+B_range = 180; // max angle range degrees of B servo
+A_rigging = 75; // middle of A range used for rigging
+B_rigging = 85; // middle of B range used for rigging
+
 

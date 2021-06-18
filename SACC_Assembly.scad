@@ -1,6 +1,6 @@
 // Robot Arm Assembly
 //  Started on 3/24/2020 by SrAmo
-//  last modified JUNE 8 2021 by SrAmo
+//  last modified JUNE 16 2021 by SrAmo
 
 use <force_lib.scad>
 use <Robot_Arm_Parts_lib.scad>
@@ -40,7 +40,7 @@ xcp = -20 + 0;   // x clipping plane
 
 if (display_assy) {
     difference () {
-        rotate ([90,0,0]) draw_assy(90,0,0,full=true);
+        rotate ([90,0,0]) draw_assy(90,0,0);
         if (clip_yz) // x = xcp cut 
             translate ([xcp,-10,-10]) cube (20,center=false);
         if (clip_xy) // z = 0 cut 
@@ -66,7 +66,7 @@ if (display_claw_shooter)  {
 if (display_claw)  final_claw();
 if (display_fork)  final_fork();
    
-module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
+module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
     // calculate b and c positions from angles
     b=[lenAB*cos(A_angle),lenAB*sin(A_angle),0];  // B location
     c = [(cos(A_angle)*lenAB+cos(B_angle)*lenBC),(sin(A_angle)*lenAB+sin(B_angle)*lenBC),0];
@@ -134,10 +134,10 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
     // Draw the A spring (latex tube with pulleys)
     y_a_p = -A_servo_y-GT2pulleyt/2;
     color ("grey") 
-    pt_pt_belt ([spr_pt_gnd[0],spr_pt_gnd[1],y_a_p],[spr_pt_AB[0],spr_pt_AB[1],y_a_p],d=6,r_pulley=GT2pulleyd/2,round=true);
+    pt_pt_belt ([A_spr_pt_gnd[0],A_spr_pt_gnd[1],y_a_p],[spr_pt_AB[0],spr_pt_AB[1],y_a_p],d=6,r_pulley=GT2pulleyd/2,round=true);
         
-    translate ([spr_pt_gnd[0],spr_pt_gnd[1],y_a_p-GT2pulleyt/2]) GT2_2_idle_pulley ();
-    translate ([spr_pt_gnd[0],spr_pt_gnd[1],y_a_p-GT2pulleyt/2]) M5_RHS (length=20); 
+    translate ([A_spr_pt_gnd[0],A_spr_pt_gnd[1],y_a_p-GT2pulleyt/2]) GT2_2_idle_pulley ();
+    translate ([A_spr_pt_gnd[0],A_spr_pt_gnd[1],y_a_p-GT2pulleyt/2]) M5_RHS (length=20); 
     translate([spr_pt_AB[0],spr_pt_AB[1],widthAB/2+GT2pulleyt/2]) GT2_2_idle_pulley();
     translate ([spr_pt_AB[0],spr_pt_AB[1],widthAB/2+GT2pulleyt/2]) 
         rotate([0,180,0]) M5_RHS(length=55); 
@@ -145,9 +145,9 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
     // Draw the B spring (latex tube with pulleys)
     y_b_p = -B_servo_y+GT2pulleyt*1.3;
     color ("grey") 
-    pt_pt_belt ([spr_pt_gnd[0],spr_pt_gnd[1],y_b_p],B_spr_pt,d=6,r_pulley=GT2pulleyd/2,round=true);
-    translate ([spr_pt_gnd[0],spr_pt_gnd[1],y_b_p-GT2pulleyt/2]) GT2_2_idle_pulley ();
-    translate ([spr_pt_gnd[0],spr_pt_gnd[1],y_b_p+GT2pulleyt/2]) 
+    pt_pt_belt ([B_spr_pt_gnd[0],B_spr_pt_gnd[1],y_b_p],B_spr_pt,d=6,r_pulley=GT2pulleyd/2,round=true);
+    translate ([B_spr_pt_gnd[0],B_spr_pt_gnd[1],y_b_p-GT2pulleyt/2]) GT2_2_idle_pulley ();
+    translate ([B_spr_pt_gnd[0],B_spr_pt_gnd[1],y_b_p+GT2pulleyt/2]) 
         rotate([0,180,0]) M5_RHS (length=20); 
 } 
 module end_effector_assy() {
@@ -440,7 +440,7 @@ module robot_arm_base () {
             // B Servo Side
             color("blueviolet") translate([0,B_servo_y,-base_z_top])
                 rotate([90,0,0]) 
-                    lug (r=13,w=base_w/1.6,h=base_z_top+spr_dist_ground,t=base_svo_lug_t+.02);      
+                    lug (r=13,w=base_w/1.6,h=base_z_top+B_spr_dist_base,t=base_svo_lug_t+.02);      
 
             // The Third lug
             color("fuchsia") translate([0,extra_lug_y+base_svo_lug_t,-base_z_top])
@@ -460,7 +460,7 @@ module robot_arm_base () {
             // A Servo Side
             color("yellow") translate([0,A_servo_y,-base_z_top])
                 rotate([90,0,0]) 
-                    lug (r=13,w=base_w/1.6,h=base_z_top+spr_dist_ground,t=base_svo_lug_t+.02);    
+                    lug (r=13,w=base_w/1.6,h=base_z_top+spr_dist_base,t=base_svo_lug_t+.02);    
             
             // base gussetts
             translate([x_guss,A_servo_y,-base_z_top])
@@ -477,7 +477,7 @@ module robot_arm_base () {
                 cylinder(h=base_l*2,d=hole_p25_inch,center=true);
         
         // subtract spring point
-        translate([0,0,spr_dist_ground])
+        translate([0,0,spr_dist_base])
             rotate([90,0,0])
                 cylinder(h=base_l*2,d=7,center=true);
         
