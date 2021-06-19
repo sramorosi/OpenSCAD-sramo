@@ -1,15 +1,15 @@
 // Input Arm Assembly
 //  Design for Human Input Arm that drives Robot Arm
-//  last modified MAY 7 2021 by SrAmo
+//  last modified June 18 2021 by SrAmo
 include <InputArm-Configuration.scad>
 use <force_lib.scad>
 use <Robot_Arm_Parts_lib.scad>
 use <Pulley-GT2_2.scad>
 
 // Draw the Input Arm Assembly
-display_assy = true;
+display_assy = false;
 // Draw the extra?? stuff
-display_all = false;
+display_all = true;
 // Section cut Assy at X = 0?
 clip_yz = false;
 // Section cut Assy at Z = 0?
@@ -17,7 +17,7 @@ clip_xy = false;
 // Draw Final Base
 display_base = false;
 // Draw Final arm (shared)
-display_arm = false;
+display_arm = true;
 // Draw Final hand 
 display_hand= false;
 // Draw Final finger 
@@ -25,7 +25,7 @@ display_finger= false;
 
 if (display_assy) {
     difference () {
-        draw_assy(90,0,0,full=display_all);
+        draw_assy(90,90,0,full=display_all);
         if (clip_yz) // x = xcp cut 
             translate ([-200,-100,-100]) cube (200,center=false);
         if (clip_xy) // z = 0 cut 
@@ -52,13 +52,13 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
             translate ([0,0,-widthAB/2])
                 final_arm(length=lenAB);
         // Draw the BC link
-        color("blue",1) 
+        
             translate([lenAB,0,-widthAB/2]) 
                 rotate([0,0,B_angle-A_angle]) {
-                    final_arm(length=lenBC);
+                    color("blue",1) final_arm(length=lenBC);
                     translate([0,0,1])
-                        rotate([0,0,135])
-                            P090S_pot(negative=false);
+                        rotate([0,0,90-lug_hook_ang])
+                            color("red",1) P090S_pot(negative=false);
 
                 }
     }
@@ -67,14 +67,14 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
         rotate ([0,0,C_angle]) end_effector_assy();
 
     // BASE    
-    color("green") translate([0,0,pot_lug_t]) rotate([-90,0,0]) input_arm_base();
+    color("green") translate([0,0,-pot_lug_t/2]) rotate([-90,180,0]) input_arm_base();
 } 
 module end_effector_assy() {
     translate([0,0,armt]/2) rotate([90,0,-90]) final_hand();
     translate([29,pot_lug_t/2,0]) rotate([90,0,0]) final_finger();
     }
 
-module offset_link (length=100,d_pin=2,w=15,t=15,offset=5,ang=45,wall=2) {
+module offset_link (length=100,d_pin=2,w=15,t=15,offset=4,ang=lug_hook_ang,wall=2) {
     // Create a Offset Link on xy plane along the X axis 
     // First joint is at [0,0], Second joint is at [length,0]
     // The LUG will fit a pin of diameter d_pin
@@ -103,15 +103,16 @@ module offset_link (length=100,d_pin=2,w=15,t=15,offset=5,ang=45,wall=2) {
                         translate([0,-5,0]) cube([w,14,15],center=true); 
                 
             };
-        translate([-w/1.4,-w*1.1,t/2+pot_lug_t/2]) 
+        rotate([0,0,-(90-ang)/1])
+        translate([-w/1.1,-w*1.1,t/2+pot_lug_t/2]) 
             cube([1.5*w,2.2*w,t],center=false); // lug removal
-        translate([-w/1.4,-w*1.1,t/2-pot_lug_t/2]) mirror([0,0,1]) 
+        translate([-w/1.2,-w*1.1,t/2-pot_lug_t/2]) mirror([0,0,1]) 
             cube([1.5*w,2.2*w,t],center=false); // lug removal, pot side
 
         translate([length,0,t/2])
            cylinder(h=t,d=d_pin,center=false); // pin remove 
-        translate([length-w/1.4,-w*1.1,t/2-pot_lug_t/2-.3]) 
-            cube([1.4*w,2.2*w,pot_lug_t+.6],center=false); // clevis remove
+        translate([length-w/1.4,-w*1.1,t/2-pot_lug_t/2-.1]) 
+            cube([1.4*w,2.2*w,pot_lug_t+.2],center=false); // clevis remove
     }
 }
 
@@ -120,14 +121,14 @@ module final_arm (length=10) {
     $fs=0.01; // minimum size of fragment (default is 2)
 
     difference () {
-        mirror([0,1,0]) offset_link(length=length,d_pin=pinSize,w=widthAB,t=armt,offset=widthAB/2,ang=45,wall=wall_t,$fn=48); 
+        mirror([0,1,0]) offset_link(length=length,d_pin=pinSize,w=widthAB,t=armt,offset=widthAB/2.1,ang=lug_hook_ang,wall=wall_t,$fn=48); 
         // remove the potentiometer interfaces
-        translate([0,0,1]) rotate([0,0,135]) P090S_pot(negative=true);
-        translate([length,0,1]) rotate([0,0,45]) P090S_pot(negative=true);
+        translate([0,0,1]) rotate([0,0,90+lug_hook_ang]) P090S_pot(negative=true);
+        translate([length,0,1]) rotate([0,0,90-lug_hook_ang]) P090S_pot(negative=true);
         // remove wire holes
         //   long hole
         translate([length/2,widthAB-wire_hole_offset,armt/2]) 
-            rotate ([0,92,0]) cylinder(h=length,d=wire_hole_dia,center=true);
+            rotate ([0,92,0]) cylinder(h=length*2,d=wire_hole_dia,center=true);
         //   diagonal hole 1
         translate([length/4,widthAB-wire_hole_offset,armt/1.9]) 
             rotate ([0,120,0]) 
@@ -142,7 +143,7 @@ module final_arm (length=10) {
             translate([widthAB/1.7, 0, 0]) circle(d=wire_hole_dia*1.2, $fn = 48);
         }
         // twist tie hole
-        translate([widthAB,-widthAB/2,0]) cylinder(h=4*widthAB,d=wire_hole_dia,center=true);
+        //translate([widthAB,-widthAB/2,0]) cylinder(h=4*widthAB,d=wire_hole_dia,center=true);
    }
 }
 module finger_ring(length=20,height=10,inside_dia=16) {
@@ -219,12 +220,13 @@ module input_arm_base () {
             translate([0,0,-base_z_top- base_t/2])
                 rounded_cube(size=[base_w,base_l,base_t],r=2,center=true);
             
-           rotate([-90,-45,0]) 
+           //rotate([-90,lug_hook_ang-90,0]) // rotate link so that lug points up
+           rotate([-90,-45,0]) // rotate link so that lug points up
             translate([-lenAB,0,-base_l/2+armt/2]) 
                 difference () {
-                    mirror([0,1,0]) offset_link(length=lenAB,d_pin=pinSize,w=widthAB,t=armt,offset=widthAB/2,ang=45,wall=wall_t,$fn=48); 
+                    mirror([0,1,0]) offset_link(length=lenAB,d_pin=pinSize,w=widthAB,t=armt,offset=widthAB/2,ang=lug_hook_ang,wall=wall_t,$fn=48); 
                     // remove the potentiometer interfaces
-                    translate([lenAB,0,1]) rotate([0,0,45]) P090S_pot(negative=true);
+                    translate([lenAB,0,1]) rotate([0,0,90-lug_hook_ang]) P090S_pot(negative=true);
                 }
        }
         // remove the extra part of the arm

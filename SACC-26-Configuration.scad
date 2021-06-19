@@ -117,8 +117,8 @@ max_B_to_A = 45; // max angle of B to AB arm
 min_B_to_A = -150; // min angle of B to AB arm
 
 A_range = 160; // max angle range degrees of A servo
-B_range = 180; // max angle range degrees of B servo
-A_rigging = 75; // middle of A range used for rigging
-B_rigging = 85; // middle of B range used for rigging
+B_range = 170; // max angle range degrees of B servo
+A_rigging = 70; // middle of A range used for rigging
+B_rigging = 45; // middle of B range used for rigging
 
 

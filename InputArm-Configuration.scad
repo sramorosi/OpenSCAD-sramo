@@ -1,5 +1,5 @@
 // Robot INPUT Arm Configuration File
-//  last modified June 16 2021 by SrAmo
+//  last modified June 18 2021 by SrAmo
 
 include <Part-Constants.scad>
 
@@ -17,6 +17,8 @@ widthAB = 15; // mm, 14.5 is min for good print with potentiometer tabs
 pot_lug_t = 8; // thickness of the lug over potentiometer shaft
 armt = 20;  // thickness of the clevis with potentiometer
 
+lug_hook_ang = 55; // angle of the lugs on the link
+
 //widthBC = 10; // not used
 
 pinSize = 6.2; // mm, potentiometer shaft
@@ -27,7 +29,7 @@ calc_forces = false; // NO NEED TO CALCULATE FORCES FOR INPUT ARM
 LengthEnd=[20,0,0.0];   // mm
 
 wire_hole_dia = 4; // mm, minimum size for wire holes in parts
-wire_hole_offset = sqrt((wire_hole_dia/2)*(wire_hole_dia/2)-.3); // space to insert wire
+wire_hole_offset = wire_hole_dia/2+.4; // space to insert wire
 echo(wire_hole_offset=wire_hole_offset);
 
 // DEFINITION OF WEIGHTS AND SPRINGS
