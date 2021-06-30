@@ -27,14 +27,14 @@ display_claw_shooter= false;
 curved_shooter=false;
 // Draw Final Forks (option to claw)
 display_fork= false;
-// Draw Final A Pulley
-display_A_pulley= false;
 // BC Arm Pulley at A
-display_B_drive_pulley= false;
+display_B_drive_pulley_at_A= false;
 // BC Arm Pulley at B
-display_B_drive_at_B_pulley= false;
+display_B_drive_pulley_at_B= false;
 // Draw Final End (C) Horn
 display_C_horn= false;
+// Draw B Spring Pulley
+display_B_spring_pulley= false;
 
 xcp = -20 + 0;   // x clipping plane
 
@@ -57,14 +57,45 @@ if (display_base) {
             translate ([-20,-10,-10]) cube (20,center=false);
     }
 }
-if (display_B_drive_pulley) rotate([180,0,0])final_B_drive_pulley ();
-if (display_B_drive_at_B_pulley) B_Drive_at_B_Pulley ();
-if (display_C_horn) final_C_pulley ();
+if (display_B_drive_pulley_at_A) 
+    rotate([180,0,0])B_drive_at_A_Pulley ();
+if (display_B_drive_pulley_at_B) B_Drive_at_B_Pulley ();
+if (display_C_horn) final_C_horn ();
 if (display_claw_shooter)  {
     color ("purple") claw_shooter(curved=curved_shooter);
 }
 if (display_claw)  final_claw();
 if (display_fork)  final_fork();
+if (display_B_spring_pulley) final_B_Spring_pulley();
+    
+module final_B_Spring_pulley() {
+    $fn=$preview ? 60 : 100; // number of fragements
+    B_Spr_width = wBC_inside - 2*wall_t-1;
+    B_Spr_OD = widthBC*1.6;
+    echo(B_Spr_width=B_Spr_width,B_Spr_OD=B_Spr_OD);
+    color ("skyblue") 
+        translate ([0,0,B_Spr_width/2])
+        difference () {
+            // Starting cylinder
+            cylinder(h=B_Spr_width,d=B_Spr_OD+6,center=true);
+            // Subtract the outer donut
+            difference () {
+                // this leaves the flanges, 1 mm each
+                cylinder(h=B_Spr_width-2,d=B_Spr_OD+8,center=true);
+                cylinder(h=B_Spr_width,d=B_Spr_OD,center=true);
+            }
+            // subtract the hole through the middle
+            cylinder(h=B_Spr_width+1,d=bearing_od,center=true);
+            // subtract a rectangle on one side for clevis clearance
+            translate([-widthBC,widthBC/4,-wBC_inside]) 
+            cube([2*widthBC,widthBC,2*wBC_inside],center=false);
+            // subtract a rectangle on one side for clevis clearance
+            translate([widthBC/4,-widthBC,-wBC_inside]) 
+            cube([widthBC,2*widthBC,2*wBC_inside],center=false);
+            // subtract a cylinder at the middle for wires
+            cylinder(h=B_Spr_width/2,d=B_Spr_OD/1.3,center=true);
+    }
+}
    
 module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
     // calculate b and c positions from angles
@@ -83,18 +114,20 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
         translate([lenAB,0,-widthBC/2-wall_t-bearing_flange_t]) {
             rotate([0,0,B_angle-A_angle]) final_BC_arm ();
             rotate ([180,0,0]) B_Drive_at_B_Pulley ();
+            translate([0,0,3*wall_t]) 
+                rotate([0,0,180]) final_B_Spring_pulley();
+
         }
     }
     // Draw the end effector
     translate([c[0],c[1],c[2]-wall_t-bearing_flange_t]) 
         rotate ([0,0,C_angle])  end_effector_assy();
     
-    // Draw the B drive pulley
+    // Draw the B drive pulley at A
     yb=-(extra_lug_y+base_svo_lug_t+AB_pulley_t+bearing_flange_t);
     color("navy",1)  
         rotate([0,0,(B_angle+180)]) 
-            translate([0,0,yb])
-                final_B_drive_pulley ();
+            translate([0,0,yb]) B_drive_at_A_Pulley ();
     
     // A Servo
     color ("red",.5) rotate([0,180,-90])
@@ -151,7 +184,7 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
         rotate([0,180,0]) M5_RHS (length=20); 
 } 
 module end_effector_assy() {
-    color("SpringGreen") final_C_pulley (); 
+    color("SpringGreen") final_C_horn (); 
     color("green") final_claw();
     //color ("purple") claw_shooter(curved=curved_shooter);
     color ("red",.5) translate([claw_servo_x,claw_height/2-svo_flange_d,0]) 
@@ -245,17 +278,16 @@ module B_Drive_at_B_Pulley () {
     }
 }
 
-module final_B_drive_pulley () {
+module B_drive_at_A_Pulley () {
     // This pulley is on the outside of the AB arm at A
     $fa=$preview ? 6 : 1; // minimum angle fragment
-
     difference () {
         union () {
             pulley_gt2_2(teeth=AB_pulley_teeth,pulley_t_ht=AB_pulley_t ,motor_shaft=hole_p25_inch);
             intersection() {
-                translate([0,-.5,-AB_boss_t])
+                translate([0,-AB_pulley_d/4,-AB_boss_t])
                 // extra boss for the servo to push on
-                    cube([1.5,1,AB_boss_t],center=false);
+                    cube([AB_pulley_d/1.5,AB_pulley_d/2,AB_boss_t],center=false);
                  translate([0,0,-AB_boss_t])
                    cylinder (h=AB_boss_t,d=AB_pulley_d,center=false );
             }
@@ -266,22 +298,14 @@ module final_B_drive_pulley () {
         translate([0,0,0])
             cylinder(h=4*widthAB,d=bearing_od,center=true);
         // remove the outside bearing flange cylinder
-        translate([0,0,-.5])
-            cylinder(h=.5,d=bearing_flange_od+.01,center=false);
-        // remove the spring hole
-        translate([-B_spr_r,0,0]) 
-            cylinder(h=2*widthAB,d=hole_M5,center=true); // bolt hole
-        // remove the spring nut hex hole
-        translate([-B_spr_r,0,AB_pulley_t-.05]) 
-            hex(size=0.312,l=.2); // nut hole
+        translate([0,0,-AB_pulley_t])
+            cylinder(h=AB_pulley_t,d=bearing_flange_od+.5,center=false);
     }
    rotate([180,0,0]) bearing_flng_qtr ();
    translate([0,0,AB_pulley_t]) bearing_flng_qtr ();
-   translate([-B_spr_r,0,-(AB_pulley_t+2)]) GT2_2_idle_pulley();
-   translate([-B_spr_r,0,-(AB_pulley_t+2)]) M5_RHS(length=20);
 }
 
-module final_C_pulley(){
+module final_C_horn(){
     // Pulley at joint C
     // This is the arm end-effector interface
     // center is 0,0,0 on xy plane, length is +x

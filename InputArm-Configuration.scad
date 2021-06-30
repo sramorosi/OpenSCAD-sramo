@@ -15,22 +15,22 @@ wall_t=3;  //mm
 
 widthAB = 15; // mm, 14.5 is min for good print with potentiometer tabs
 pot_lug_t = 8; // thickness of the lug over potentiometer shaft
+clevis_gap = 0.2; // mm, space between lug and clevis, total
 armt = 20;  // thickness of the clevis with potentiometer
 
 lug_hook_ang = 55; // angle of the lugs on the link
 
 //widthBC = 10; // not used
 
-pinSize = 6.2; // mm, potentiometer shaft
+pot_shaft_dia = 6.2; // mm, potentiometer shaft dia
 
 calc_forces = false; // NO NEED TO CALCULATE FORCES FOR INPUT ARM
 
 // End offsets from C to grip/load point
 LengthEnd=[20,0,0.0];   // mm
 
+wire_dia = 1; //mm
 wire_hole_dia = 4; // mm, minimum size for wire holes in parts
-wire_hole_offset = wire_hole_dia/2+.4; // space to insert wire
-echo(wire_hole_offset=wire_hole_offset);
 
 // DEFINITION OF WEIGHTS AND SPRINGS
 // Maximum payload weight (thing being lifted) (g)

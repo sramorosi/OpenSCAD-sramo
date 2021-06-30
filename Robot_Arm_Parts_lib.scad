@@ -20,7 +20,7 @@ display_lug = false;
 // Simple Link (2 force member)
 display_simple_link = false;
 // Simple Dog Leg
-display_dog_leg = false;
+display_dog_leg = true;
 // Fancy Dog Leg (hollow with clevis and pin hole)
 display_fancy_dog_leg = false;
 // Hollow offset link (two fancy dog legs, mirrored about x=0)
@@ -30,7 +30,7 @@ display_fork = false;
 // Compliant U Claw for End (90 deg fixed)
 display_U_Claw = false;
 // Compliant adjustable Claw (Variable angle)
-display_V_Claw = true;
+display_V_Claw = false;
 // Pulley for round belt
 display_pulley = false;
 // Spacer or Washer

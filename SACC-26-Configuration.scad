@@ -53,7 +53,7 @@ widthBC=widthAB;
 wAB_inside = widthAB - 2*wall_t;
 // BC Slot inside (calculated)
 wBC_inside = widthBC - 2*wall_t;
-//echo (widthAB=widthAB,widthBC=widthBC,wAB_inside=wAB_inside,wBC_inside=wBC_inside);
+echo (wall_t=wall_t,widthAB=widthAB,widthBC=widthBC,wAB_inside=wAB_inside,wBC_inside=wBC_inside);
 
 // Horizontal distance from C joint to claw back plate
 End_x=50.8; // 2 inch = 50.8 mm
