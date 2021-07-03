@@ -15,10 +15,10 @@ wall_t=3;  //mm
 
 widthAB = 15; // mm, 14.5 is min for good print with potentiometer tabs
 pot_lug_t = 8; // thickness of the lug over potentiometer shaft
-clevis_gap = 0.2; // mm, space between lug and clevis, total
+clevis_gap = 0.1; // mm, space between lug and clevis, total
 armt = 20;  // thickness of the clevis with potentiometer
 
-lug_hook_ang = 55; // angle of the lugs on the link
+//lug_hook_ang = 55; // angle of the lugs on the link
 
 //widthBC = 10; // not used
 

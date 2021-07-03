@@ -1,6 +1,6 @@
 // Robot Arm Parts Object Library
 //  Started on 4/6/2020 by SrAmo
-//  last modified July 9 2021 by SrAmo
+//  last modified July 1 2021 by SrAmo
 use <force_lib.scad>
 use <Pulley-GT2_2.scad>
 
@@ -65,7 +65,7 @@ display_P090S_pot = false;
 if (display_round_cube) rounded_cube();
 if (display_lug) lug();
 if (display_simple_link) simple_link(l=1.8,w=0.5,t=0.17);
-if (display_dog_leg) dog_leg ();
+if (display_dog_leg) dog_leg2 ();
 if (display_fancy_dog_leg) fancy_dog_leg ();
 if (display_hollow_link) hollow_offset_link ();
 if (display_fork) color ("green") fork ();
@@ -177,6 +177,35 @@ module simple_link (l=5,w=0.5,t=0.2,d=0.1) {
         cylinder (h=3*t,d=d,center=true);
         translate([l,0,0])
             cylinder (h=3*t,d=d,center=true);        
+    }
+}
+module dog_leg2 (d1=45,ang=45,d2=12.77,w=15,t=15) {
+    // Create a Dog Leg part on the xy plane, along x axis
+    // First length is d1, turn is ang, second length is d2
+    // Thickness is t, positive z from zero
+    // Width is w
+    // Sharp knee is better for printing
+    $fa=$preview ? 6 : 1; // minimum angle fragment
+    $fs=0.02; // minimum size of fragment (default is 2)
+    dx = d1 + d2*cos(ang); // x of end of leg
+    dy = d2*sin(ang);      // y of end of leg
+    Pdist = sqrt(dx*dx+dy*dy);
+    xtra=tan(ang/2)*(w/2);
+    fx=d1-xtra;
+    fs = 0.02*Pdist;  // inside chamfer size
+    rotate([0,0,180]) translate ([-dx,0,-t/2]) 
+        union () {
+        translate([0,-w/2,0]) // first leg
+            cube([d1+xtra,w,t],center=false);
+        cylinder(h=t,d=w,center=false); // rounded end d1
+        translate([d1,0,0])   // second leg
+            rotate([0,0,ang])
+                translate([-xtra,-w/2,0])
+                    cube([d2+xtra,w,t],center=false);
+        translate([dx,dy,0])   // rounded end d2
+            cylinder(h=t,d=w,center=false);
+        linear_extrude(height=t,convexity=10) // add inside chamfer
+            polygon([[fx,w/2],[fx-fs,w/2],[fx+fs,w/2+fs*tan(ang)],[fx+fs,w/2],[fx,w/2]]);
     }
 }
 module dog_leg (d1=10,ang=45,d2=5,w=2,t=1) {
