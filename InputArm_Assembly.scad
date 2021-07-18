@@ -14,6 +14,8 @@ display_all = true;
 clip_yz = false;
 // Section cut Assy at Z = 0?
 clip_xy = false;
+// Draw rotating platform
+display_platform = false;
 // Draw Final Base
 display_base = false;
 // Draw Final AB arm 
@@ -27,7 +29,7 @@ display_finger= false;
 
 if (display_assy) {
     difference () {
-        draw_assy(90,90,0,full=display_all);
+        draw_assy(120,60,0,full=display_all);
         if (clip_yz) // x = xcp cut 
             translate ([-200,-100,-100]) cube (200,center=false);
         if (clip_xy) // z = 0 cut 
@@ -37,7 +39,8 @@ if (display_assy) {
 
 if (display_AB_arm)  final_AB_arm(length=lenAB,offset=widthAB/2.1);
 if (display_BC_arm)  final_BC_arm(length=lenBC,offset=widthAB/2.1);
-if (display_base) input_arm_base();
+if (display_platform) input_arm_base();
+if (display_base) turntable_base();
 if (display_hand)  final_hand();
 if (display_finger)  final_finger();
     
@@ -59,7 +62,7 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
         
             translate([lenAB,0,0]) 
                 rotate([0,0,B_angle-A_angle]) {
-                    color("blue",1) final_BC_arm(length=lenBC,offset=widthAB/2.1);
+                    color("lightblue",1) final_BC_arm(length=lenBC,offset=widthAB/2.1);
                     translate([0,0,-widthAB/2-1])
                         rotate([0,0,52])
                             color("red",1) P090S_pot(negative=false);
@@ -71,10 +74,13 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
         rotate ([0,0,C_angle]) end_effector_assy();
 
     // BASE    
-    color("green") translate([0,0,-pot_lug_t/2]) rotate([-90,180,0]) input_arm_base();
+    color("green") translate([0,0,-pot_lug_t/2]) 
+        rotate([-90,180,0]) input_arm_base();
+    color("blue") translate([0,0,16]) 
+        rotate([-90,180,0]) turntable_base();
     translate([0,0,-widthAB/2-1])
-    rotate([0,0,180])
-        color("red",1) P090S_pot(negative=false);
+        rotate([0,0,180])
+            color("red",1) P090S_pot(negative=false);
 
 } 
 module end_effector_assy() {
@@ -258,15 +264,16 @@ module final_hand(length=14){
 module final_finger() {
     y_offset = 10;
     union() {
-    difference() {
-        lug (r=widthAB/2,w=10,h=y_offset,t=pot_lug_t,d=.1);
-        // remove lug end Potentiometer
-        translate([0,y_offset,pot_lug_t*1.5]) 
-        rotate([0,180,0]) P090S_pot(negative=true);
+        difference() {
+            lug (r=widthAB/2,w=10,h=y_offset,t=pot_lug_t,d=.1);
+            // remove lug end Potentiometer
+            translate([0,y_offset,pot_lug_t*1.5]) 
+                rotate([0,180,0]) 
+                    P090S_pot(negative=true);
+        }
+        translate([0,0,0])rotate([0,0,180]) 
+            finger_ring(length=2*y_offset,height=10,inside_dia=20);
     }
-    translate([0,0,0])rotate([0,0,180]) 
-        finger_ring(length=2*y_offset,height=10,inside_dia=20);
-}
 }
 module input_arm_base () {
     // Base of the input arm
@@ -286,18 +293,20 @@ module input_arm_base () {
 
     difference () {
         union () {
-            translate([base_x_shift,0,-base_z_top- base_t/2])
-                rounded_cube(size=[base_w,base_l,base_t],r=2,center=true);
+            //translate([base_x_shift,0,-base_z_top- base_t/2])
+            //    rounded_cube(size=[base_w,base_l,base_t],r=2,center=true);
             rotate([90,0,0]) cylinder(h=widthAB*2,d=widthAB,center=true);
-            translate([0,0,-base_z_top/2]) // lug support
-                cube([widthAB,widthAB*2,base_z_top],center=true);
+            //translate([0,0,-base_z_top/2]) // lug support
+            //    cube([widthAB,widthAB*2,base_z_top],center=true);
             translate([widthAB/2.2,widthAB/2.5,-4]) // over rotation stop
                 rotate([0,30,0])
                 cube([widthAB/1.6,widthAB*1.2,base_z_top/1.5],center=true);
+            // new lug
+           translate([0,10,-10])
+                lug(r=widthAB/2,w=widthAB,h=10,t=pot_lug_t,d=pot_shaft_dia);
         }
         // clevis remove
         translate([0,base_lug_y_shift,0])
-            //rotate([0,-45,0])
             cube([1.4*widthAB,pot_lug_t+clevis_gap,1.7*widthAB],center=true); 
         // remove the potentiometer interfaces
         rotate([90,0,0]) cylinder(h=widthAB*3,d=pot_shaft_dia,center=true); 
@@ -311,13 +320,47 @@ module input_arm_base () {
                 cylinder(h=base_t*3,d=4,center=true);
         translate([-x_b+base_x_shift,y_b,-base_z_top])
                 cylinder(h=base_t*3,d=4,center=true);
-        /* remove wire donut hole
-        translate([0,0 ,0]) rotate([90,0,0]) 
-            rotate_extrude(convexity = 10, $fn = 48) 
-            translate([widthAB/2, 0, 0]) circle(d=wire_hole_dia*1.5, $fn = 48); */
-       // twist tie hole
-        translate([-10,0,-base_z_top+4]) rotate([90,0,0])
-            cylinder(h=4*widthAB,d=wire_hole_dia,center=true);
+    }
+}
+module turntable_base () {
+    // Base of the input arm
+    $fa=$preview ? 6 : 1; // minimum angle fragment
+    $fs=$preview ? 0.05 : 0.03; // minimum size of fragment (default is 2)
 
+    base_w = 60;
+    base_l = 30;
+    base_t = 3;
+    base_z_top = 20;
+    base_x_shift = 14;
+    base_lug_y_shift = 4;
+    
+    // parameters for the 4 attach bolts
+    x_b = base_w/2-5;
+    y_b = base_l/2-5;
+
+    difference () {
+        union () {
+            translate([base_x_shift,0,-base_z_top- base_t/2])
+                rounded_cube(size=[base_w,base_l,base_t],r=2,center=true);
+            translate([0,0,-9]) cylinder(h=widthAB*1.5,d=widthAB,center=true);
+            translate([0,widthAB/2,-10]) // lug support
+                cube([widthAB,widthAB,24],center=true);
+        }
+        // clevis remove
+        translate([0,0,-5])
+            cube([1.4*widthAB,1.3*widthAB,pot_lug_t+clevis_gap],center=true); 
+        // remove the potentiometer interfaces
+        cylinder(h=widthAB*3,d=pot_shaft_dia,center=true); 
+        translate([0,0,-15]) 
+            rotate([0,0,0]) P090S_pot(negative=true);
+        // subtract the 4 base mounting bolt holes
+        translate([x_b+base_x_shift,y_b,-base_z_top])
+                cylinder(h=base_t*3,d=4,center=true);
+        translate([x_b+base_x_shift,-y_b,-base_z_top])
+                cylinder(h=base_t*3,d=4,center=true);
+        translate([-x_b+base_x_shift,-y_b,-base_z_top])
+                cylinder(h=base_t*3,d=4,center=true);
+        translate([-x_b+base_x_shift,y_b,-base_z_top])
+                cylinder(h=base_t*3,d=4,center=true);
     }
 }
