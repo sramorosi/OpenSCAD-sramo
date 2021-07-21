@@ -53,7 +53,7 @@ widthBC=widthAB;
 wAB_inside = widthAB - 2*wall_t;
 // BC Slot inside (calculated)
 wBC_inside = widthBC - 2*wall_t;
-echo (wall_t=wall_t,widthAB=widthAB,widthBC=widthBC,wAB_inside=wAB_inside,wBC_inside=wBC_inside);
+//echo (wall_t=wall_t,widthAB=widthAB,widthBC=widthBC,wAB_inside=wAB_inside,wBC_inside=wBC_inside);
 
 // Horizontal distance from C joint to claw back plate
 End_x=50.8; // 2 inch = 50.8 mm
@@ -72,24 +72,17 @@ claw_width = 120;
 claw_height = 38;
 claw_radius = 18;
 
-// DEFINITION OF WEIGHTS AND SPRINGS
-// Maximum payload weight (thing being lifted) (g)
-payload=680;  // g     
-// weight of end effector with no payload (g)
-end_weight=250;  // g
-// End effector offsets from C to grip/load point. USED for Loads
-LengthEnd=[125,0,0.0];   // mm
 
-// SPRING TO HELP JOINT A AND TO HELP JOINT B ARE OPTIONAL
+// SPRING TO HELP JOINT A AND B ARE OPTIONAL
 
 // True if there is a sprint helping joint A
 Spring_at_A = true;
 // A spring free length (NO SPRING IN SOME CONFIGURATIONS)
-A_spr_free_len = 56; // mm
+A_spr_free_len = 30; // 50 mm
 // A spring rate K (force/distance)
-A_spr_k = 17; // 17 g/mm
+A_spr_k = 20; // 17 g/mm
 // spring attach pt on base up from A
-spr_dist_base = 50.8; // 2 inch = 50.8 mm
+spr_dist_base = 60; // 2 inch = 50.8 mm
 // spring attach pt on AB arm from A
 spr_dist_AB = 172.7; // 6.8 inch = 172.72 mm
 A_spr_pt_gnd = [0,spr_dist_base,0];   // spring attach point on base

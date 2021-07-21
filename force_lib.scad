@@ -56,17 +56,16 @@ abs((p2[1]-p1[1])*pt[0]-(p2[0]-p1[0])*pt[1]+p2[0]*p1[1]-p2[1]*p1[0])/norm([(p1[0
 
 function rotZ_pt (a=10,p=[1,1,0]) = ([(p[0]*cos(a)+p[1]*sin(a)),(p[1]*cos(a)+p[0]*sin(a)),p[2]]);
 
-module plot_circle(rad=2,n=10,center=[0,0,0]) {
+module plot_circle(rad=2,n=10,dot_r=2,center=[0,0,0]) {
     // plots a circle of radius rad, at center, in n steps
     
     $fn = $preview ? 12 : 24;     // number of fragments
-    r=0.25;
     
     for (i=[0:360/n:360]){
         // draw a small circle at each point
         translate([ (center[0]+rad*cos(i)),
         (center[1]+rad*sin(i))])      
-        circle(r);       
+        circle(dot_r);       
     };
 }
 
