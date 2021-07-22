@@ -42,8 +42,10 @@ include <SACC-26-Configuration.scad>
 //include <InputArm-Configuration.scad>
 
 //###### USE ONE ASSEMBLY FILE AT A TIME #######//
+// Assembly files contain module draw_assy()
 use <SACC_Assembly.scad>
 //use <InputArm_Assembly.scad>
+//use <BasicArm_Assembly.scad>
 
 use <force_lib.scad>
 use <Robot_Arm_Parts_lib.scad>
@@ -63,9 +65,13 @@ C_angle = 0;
 // Maximum Motor Torque (gram-mm) 
 Motor_Max_Torque = 200000; 
 
-// DEFINITION OF WEIGHTS
+/* DEFINE WEIGHTS
+    Reference weights:
+  A 12 oz can of pop/beer is 375 grams (i.e. payload goal)
+  A 40x20x40 mm servo is about 70 grams
+*/
 // Maximum payload weight (thing being lifted) (g)
-payload=300;  // 680 g (try to maximize)
+payload=300;  // 400 g goal (try to maximize this)
 // weight of end effector with no payload (g)
 end_weight=250;  // 250 g (measure)
 // End effector offsets from C to grip/load point. Moment arm.
@@ -106,6 +112,7 @@ max_B=B_rigging+(B_range/2);
 */
 
 // recursive module that draws a 3D point list
+//     move to force_lib.scad
 module draw_3d_list(the3dlist=[],size=10,dot_color="blue",idx=0) {
     point=the3dlist[idx];
     //echo(point=point);
@@ -149,10 +156,35 @@ module Margin_Safety(min,max,name="THING NAME") {
     echo(name," MARGIN OF SAFETY ",MS=MS,MAX=MAX);
 }
 
+// Calculate the torque about a joint ptj caused by a pt1-pt2 spring
+// of spring constant K and free length freelen
+function spring_torque(pt1=[10,0,0],pt2=[10,10,0],ptj=[-10,0,0],K=1,freelen=1) = 
+    let (arm = dist_line_pt(pt1,pt2,ptj)) // dist_line_pt in force_lib
+    let (sprlen = norm(pt1-pt2)) 
+    K * (sprlen-freelen) * arm;  // the torque calculation
+
+sprtest = spring_torque();  // test
+echo(sprtest=sprtest);
+
+// convert number into a red to green value
+function val_red(i) = i < 3 ? 0 : i < 4 ? 0.25 : i < 5 ? 0.5 : 1 ;
+function val_green(i) = i < 3 ? 1 : i < 4 ? 0.75 : i < 5 ? 0.5 : 0;
+
+// Draw a spring cylinder from pt1-pt2 
+// of spring constant K and free length freelen
+// and color it based on the percent elongation
+module draw_spring(pt1=[100,0,50],pt2=[100,100,50],freelen=10) {
+    sprlen = norm(pt1-pt2); 
+    pct_elong = (sprlen-freelen)/freelen; 
+    sprd = norm(pt1-pt2)/10;
+    echo(pct_elong=pct_elong,sprd=sprd);
+    color ([val_red(pct_elong),val_green(pct_elong),0.1])
+        pt_pt_cylinder(from=pt1, to=pt2, d=sprd);
+}
+//draw_spring();
 
 if (calc_forces) {
     // USE LIST COMPREHENSIONS TO FILL ARRAYS
-    //
     // FIRST CALCULATE MS WITH LOAD AND NO SPRINGS
     B_trq_load_nospr = [ for (a = [0 : steps-1]) combined_weight*lenBC*cos(angles[a][1])+C_moment ];
     B_trq_load_nospr_min=min(B_trq_load_nospr);
@@ -170,12 +202,9 @@ if (calc_forces) {
     Margin_Safety(A_trq_load_nospr_min,A_trq_load_nospr_max,"A SERVO NO SPRING");
 
     // The A spring helps the Joint A MOTOR
+    // fill point array to moving end of spring
     A_spr_pt_AB = [ for (a = [0 : steps-1]) [spr_dist_AB*cos(angles[a][0]),spr_dist_AB*sin(angles[a][0]),0] ];
-    A_spr_length = [ for (a = [0 : steps-1]) norm(vector_subtract(A_spr_pt_AB[a],A_spr_pt_gnd)) ];
-    //A_spr_len_min=min(A_spr_length);
-    //A_spr_len_max=max(A_spr_length);
-    A_spr_force = [ for (a = [0 : steps-1]) A_spr_k*(A_spr_length[a]-A_spr_free_len) ];
-    A_spr_torque = [ for (a = [0 : steps-1]) A_spr_force[a]*dist_line_origin(A_spr_pt_gnd,A_spr_pt_AB[a]) ];  
+    A_spr_torque = [ for (a = [0 : steps-1]) spring_torque(A_spr_pt_gnd,A_spr_pt_AB[a],origin,A_spr_k,A_spr_free_len) ];  
     A_spr_torque_min=min(A_spr_torque);
     A_spr_torque_max=max(A_spr_torque);
     echo (A_spr_torque_min=A_spr_torque_min,A_spr_torque_max=A_spr_torque_max);
@@ -258,7 +287,7 @@ A_angle = alphas[0];
 B_angle = alphas[1];
 
 if (display_assembly) {
-    //difference () {
+    //difference () { // move section cuts to seperate file
         draw_assy (A_angle,B_angle,C_angle); 
         // x = 0 cut 
         //translate ([-20,-10,-10])
@@ -291,7 +320,7 @@ function get_CY (a) = (sin(a[0])*lenAB+sin(a[1])*lenBC);
 module internal_loads (A_angle=0,B_angle=0,C_angle=0) {
     r_pulley = AB_pulley_d/2;  // CHECK
     
-    // Calculate and Draw the forces and torques 
+    // Make 3D points at the joints
     b=[lenAB*cos(A_angle),lenAB*sin(A_angle),0];  
     c=[(cos(A_angle)*lenAB+cos(B_angle)*lenBC),(sin(A_angle)*lenAB+sin(B_angle)*lenBC),0];
     
@@ -320,14 +349,14 @@ module internal_loads (A_angle=0,B_angle=0,C_angle=0) {
     // NO LONGER USING A BELT FOR C
     
     belt_force=combined_weight*(LengthEnd[0]/r_pulley); // ratio of distances
-    force_arrow(LengthEnd_t,-vecBC,belt_force*force_scale); 
+    //force_arrow(LengthEnd_t,-vecBC,belt_force*force_scale); 
     
     // Sum forces to determine force on joint C using a force polygon
     c_vec=vector_subtract(combined_weight*[0,-1,0],belt_force*vecBC);
     c_to=vector_add(c,c_vec);  
     c_force=norm(c_vec);
-    force_arrow(c,c_vec,c_force*force_scale);
-    force_arrow(b,-c_vec,c_force*force_scale); // equal & opp on b
+    //force_arrow(c,c_vec,c_force*force_scale);
+    //force_arrow(b,-c_vec,c_force*force_scale); // equal & opp on b
     
     // Determine torque on joint B.  Link BC is a cantilever beam.
     // The upper arm motor holds joint B in (fixed) rotation.
@@ -370,20 +399,18 @@ module internal_loads (A_angle=0,B_angle=0,C_angle=0) {
     //   The spring has the least force when AB arm is vertical
     A_spr_len = norm(A_spr_pt_AB-A_spr_pt_gnd); 
     A_spr_force = A_spr_k*(A_spr_len-A_spr_free_len);
-    force_arrow(A_spr_pt_AB,A_spr_pt_gnd-A_spr_pt_AB,A_spr_force*force_scale);
+    draw_spring(A_spr_pt_AB,A_spr_pt_gnd,freelen=A_spr_free_len);
+    //force_arrow(A_spr_pt_AB,A_spr_pt_gnd-A_spr_pt_AB,A_spr_force*force_scale);
     A_spr_to_origin=dist_line_origin(A_spr_pt_gnd,A_spr_pt_AB);
     A_spr_torque = A_spr_force*A_spr_to_origin;
     
     B_spr_pt = [B_spr_r*cos(B_angle),B_spr_r*sin(B_angle),0];
     B_spr_len = norm(B_spr_pt-B_spr_pt_gnd);
     B_spr_force = B_spr_k*(B_spr_len-B_spr_free_len);
-    force_arrow(B_spr_pt,B_spr_pt_gnd-B_spr_pt,B_spr_force*force_scale);
+    //force_arrow(B_spr_pt,B_spr_pt_gnd-B_spr_pt,B_spr_force*force_scale);
     B_spr_torque = B_spr_force*dist_line_origin(B_spr_pt_gnd,B_spr_pt);
     
     B_mtr_trq = torque_at_B+B_spr_torque;
-    
-    // draw basic shapes to represent the arm, includes springs
-    //draw_basic();
     
     // Total Lower Arm Torque
     A_mtr_trq=p_torque_at_A+uaf_torque_at_A+A_spr_torque;
@@ -392,18 +419,6 @@ module internal_loads (A_angle=0,B_angle=0,C_angle=0) {
     // Output to console.  Used to get data into spreadsheet
     //echo ($t=$t,c=c,A_angle=A_angle,B_angle=B_angle,    B_spr_torque=B_spr_torque,B_mtr_trq=B_mtr_trq,    p_torque_at_A=p_torque_at_A,uaf_torque_at_A=uaf_torque_at_A,    A_spr_force=A_spr_force,A_spr_to_origin=A_spr_to_origin,    A_spr_torque=A_spr_torque,A_mtr_trq=A_mtr_trq); 
     
-    module draw_basic () {
-        // AB link
-        color("Plum",.5)  pt_pt_cylinder(from=origin, to=b, d=0.2);
-        // BC link
-        color("Blue",.5)  pt_pt_cylinder(from=b, to=c, d=0.2);
-        // CD end effector
-        color("Green",.5)  pt_pt_cylinder(from=c, to=c+LengthEnd, d=0.2);
-        // AB link sping
-        color("Plum",.7)  pt_pt_cylinder(from=A_spr_pt_AB,to=A_spr_pt_gnd,d=0.2);
-        // BC link sping
-        color("Blue",.7)  pt_pt_cylinder(from=B_spr_pt,to=A_spr_pt_gnd,d=0.2);
-    }
 }
 
 

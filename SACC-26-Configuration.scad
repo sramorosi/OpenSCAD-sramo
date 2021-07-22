@@ -85,7 +85,7 @@ A_spr_k = 20; // 17 g/mm
 spr_dist_base = 60; // 2 inch = 50.8 mm
 // spring attach pt on AB arm from A
 spr_dist_AB = 172.7; // 6.8 inch = 172.72 mm
-A_spr_pt_gnd = [0,spr_dist_base,0];   // spring attach point on base
+A_spr_pt_gnd = [0,spr_dist_base,50];   // spring attach point on base
 
 // True if there is a sprint helping joint B
 Spring_at_B = true;
