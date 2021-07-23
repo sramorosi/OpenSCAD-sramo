@@ -1,15 +1,15 @@
-// Force and Torque Object Library
+// Force, Torque, Spring Module and Function Library
 //  Started on 4/6/2020 by SrAmo
-//  last modified 6/6/2020
+//  last modified 7/22/2021 by SrAmo
 /*  >>>>> Introduction <<<<<
 
     The purpose of this library is to:
-    1) Create 3D Force Object
-    2) Create 3D Torque Object (2d works, 3d not yet)
-    3) Functions for vectors
-    4) Function for distance from point to line
+    1) Create 3D Force display module
+    2) Create 3D Torque display module (2d works, 3d not yet)
+    3) Function for distance from point to line
 */
-// Force or Torque magnitude
+use <Robot_Arm_Parts_lib.scad>
+// Force or Torque magnitude for testing modules
 mag = 1; // [-40:0.2:40]
 // Display force arrows
 display_force = false; 
@@ -35,13 +35,9 @@ if (display_force) force_arrow([2,2,2],[1,0,1],mag=mag);
 if (display_torque) torque_arrow([0,0,0],mag=mag);
 if (display_torque) torque_arrow([0,0,5],mag=-mag);
 
-// vector subtract function
-function vector_subtract(a=[1,1,1],b=[-1,1,-1]) =
-[(b[0]-a[0]),(b[1]-a[1]),(b[2]-a[2])];
-
-// vector addition function
-function vector_add(a=[1,1,1],b=[-1,1,-1]) = 
-[(b[0]+a[0]),(b[1]+a[1]),(b[2]+a[2])];
+// linear interpolation function
+// Returns the value between A and B given t between t_l and t_h
+function linear_interp (A,B,t,t_l,t_h) = (A+((t-t_l)/(t_h-t_l))*(B-A));
 
 // distance from 0,0 to line function
 //  reference Wikipedia "distance from a point to a line"
@@ -138,3 +134,37 @@ module torque_arrow(to=[10,4,0],mag=10) {
         echo("MODULE TORQUE_ARROW; small mag = ",mag);
     }
 }
+// Calculate the torque about a joint ptj caused by a pt1-pt2 spring
+// of spring constant K and free length freelen
+function spring_torque(pt1=[10,0,0],pt2=[10,10,0],ptj=[-10,0,0],K=1,freelen=1) = 
+    let (arm = dist_line_pt(pt1,pt2,ptj)) // dist_line_pt in force_lib
+    let (sprlen = norm(pt1-pt2)) 
+    K * (sprlen-freelen) * arm;  // the torque calculation
+
+sprtest = spring_torque();  // test
+echo(sprtest=sprtest);
+
+// convert number into a red to green value
+function val_red(i) = i < 3 ? 0 : i < 4 ? 0.25 : i < 5 ? 0.5 : 1 ;
+function val_green(i) = i < 3 ? 1 : i < 4 ? 0.75 : i < 5 ? 0.5 : 0;
+
+// Draw a spring cylinder from pt1-pt2 
+// of spring constant K and free length freelen
+// and color it based on the percent elongation
+module draw_spring(pt1=[100,0,50],pt2=[100,100,50],freelen=10) {
+    sprlen = norm(pt1-pt2); 
+    pct_elong = (sprlen-freelen)/freelen-1; 
+    sprd = norm(pt1-pt2)/15; // spring diameter for display only
+    echo(pct_elong=pct_elong*100,sprd=sprd);
+    color ([val_red(pct_elong),val_green(pct_elong),0.1])
+        pt_pt_cylinder(from=pt1, to=pt2, d=sprd);
+}
+draw_spring();
+
+// vector subtract function ## Just use V1 - V2 ##
+//function vector_subtract(a=[1,1,1],b=[-1,1,-1]) =[(b[0]-a[0]),(b[1]-a[1]),(b[2]-a[2])];
+
+// vector addition function ## Just use V1 + V2 ##
+//function vector_add(a=[1,1,1],b=[-1,1,-1]) = [(b[0]+a[0]),(b[1]+a[1]),(b[2]+a[2])];
+
+

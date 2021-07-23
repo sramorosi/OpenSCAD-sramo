@@ -47,7 +47,7 @@ use <SACC_Assembly.scad>
 //use <InputArm_Assembly.scad>
 //use <BasicArm_Assembly.scad>
 
-use <force_lib.scad>
+use <force_lib.scad> // contains forces, springs, MS modules and functions
 use <Robot_Arm_Parts_lib.scad>
 
 // Check to calculate forces
@@ -132,7 +132,7 @@ angles = [ for (a = [0 : steps-1]) get_angles_from_t(a/steps,min_A,max_A,min_B,m
 b = [ for (a = [0 : steps-1]) [lenAB*cos(angles[a][0]),lenAB*sin(angles[a][0]),0] ];
 
 c = [ for (a = [0 : steps-1]) [get_CX(angles[a]),get_CY(angles[a]),0]];
-draw_3d_list(c,10,"green");
+//draw_3d_list(c,10,"green");
 
 cx = [ for (a = [0 : steps-1]) get_CX(angles[a])];
 cx_min=min(cx);
@@ -155,34 +155,6 @@ module Margin_Safety(min,max,name="THING NAME") {
     MS = (Motor_Max_Torque/MAX)-1;
     echo(name," MARGIN OF SAFETY ",MS=MS,MAX=MAX);
 }
-
-// Calculate the torque about a joint ptj caused by a pt1-pt2 spring
-// of spring constant K and free length freelen
-function spring_torque(pt1=[10,0,0],pt2=[10,10,0],ptj=[-10,0,0],K=1,freelen=1) = 
-    let (arm = dist_line_pt(pt1,pt2,ptj)) // dist_line_pt in force_lib
-    let (sprlen = norm(pt1-pt2)) 
-    K * (sprlen-freelen) * arm;  // the torque calculation
-
-sprtest = spring_torque();  // test
-echo(sprtest=sprtest);
-
-// convert number into a red to green value
-function val_red(i) = i < 3 ? 0 : i < 4 ? 0.25 : i < 5 ? 0.5 : 1 ;
-function val_green(i) = i < 3 ? 1 : i < 4 ? 0.75 : i < 5 ? 0.5 : 0;
-
-// Draw a spring cylinder from pt1-pt2 
-// of spring constant K and free length freelen
-// and color it based on the percent elongation
-module draw_spring(pt1=[100,0,50],pt2=[100,100,50],freelen=10) {
-    sprlen = norm(pt1-pt2); 
-    pct_elong = (sprlen-freelen)/freelen; 
-    sprd = norm(pt1-pt2)/10;
-    echo(pct_elong=pct_elong,sprd=sprd);
-    color ([val_red(pct_elong),val_green(pct_elong),0.1])
-        pt_pt_cylinder(from=pt1, to=pt2, d=sprd);
-}
-//draw_spring();
-
 if (calc_forces) {
     // USE LIST COMPREHENSIONS TO FILL ARRAYS
     // FIRST CALCULATE MS WITH LOAD AND NO SPRINGS
@@ -219,60 +191,6 @@ if (calc_forces) {
     A_trq_noload_spr_min=min(A_trq_noload_spr);
     A_trq_noload_spr_max=max(A_trq_noload_spr);
     Margin_Safety(A_trq_noload_spr_min,A_trq_noload_spr_max,"A SERVO WITH SPRING NO PAYLOAD ");
-
-    /*
-    // USE LIST COMPREHENSIONS TO FILL ARRAYS
-    //
-    // optimized spring rate... explain or do iteratively
-    optimum_A_spr_k=1*(combined_weight*lenAB/2)/((sqrt(0.751*lenAB*lenAB)-lenAB/2)*(lenAB/4));  
-    echo(A_spr_k=A_spr_k,optimum_A_spr_k=optimum_A_spr_k,A_spr_free_len=A_spr_free_len,A_spr_len_min=A_spr_len_min,A_spr_len_max=A_spr_len_max);
-    echo (A_spr_torque_min=A_spr_torque_min,A_spr_torque_max=A_spr_torque_max);
-
-    // B SPRING, HELPS THE B MOTOR
-    B_spr_pt = [ for (a = [0 : steps-1]) [B_spr_r*cos(angles[a][1]),B_spr_r*sin(angles[a][1]),0] ];
-    B_spr_length = [ for (a = [0 : steps-1]) norm(vector_subtract(B_spr_pt[a],B_spr_pt_gnd)) ];
-    B_spr_len_min=min(B_spr_length);
-    B_spr_len_max=max(B_spr_length);
-    B_spr_force = [ for (a = [0 : steps-1]) B_spr_k*(B_spr_length[a]-B_spr_free_len) ];
-    
-    B_spr_torque = [ for (a = [0 : steps-1]) B_spr_force[a]*dist_line_origin(A_spr_pt_gnd,B_spr_pt[a]) ];  
-    B_spr_torque_min=min(B_spr_torque);
-    B_spr_torque_max=max(B_spr_torque);
-    //echo (B_spr_torque=B_spr_torque);
-   
-    A_payload_torque = [ for (a = [0 : steps-1])combined_weight*lenAB*cos(angles[a][0]) ]; 
-    
-    A_noload_torque = [ for (a = [0 : steps-1]) end_weight*lenAB*cos(angles[a][0]) ]; 
-       
-    a_torq_payload = [ for (a = [0 : steps-1]) A_spr_torque[a]-A_payload_torque[a] ];
-    A_torq_payload_min=min(a_torq_payload);
-    A_torq_payload_max=max(a_torq_payload);
-    echo (A_torq_payload_min=A_torq_payload_min,A_torq_payload_max=A_torq_payload_max);
-
-    a_torq_noload = [ for (a = [0 : steps-1]) A_spr_torque[a]-A_noload_torque[a] ];
-    A_torq_noload_min=min(a_torq_noload);
-    A_torq_noload_max=max(a_torq_noload);
-    echo (A_torq_noload_min=A_torq_noload_min,A_torq_noload_max=A_torq_noload_max);
-
-    echo(B_spr_k=B_spr_k,B_spr_free_len=B_spr_free_len,B_spr_len_min=B_spr_len_min,B_spr_len_max=B_spr_len_max);
-    echo (B_spr_torque_min=B_spr_torque_min,B_spr_torque_max=B_spr_torque_max);
-    
-    B_torq_payload = [ for (a = [0 : steps-1]) -combined_weight*lenBC*cos(angles[a][1])+B_spr_torque[a]+C_moment ];
-    B_torq_payload_min=min(B_torq_payload);
-    B_torq_payload_max=max(B_torq_payload);
-    echo (B_torq_payload_min=B_torq_payload_min,B_torq_payload_max=B_torq_payload_max);
-    //echo(B_torq_payload=B_torq_payload);
-
-    B_torq_noload = [ for (a = [0 : steps-1]) -end_weight*lenBC*cos(angles[a][1])+B_spr_torque[a] ];
-    B_torq_noload_min=min(B_torq_noload);
-    B_torq_noload_max=max(B_torq_noload);
-    echo (B_torq_noload_min=B_torq_noload_min,B_torq_noload_max=B_torq_noload_max);
-    
-    // calculate motor margins
-    A_MS = (Motor_Max_Torque/max(abs(A_torq_payload_max),abs(A_torq_payload_min)))-1;
-    B_MS = (Motor_Max_Torque/max(abs(B_torq_payload_max),abs(B_torq_payload_min)))-1;
-    echo("MOTOR MARGIN OF SAFETY ",Motor_Max_Torque=Motor_Max_Torque,A_MS=A_MS,B_MS=B_MS,C_MS=C_MS);
-    */
 }
 
 // #### pt used with animation ####
@@ -282,13 +200,13 @@ if (calc_forces) {
 alphas=get_angles_from_t($t,min_A,max_A,min_B,max_B);
 //alphas=throw_from_t($t,min_A,max_A,min_B,max_B);
 new_end = rotZ_pt(C_angle,LengthEnd);
-pt = vector_add(get_pt_from_angles(alphas),new_end);
+pt = get_pt_from_angles(alphas) + new_end;
 A_angle = alphas[0];
 B_angle = alphas[1];
 
 if (display_assembly) {
-    //difference () { // move section cuts to seperate file
         draw_assy (A_angle,B_angle,C_angle); 
+    //difference () { // move section cuts to seperate file
         // x = 0 cut 
         //translate ([-20,-10,-10])
         //cube (20,center=false);
@@ -352,8 +270,8 @@ module internal_loads (A_angle=0,B_angle=0,C_angle=0) {
     //force_arrow(LengthEnd_t,-vecBC,belt_force*force_scale); 
     
     // Sum forces to determine force on joint C using a force polygon
-    c_vec=vector_subtract(combined_weight*[0,-1,0],belt_force*vecBC);
-    c_to=vector_add(c,c_vec);  
+    c_vec=combined_weight*[0,-1,0] - belt_force*vecBC;
+    c_to=c + c_vec;  
     c_force=norm(c_vec);
     //force_arrow(c,c_vec,c_force*force_scale);
     //force_arrow(b,-c_vec,c_force*force_scale); // equal & opp on b
@@ -363,8 +281,8 @@ module internal_loads (A_angle=0,B_angle=0,C_angle=0) {
     // The torque is the joint c force x the distance to joint b.
     //
     // translate the c vectors to the origin for distance calc.
-    c1=vector_subtract(c,b);
-    c2=vector_subtract(c_to,b);
+    c1=c - b;
+    c2=c_to - b;
     cforce_to_b_arm=dist_line_origin([c1[0],c1[1]],[c2[0],c2[1]]);
     torque_at_B=cforce_to_b_arm*c_force;
     
@@ -377,19 +295,19 @@ module internal_loads (A_angle=0,B_angle=0,C_angle=0) {
     //force_arrow(pulley_t1,vecBC,-belt_force*force_scale); 
     //force_arrow(pulley_t2,-vecAB,belt_force*force_scale); 
     // Do vector polygon to sum forces on pulley at B
-    p_vec=vector_subtract(-belt_force*vecBC,belt_force*-vecAB);
+    p_vec=-belt_force*vecBC - belt_force*-vecAB;
     p_force=norm(p_vec);
     //force_arrow(b,p_vec,p_force*force_scale); 
     
     // Determine torque on joint A.  
     // Link AB is like a cantilever beam with multiple forces on it (1,2,3)
     // 1) calculate and draw torque due to pulley force at B
-    p_end = vector_add(b,p_vec);
+    p_end = b + p_vec;
     pforce_to_A_arm=dist_line_origin([b[0],b[1]],[p_end[0],p_end[1]]);
     p_torque_at_A=(abs(p_force) > 0.01) ? -p_force*pforce_to_A_arm : 0 ;
     
     // 2) calculate and draw torque due to upper arm force (uaf) at B
-    uaf_end = vector_add(b,-c_vec);
+    uaf_end = b - c_vec;
     uaf_to_A_arm=dist_line_origin([b[0],b[1]],[uaf_end[0],uaf_end[1]]);
     uaf_torque_at_A=-c_force*uaf_to_A_arm;
      
@@ -418,44 +336,30 @@ module internal_loads (A_angle=0,B_angle=0,C_angle=0) {
     
     // Output to console.  Used to get data into spreadsheet
     //echo ($t=$t,c=c,A_angle=A_angle,B_angle=B_angle,    B_spr_torque=B_spr_torque,B_mtr_trq=B_mtr_trq,    p_torque_at_A=p_torque_at_A,uaf_torque_at_A=uaf_torque_at_A,    A_spr_force=A_spr_force,A_spr_to_origin=A_spr_to_origin,    A_spr_torque=A_spr_torque,A_mtr_trq=A_mtr_trq); 
-    
 }
-
 
 function get_pt_from_angles (A)= ([C_x_ang(A[0],A[1]),C_y_ang(A[0],A[1]),0]); 
 
 function get_angles_from_t 
 (t=0.5,min_A=-10,max_A=150,min_B=-50,max_B=90)= 
-(t<0.15) ? ([min_A,interp(min_B,min_A+max_B_to_A,t,0,0.15),0]) : 
- (t<0.38) ? ([interp(0,100,t,0.15,0.38),interp(0,100,t,0.15,0.38),0]): 
- (t<0.5) ? ([interp(max_B-max_B_to_A,max_A,t,0.38,0.5),max_B,0]): 
-(t<0.63) ? ([max_A,interp(max_B,max_A+min_B_to_A,t,0.5,0.63),0]): 
-(t<0.75) ?([interp(max_A,min_B-min_B_to_A,t,0.63,0.75),interp(max_A+min_B_to_A,min_B,t,0.63,0.75),0]) :
-([interp(min_B-min_B_to_A,min_A,t,0.75,1),min_B,0]); 
-/*  old version of get_angles_from_t
- (t<0.38) ? ([interp(min_A,max_B-max_B_to_A,t,0.15,0.38),interp(min_A+max_B_to_A,max_B,t,0.15,0.38),0]): 
-function get_angles_from_t 
-(t=0.5,min_A=-10,max_A=150,min_B=-50,max_B=90)= 
-(t<0.25) ? ([interp(min_A,90,t,0,0.25),interp(min_A,90,t,0,0.25),0]) : 
- (t<0.38) ? ([interp(90,max_A,t,0.25,0.38),interp(90,max_B,t,0.25,0.38),0]): 
- (t<0.5) ? ([max_A,interp(max_B,max_A+min_B_to_A,t,0.38,0.5),0]): 
-(t<0.63) ? ([interp(max_A,70,t,0.5,0.63),interp(max_A+min_B_to_A,70+min_B_to_A,t,0.5,0.63),0]): 
-(t<0.75) ?([interp(70,min_A,t,0.63,0.75),interp(70+min_B_to_A,min_B,t,0.63,0.75),0]) :
-([min_A,interp(min_B,min_A,t,0.75,1),0]); 
-*/
+(t<0.15) ? ([min_A,linear_interp(min_B,min_A+max_B_to_A,t,0,0.15),0]) : 
+ (t<0.38) ? ([linear_interp(0,100,t,0.15,0.38),linear_interp(0,100,t,0.15,0.38),0]): 
+ (t<0.5) ? ([linear_interp(max_B-max_B_to_A,max_A,t,0.38,0.5),max_B,0]): 
+(t<0.63) ? ([max_A,linear_interp(max_B,max_A+min_B_to_A,t,0.5,0.63),0]): 
+(t<0.75) ?([linear_interp(max_A,min_B-min_B_to_A,t,0.63,0.75),linear_interp(max_A+min_B_to_A,min_B,t,0.63,0.75),0]) :
+([linear_interp(min_B-min_B_to_A,min_A,t,0.75,1),min_B,0]); 
+
 function throw_from_t 
 (t=0.5,min_A=-10,max_A=150,min_B=-50,max_B=90)= 
-(t<0.25) ? ([interp(0,max_A,t,0,0.25),interp(0,max_B,t,0,0.25),0]) : 
- (t<0.9) ? ([interp(max_A,throw_min_A,t,0.25,0.9),interp(max_B,min_B+50,t,0.25,0.9),0]): 
-([interp(throw_min_A,0,t,0.9,1),interp(min_B+50,0,t,0.9,1),0]); 
+(t<0.25) ? ([linear_interp(0,max_A,t,0,0.25),linear_interp(0,max_B,t,0,0.25),0]) : 
+ (t<0.9) ? ([linear_interp(max_A,throw_min_A,t,0.25,0.9),linear_interp(max_B,min_B+50,t,0.25,0.9),0]): 
+([linear_interp(throw_min_A,0,t,0.9,1),linear_interp(min_B+50,0,t,0.9,1),0]); 
 
 function C_x_ang (A,B) = (cos(A)*lenAB+cos(B)*lenBC);
 
 function C_y_ang (A,B) = (sin(A)*lenAB+sin(B)*lenBC);
 
-function interp (A,B,t,t_l,t_h) = (A+((t-t_l)/(t_h-t_l))*(B-A));
-
-module inverse (c=[10,10,0]) {
+module inverse_arm_kinematics (c=[10,10,0]) {
     // calculate the angles from pt ***Inverse Kinematics***
 
     vt = norm(c);  // vector length from A to C
@@ -471,13 +375,6 @@ module plot_limits(n=20){
     $fs=max_range/200;
     points = [ for (t = [0 : 1/n : 1]) get_pt_from_angles(get_angles_from_t(t,min_A,max_A,min_B,max_B)) ];
     draw_3d_list(points,max_range/120,"salmon");
-    /*
-    for (i=[0:1/n:1]){
-        color("salmon") 
-        translate(get_pt_from_angles(get_angles_from_t(i,min_A,max_A,min_B,max_B))) 
-        circle(r);
-    }
-    */
 }
 module plot_throw(n=20){
     // plot the expected limits of range of motion

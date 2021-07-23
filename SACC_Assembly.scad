@@ -162,6 +162,7 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
 
     // Draw springs
     spr_pt_AB = spr_dist_AB*vecAB;
+    echo(spr_pt_AB=spr_pt_AB);
     B_spr_pt = [B_spr_r*cos(B_angle),B_spr_r*sin(B_angle),-widthAB ];
 
     // Draw the A spring (latex tube with pulleys)
@@ -176,12 +177,14 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
         rotate([0,180,0]) M5_RHS(length=55); 
     
     // Draw the B spring (latex tube with pulleys)
+    /*
     y_b_p = -B_servo_y+GT2pulleyt*1.3;
     color ("grey") 
     pt_pt_belt ([B_spr_pt_gnd[0],B_spr_pt_gnd[1],y_b_p],B_spr_pt,d=6,r_pulley=GT2pulleyd/2,round=true);
     translate ([B_spr_pt_gnd[0],B_spr_pt_gnd[1],y_b_p-GT2pulleyt/2]) GT2_2_idle_pulley ();
     translate ([B_spr_pt_gnd[0],B_spr_pt_gnd[1],y_b_p+GT2pulleyt/2]) 
         rotate([0,180,0]) M5_RHS (length=20); 
+        */
 } 
 module end_effector_assy() {
     color("SpringGreen") final_C_horn (); 

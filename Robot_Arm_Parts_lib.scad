@@ -1,6 +1,6 @@
 // Robot Arm Parts Object Library
 //  Started on 4/6/2020 by SrAmo
-//  last modified July 1 2021 by SrAmo
+//  last modified July 22 2021 by SrAmo (used built in vector add/sub)
 use <force_lib.scad>
 use <Pulley-GT2_2.scad>
 
@@ -468,7 +468,7 @@ module tension_spring(from=[0,0,0],to=[6,5,5]){
     // UPGRADE TO DO A PROPOER LINEAR EXTRUDE
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.1; // minimum size of fragment (default is 2)
-    vector=vector_subtract(from,to);
+    vector=from - to;
     slength=norm(vector);
     if ((slength>0.8) && $preview) {
         ang=atan2(vector[1],vector[0]);
@@ -491,7 +491,7 @@ module pt_pt_cylinder (from=[1,1,0],to=[-1,0,-1], d = 0.1){
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.1; // minimum size of fragment (default is 2)
     
-    vec=vector_subtract(to,from);
+    vec=to - from;
     length=norm(vec);
     dx = -vec[0];
     dy = -vec[1];
@@ -512,9 +512,9 @@ module pt_pt_cylinder (from=[1,1,0],to=[-1,0,-1], d = 0.1){
         echo("MODULE PT_PT_CYLINDER; small length =",length);
     }
 }
-module pt_pt_belt (from=[1,1,1],to=[-1,0,1], d = 0.1,r_pulley=.3,round=true){
+module pt_pt_belt (from=[10,10,10],to=[-10,0,10], d = 0.1,r_pulley=3,round=true){
     // Create belts from point to point
-    $fa=$preview ? 6 : 1; // minimum angle fragment
+    $fa=$preview ? 6 : 1; // minimum ange fragment
     $fs=0.03; // minimum size of fragment (default is 2)
     
     // default is round belt
@@ -522,7 +522,7 @@ module pt_pt_belt (from=[1,1,1],to=[-1,0,1], d = 0.1,r_pulley=.3,round=true){
     gt2t=1; // thickness (1 mm)
     gt2w=6; // width (6 mm)
     
-    vec=vector_subtract(to,from);
+    vec= from - to;
     length=norm(vec);
     dx = -vec[0];
     dy = -vec[1];
@@ -576,13 +576,13 @@ module cross_belt(a=[0,0,0],b=[5,0,0],r=1, d = 0.1,right=true){
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.1; // minimum size of fragment (default is 2)
     
-    vec=vector_subtract(b,a);
+    vec=b - a;
     length=norm(vec);
     if (length>2*r) {  // check for feasible
         phi=right ? acos(r/(length/2)) : -acos(r/(length/2));
         az=atan2(-vec[1],-vec[0]); // angle of ab vector on xy plane
-        a_tangent = vector_add(a,[r*cos(az-phi),r*sin(az-phi),0]);
-        b_tangent = vector_add(b,[r*cos(az+(180-phi)),r*sin(az+(180-phi)),0]);
+        a_tangent = a + [r*cos(az-phi),r*sin(az-phi),0];
+        b_tangent = b + [r*cos(az+(180-phi)),r*sin(az+(180-phi)),0];
         
         pt_pt_cylinder(a_tangent,b_tangent,d);
     }else {
