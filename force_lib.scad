@@ -65,6 +65,22 @@ module plot_circle(rad=2,n=10,dot_r=2,center=[0,0,0]) {
         circle(dot_r);       
     };
 }
+// recursive module that draws a 3D point list
+module draw_3d_list(the3dlist=[],size=10,dot_color="blue",value=[],idx=0) {
+    point=the3dlist[idx];
+    height=value[idx];
+    //echo(point=point);
+    if (point != undef) { // not undefined means there is a point
+        if (height != undef) {
+           color(dot_color) translate(point) translate([0,0,height/2]) cylinder(h=abs(height),r=size,center=true);   
+        } else {
+            color(dot_color) translate(point) cylinder(h=10,r=size,center=true);   
+        }
+       idx=idx+1;
+       draw_3d_list(the3dlist,size,dot_color,value,idx);
+    }  
+    // Note: that an undefined causes the recursion to stop
+}
 
 module force_arrow(from=[1,1,0],vec=[1,0,0],mag=10) {
     // draw a 3D force of length (mag), at (from), direction (vec)

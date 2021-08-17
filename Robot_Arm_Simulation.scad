@@ -1,7 +1,7 @@
 // Robot Arm Simulation tool
 //  SACC = Servo Arm with Compliant Claw
 //  Started on 3/24/2020 by SrAmo
-//  last modified July 18 2021 by SrAmo
+//  last modified August 16 2021 by SrAmo
 /*  >>>>> Introduction <<<<<
 
     The purpose of this tool is to:
@@ -56,10 +56,8 @@ calc_forces = true;
 display_assembly = true;
 // Check to display reach path 
 display_reach = true; 
-// Check to display a throwing path 
-display_throw = false; 
 // Number of position step in internal calculation
-steps = 40;
+steps = 60;
 // Angle of End Effector
 C_angle = 0;   
 // Maximum Motor Torque (gram-mm) 
@@ -71,7 +69,7 @@ Motor_Max_Torque = 200000;
   A 40x20x40 mm servo is about 70 grams
 */
 // Maximum payload weight (thing being lifted) (g)
-payload=300;  // 400 g goal (try to maximize this)
+payload=400;  // 400 g goal (try to maximize this)
 // weight of end effector with no payload (g)
 end_weight=250;  // 250 g (measure)
 // End effector offsets from C to grip/load point. Moment arm.
@@ -94,35 +92,8 @@ min_A=A_rigging-(A_range/2);
 max_A=A_rigging+(A_range/2);
 min_B=B_rigging-(B_range/2);
 max_B=B_rigging+(B_range/2);
-//echo (min_A=min_A,max_A=max_A,A_range=(max_A-min_A));
-//echo (min_B=min_B,max_B=max_B,B_range=(max_B-min_B));
-
-/* servo control values for the limit points
-    lim1x = ((max_B-max_B_to_A)-min_A)/A_range;
-    lim1y = ((min_A+max_B_to_A)-min_B)/B_range;
-    lim2x = ((min_B-min_B_to_A)-min_A)/A_range;
-    lim2y = ((max_A+min_B_to_A)-min_B)/B_range;
-    // slope M and y Intercept B for limits for servo control
-    lim1_M = (1-lim1x)/lim1y;
-    lim2_M = lim2y/(1-lim2x);
-    lim1_B = lim1y;
-    lim2_B = -lim2_M*lim2x;
-    echo(lim1x=lim1x,lim1y=lim1y,lim2x=lim2x,lim2y=lim2y);
-    echo(lim1_M=lim1_M,lim2_M=lim2_M,lim1_B=lim1_B,lim2_B=lim2_B);
-*/
-
-// recursive module that draws a 3D point list
-//     move to force_lib.scad
-module draw_3d_list(the3dlist=[],size=10,dot_color="blue",idx=0) {
-    point=the3dlist[idx];
-    //echo(point=point);
-    if (point != undef) { // not undefined means there is a point
-       color(dot_color) translate(point) circle(size);   
-       idx=idx+1;
-       draw_3d_list(the3dlist,size,dot_color,idx);
-    }  
-    // Note: that an undefined causes the recursion to stop
-}
+echo (min_A=min_A,max_A=max_A,A_range=(max_A-min_A));
+echo (min_B=min_B,max_B=max_B,B_range=(max_B-min_B));
 
 // USE LIST COMPREHENSIONS TO FILL ARRAYS
 angles = [ for (a = [0 : steps-1]) get_angles_from_t(a/steps,min_A,max_A,min_B,max_B)];
@@ -132,7 +103,6 @@ angles = [ for (a = [0 : steps-1]) get_angles_from_t(a/steps,min_A,max_A,min_B,m
 b = [ for (a = [0 : steps-1]) [lenAB*cos(angles[a][0]),lenAB*sin(angles[a][0]),0] ];
 
 c = [ for (a = [0 : steps-1]) [get_CX(angles[a]),get_CY(angles[a]),0]];
-//draw_3d_list(c,10,"green");
 
 cx = [ for (a = [0 : steps-1]) get_CX(angles[a])];
 cx_min=min(cx);
@@ -149,29 +119,46 @@ max_range = (x_range > y_range) ? x_range : y_range;
 // Scale of Force & Moment Display
 force_scale = max_range/(10*combined_weight); // arbitrary formula, but works
 
-module Margin_Safety(min,max,name="THING NAME") {
+module Margin_Safety(min,max,allowable,name="THING NAME") {
     // calculate Engineering Margin of Safety for "thing"
+    // Two actual values can be provided, representing most negative and most pos
+    // allowable = the allowable value
+    // Move this module to the force library
     MAX = max(abs(max),abs(min));
-    MS = (Motor_Max_Torque/MAX)-1;
+    MS = (allowable/MAX)-1;
     echo(name," MARGIN OF SAFETY ",MS=MS,MAX=MAX);
 }
+
+function torsion_spr_torque(K,theta,theta_zero) =
+    K*(theta-theta_zero);
+
+// torsion spring constants for B joint
+// move these to the configuration file
+B_K = 600; // g-mm/deg,   this is for spring 9271K619   589
+B_theta_zero = 140; // degrees, 90 is straight up
+
 if (calc_forces) {
     // USE LIST COMPREHENSIONS TO FILL ARRAYS
     // FIRST CALCULATE MS WITH LOAD AND NO SPRINGS
     B_trq_load_nospr = [ for (a = [0 : steps-1]) combined_weight*lenBC*cos(angles[a][1])+C_moment ];
     B_trq_load_nospr_min=min(B_trq_load_nospr);
     B_trq_load_nospr_max=max(B_trq_load_nospr);
-    Margin_Safety(B_trq_load_nospr_min,B_trq_load_nospr_max,"B SERVO NO SPRING");
+    Margin_Safety(B_trq_load_nospr_min,B_trq_load_nospr_max,Motor_Max_Torque,"B SERVO - NO SPRING - GREEN");
 
-    B_trq_noload_nospr = [ for (a = [0 : steps-1]) end_weight*lenBC*cos(angles[a][1]) ];
-    B_trq_noload_nospr_min=min(B_trq_noload_nospr);
-    B_trq_noload_nospr_max=max(B_trq_noload_nospr);
-    Margin_Safety(B_trq_noload_nospr_min,B_trq_noload_nospr_max,"B SERVO NO SPRING NO PAYLOAD ");
+    B_trq_load_spr = [ for (a = [0 : steps-1]) combined_weight*lenBC*cos(angles[a][1])+torsion_spr_torque(B_K,angles[a][1],B_theta_zero)+C_moment ];
+    B_trq_load_spr_min=min(B_trq_load_spr);
+    B_trq_load_spr_max=max(B_trq_load_spr);
+    Margin_Safety(B_trq_load_spr_min,B_trq_load_spr_max,Motor_Max_Torque,"B SERVO - SPRING - BLUE");
+
+    B_trq_noload_spr = [ for (a = [0 : steps-1]) end_weight*lenBC*cos(angles[a][1]) +torsion_spr_torque(B_K,angles[a][1],B_theta_zero)+C_moment];
+    B_trq_noload_spr_min=min(B_trq_noload_spr);
+    B_trq_noload_spr_max=max(B_trq_noload_spr);
+    Margin_Safety(B_trq_noload_spr_min,B_trq_noload_spr_max,Motor_Max_Torque,"B SERVO - SPRING - NO PAYLOAD - YELLOW");
 
     A_trq_load_nospr = [ for (a = [0 : steps-1]) combined_weight*lenAB*cos(angles[a][0])+ B_trq_load_nospr[a] ]; 
     A_trq_load_nospr_min=min(A_trq_load_nospr);
     A_trq_load_nospr_max=max(A_trq_load_nospr);
-    Margin_Safety(A_trq_load_nospr_min,A_trq_load_nospr_max,"A SERVO NO SPRING");
+    Margin_Safety(A_trq_load_nospr_min,A_trq_load_nospr_max,Motor_Max_Torque,"A SERVO - NO SPRING - GREEN");
 
     // The A spring helps the Joint A MOTOR
     // fill point array to moving end of spring
@@ -185,12 +172,25 @@ if (calc_forces) {
     A_trq_load_spr = [ for (a = [0 : steps-1]) combined_weight*lenAB*cos(angles[a][0])+ B_trq_load_nospr[a] - A_spr_torque[a] ]; 
     A_trq_load_spr_min=min(A_trq_load_spr);
     A_trq_load_spr_max=max(A_trq_load_spr);
-    Margin_Safety(A_trq_load_spr_min,A_trq_load_spr_max,"A SERVO WITH SPRING");
+    Margin_Safety(A_trq_load_spr_min,A_trq_load_spr_max,Motor_Max_Torque,"A SERVO - SPRING - BLUE");
     
-    A_trq_noload_spr = [ for (a = [0 : steps-1]) end_weight*lenAB*cos(angles[a][0])+ B_trq_noload_nospr[a] - A_spr_torque[a] ]; 
+    A_trq_noload_spr = [ for (a = [0 : steps-1]) end_weight*lenAB*cos(angles[a][0])+ B_trq_noload_spr[a] - A_spr_torque[a] ]; 
     A_trq_noload_spr_min=min(A_trq_noload_spr);
     A_trq_noload_spr_max=max(A_trq_noload_spr);
-    Margin_Safety(A_trq_noload_spr_min,A_trq_noload_spr_max,"A SERVO WITH SPRING NO PAYLOAD ");
+    Margin_Safety(A_trq_noload_spr_min,A_trq_noload_spr_max,Motor_Max_Torque,"A SERVO - SPRING - NO PAYLOAD - YELLOW");
+    
+    // draw_3d_list => force_lib.scad
+    // JOINT A TORQUES
+    //draw_3d_list(c,max_range/100,"green",A_trq_load_nospr/400); 
+    //draw_3d_list(c,max_range/80,"blue",A_trq_load_spr/400); 
+    //draw_3d_list(c,max_range/70,"yellow",A_trq_noload_spr/400); 
+    
+    // draw_3d_list => force_lib.scad
+    // JOINT B TORQUES
+    draw_3d_list(c,max_range/100,"green",B_trq_load_nospr/400); 
+    draw_3d_list(c,max_range/80,"blue",B_trq_load_spr/400); 
+    draw_3d_list(c,max_range/70,"yellow",B_trq_noload_spr/400); 
+
 }
 
 // #### pt used with animation ####
@@ -198,7 +198,6 @@ if (calc_forces) {
 //pt = [3,3,0];  // LengthEnd point, No animation. change to position arm
 
 alphas=get_angles_from_t($t,min_A,max_A,min_B,max_B);
-//alphas=throw_from_t($t,min_A,max_A,min_B,max_B);
 new_end = rotZ_pt(C_angle,LengthEnd);
 pt = get_pt_from_angles(alphas) + new_end;
 A_angle = alphas[0];
@@ -216,15 +215,7 @@ if (display_assembly) {
     //}
 }
 
-if (calc_forces) internal_loads (A_angle,B_angle,C_angle);
-    
-if (display_reach) plot_limits (steps); // turn off for 3d rendering
-    
-if (display_throw) {
-    // not being used
-    throw_min_A = max_A - 100; // min A for throw
-    plot_throw (steps); // turn off for 3d rendering
-}
+//if (calc_forces) internal_loads (A_angle,B_angle,C_angle);
 
 //$vpr = [0, $t * 360,0];   // view point rotation
 
@@ -326,34 +317,31 @@ module internal_loads (A_angle=0,B_angle=0,C_angle=0) {
     B_spr_len = norm(B_spr_pt-B_spr_pt_gnd);
     B_spr_force = B_spr_k*(B_spr_len-B_spr_free_len);
     //force_arrow(B_spr_pt,B_spr_pt_gnd-B_spr_pt,B_spr_force*force_scale);
-    B_spr_torque = B_spr_force*dist_line_origin(B_spr_pt_gnd,B_spr_pt);
+    B_spr_torque = 0;
+    //B_spr_torque = B_spr_force*dist_line_origin(B_spr_pt_gnd,B_spr_pt);
     
     B_mtr_trq = torque_at_B+B_spr_torque;
+    echo(B_mtr_trq=B_mtr_trq,B_spr_torque=B_spr_torque);
     
     // Total Lower Arm Torque
     A_mtr_trq=p_torque_at_A+uaf_torque_at_A+A_spr_torque;
-    color("Plum",1) torque_arrow([0,0,0],A_mtr_trq*(force_scale/50));
-    
+    //color("Plum",1) torque_arrow([0,0,0],A_mtr_trq*(force_scale/50));
+    echo(A_spr_torque=A_spr_torque,A_mtr_trq=A_mtr_trq);
     // Output to console.  Used to get data into spreadsheet
     //echo ($t=$t,c=c,A_angle=A_angle,B_angle=B_angle,    B_spr_torque=B_spr_torque,B_mtr_trq=B_mtr_trq,    p_torque_at_A=p_torque_at_A,uaf_torque_at_A=uaf_torque_at_A,    A_spr_force=A_spr_force,A_spr_to_origin=A_spr_to_origin,    A_spr_torque=A_spr_torque,A_mtr_trq=A_mtr_trq); 
 }
 
 function get_pt_from_angles (A)= ([C_x_ang(A[0],A[1]),C_y_ang(A[0],A[1]),0]); 
 
+// Define the Angles [A,B,C] for a time point in the reach path
 function get_angles_from_t 
 (t=0.5,min_A=-10,max_A=150,min_B=-50,max_B=90)= 
-(t<0.15) ? ([min_A,linear_interp(min_B,min_A+max_B_to_A,t,0,0.15),0]) : 
- (t<0.38) ? ([linear_interp(0,100,t,0.15,0.38),linear_interp(0,100,t,0.15,0.38),0]): 
- (t<0.5) ? ([linear_interp(max_B-max_B_to_A,max_A,t,0.38,0.5),max_B,0]): 
-(t<0.63) ? ([max_A,linear_interp(max_B,max_A+min_B_to_A,t,0.5,0.63),0]): 
-(t<0.75) ?([linear_interp(max_A,min_B-min_B_to_A,t,0.63,0.75),linear_interp(max_A+min_B_to_A,min_B,t,0.63,0.75),0]) :
-([linear_interp(min_B-min_B_to_A,min_A,t,0.75,1),min_B,0]); 
-
-function throw_from_t 
-(t=0.5,min_A=-10,max_A=150,min_B=-50,max_B=90)= 
-(t<0.25) ? ([linear_interp(0,max_A,t,0,0.25),linear_interp(0,max_B,t,0,0.25),0]) : 
- (t<0.9) ? ([linear_interp(max_A,throw_min_A,t,0.25,0.9),linear_interp(max_B,min_B+50,t,0.25,0.9),0]): 
-([linear_interp(throw_min_A,0,t,0.9,1),linear_interp(min_B+50,0,t,0.9,1),0]); 
+(t<0.15) ? ([min_A,linear_interp(min_B,0,t,0,0.15),0]) : 
+ (t<0.38) ? ([linear_interp(min_A,100,t,0.15,0.38),linear_interp(0,100,t,0.15,0.38),0]): 
+ (t<0.5) ? ([linear_interp(100,max_A,t,0.38,0.5),linear_interp(100,max_B,t,0.38,0.5),0]): 
+(t<0.63) ? ([max_A,linear_interp(max_B,0,t,0.5,0.63),0]): 
+(t<0.75) ?([linear_interp(max_A,max_A-40,t,0.63,0.75),linear_interp(0,min_B,t,0.63,0.75),0]) :
+([linear_interp(max_A-40,min_A,t,0.75,1),min_B,0]); 
 
 function C_x_ang (A,B) = (cos(A)*lenAB+cos(B)*lenBC);
 
@@ -370,21 +358,3 @@ module inverse_arm_kinematics (c=[10,10,0]) {
     A_angle = sub_angle1 + sub_angle2;
     B_angle = acos((lenBC*lenBC+lenAB*lenAB-vt*vt)/(2*lenBC*lenAB));
 } 
-module plot_limits(n=20){
-    // plot the expected limits of range of motion
-    $fs=max_range/200;
-    points = [ for (t = [0 : 1/n : 1]) get_pt_from_angles(get_angles_from_t(t,min_A,max_A,min_B,max_B)) ];
-    draw_3d_list(points,max_range/120,"salmon");
-}
-module plot_throw(n=20){
-    // plot the expected limits of range of motion
-    $fn=8;
-    r=max_range/120;
-    
-    for (i=[0:1/n:1]){
-        color("blue") 
-        translate(get_pt_from_angles(throw_from_t(i,min_A,max_A,min_B,max_B))) 
-        circle(r);
-    }
-}
-

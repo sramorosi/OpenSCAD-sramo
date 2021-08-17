@@ -1,6 +1,6 @@
 // Robot Arm Assembly
 //  Started on 3/24/2020 by SrAmo
-//  last modified JUNE 16 2021 by SrAmo
+//  last modified August 16 2021 by SrAmo
 
 use <force_lib.scad>
 use <Robot_Arm_Parts_lib.scad>
@@ -72,7 +72,7 @@ module final_B_Spring_pulley() {
     $fn=$preview ? 60 : 100; // number of fragements
     B_Spr_width = wBC_inside - 2*wall_t-1;
     B_Spr_OD = widthBC*1.6;
-    echo(B_Spr_width=B_Spr_width,B_Spr_OD=B_Spr_OD);
+    //echo(B_Spr_width=B_Spr_width,B_Spr_OD=B_Spr_OD);
     color ("skyblue") 
         translate ([0,0,B_Spr_width/2])
         difference () {
@@ -162,7 +162,7 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
 
     // Draw springs
     spr_pt_AB = spr_dist_AB*vecAB;
-    echo(spr_pt_AB=spr_pt_AB);
+    //echo(spr_pt_AB=spr_pt_AB);
     B_spr_pt = [B_spr_r*cos(B_angle),B_spr_r*sin(B_angle),-widthAB ];
 
     // Draw the A spring (latex tube with pulleys)
@@ -467,7 +467,7 @@ module robot_arm_base () {
             // B Servo Side
             color("blueviolet") translate([0,B_servo_y,-base_z_top])
                 rotate([90,0,0]) 
-                    lug (r=13,w=base_w/1.6,h=base_z_top+B_spr_dist_base,t=base_svo_lug_t+.02);      
+                    lug (r=13,w=base_w/1.6,h=base_z_top+10,t=base_svo_lug_t+.02);      
 
             // The Third lug
             color("fuchsia") translate([0,extra_lug_y+base_svo_lug_t,-base_z_top])

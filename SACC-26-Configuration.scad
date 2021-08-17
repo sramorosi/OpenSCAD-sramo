@@ -1,6 +1,6 @@
 // Robot Arm Configuration File
 // ALL UNITS ARE IN MM
-//  last modified JUNE 16 2021 by SrAmo
+//  last modified August 16 2021 by SrAmo
 
 include <Part-Constants.scad>
 
@@ -73,7 +73,7 @@ claw_height = 38;
 claw_radius = 18;
 
 
-// SPRING TO HELP JOINT A AND B ARE OPTIONAL
+// SPRINGS TO HELP JOINT A AND B, AND ARE OPTIONAL
 
 // True if there is a sprint helping joint A
 Spring_at_A = true;
@@ -85,7 +85,7 @@ A_spr_k = 20; // 17 g/mm
 spr_dist_base = 60; // 2 inch = 50.8 mm
 // spring attach pt on AB arm from A
 spr_dist_AB = 172.7; // 6.8 inch = 172.72 mm
-A_spr_pt_gnd = [0,spr_dist_base,50];   // spring attach point on base
+A_spr_pt_gnd = [-35,spr_dist_base,50];   // spring attach point on base
 
 // True if there is a sprint helping joint B
 Spring_at_B = true;
@@ -106,8 +106,6 @@ B_spr_pt_gnd = [0,B_spr_dist_base,0];   // spring attach point on base
 // When the BC arm is horizontal pointing right from A, is 0 deg (pos CCW)
 // angle limits at the B joint. Angle is 0 when BC in line with AB
 // ANGLE ranges are defined in the configuration file
-max_B_to_A = 45; // max angle of B to AB arm
-min_B_to_A = -150; // min angle of B to AB arm
 
 A_range = 160; // max angle range degrees of A servo
 B_range = 170; // max angle range degrees of B servo
