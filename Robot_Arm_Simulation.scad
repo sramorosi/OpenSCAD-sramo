@@ -58,8 +58,6 @@ display_assembly = true;
 display_reach = true; 
 // Number of position step in internal calculation
 steps = 60;
-// Angle of End Effector
-C_angle = 0;   
 // Maximum Motor Torque (gram-mm) 
 Motor_Max_Torque = 200000; 
 
@@ -73,12 +71,13 @@ payload=400;  // 400 g goal (try to maximize this)
 // weight of end effector with no payload (g)
 end_weight=250;  // 250 g (measure)
 // End effector offsets from C to grip/load point. Moment arm.
-LengthEnd=[125,0,0.0];   // mm (measure)
+c_to_d = 125;
+LengthEnd=[c_to_d,0,0.0];   // mm (measure)
 
 combined_weight = payload+end_weight;
 
 // This should be a function of C_ANGLE, but isn't presently
-C_moment = combined_weight*LengthEnd[0]; 
+C_moment = combined_weight*c_to_d; 
 C_MS = (Motor_Max_Torque/abs(C_moment))-1;
 echo (end_weight=end_weight,payload=payload,combined_weight=combined_weight,C_moment=C_moment,C_MS=C_MS);
 
@@ -104,6 +103,8 @@ b = [ for (a = [0 : steps-1]) [lenAB*cos(angles[a][0]),lenAB*sin(angles[a][0]),0
 
 c = [ for (a = [0 : steps-1]) [get_CX(angles[a]),get_CY(angles[a]),0]];
 
+d = [ for (a = [0 : steps-1]) [c[a][0]+c_to_d*cos(angles[a][2]),c[a][1]+c_to_d*sin(angles[a][2]),0]];
+
 cx = [ for (a = [0 : steps-1]) get_CX(angles[a])];
 cx_min=min(cx);
 cx_max=max(cx);
@@ -119,38 +120,33 @@ max_range = (x_range > y_range) ? x_range : y_range;
 // Scale of Force & Moment Display
 force_scale = max_range/(10*combined_weight); // arbitrary formula, but works
 
-module Margin_Safety(min,max,allowable,name="THING NAME") {
-    // calculate Engineering Margin of Safety for "thing"
-    // Two actual values can be provided, representing most negative and most pos
-    // allowable = the allowable value
-    // Move this module to the force library
-    MAX = max(abs(max),abs(min));
-    MS = (allowable/MAX)-1;
-    echo(name," MARGIN OF SAFETY ",MS=MS,MAX=MAX);
-}
-
-function torsion_spr_torque(K,theta,theta_zero) =
-    K*(theta-theta_zero);
-
 // torsion spring constants for B joint
 // move these to the configuration file
 B_K = 600; // g-mm/deg,   this is for spring 9271K619   589
 B_theta_zero = 140; // degrees, 90 is straight up
 
+// torsion spring constants for A joint
+// move these to the configuration file
+A_K = -500; // g-mm/deg,   this is for spring 9271K619   589
+A_theta_zero = 110; // degrees, 90 is straight up
+
 if (calc_forces) {
     // USE LIST COMPREHENSIONS TO FILL ARRAYS
+    C_mom = [ for (a = [0 : steps-1]) combined_weight*c_to_d*cos(angles[a][2]) ];
+        
     // FIRST CALCULATE MS WITH LOAD AND NO SPRINGS
-    B_trq_load_nospr = [ for (a = [0 : steps-1]) combined_weight*lenBC*cos(angles[a][1])+C_moment ];
+    B_trq_load_nospr = [ for (a = [0 : steps-1]) combined_weight*lenBC*cos(angles[a][1])+C_mom[a] ];
     B_trq_load_nospr_min=min(B_trq_load_nospr);
     B_trq_load_nospr_max=max(B_trq_load_nospr);
     Margin_Safety(B_trq_load_nospr_min,B_trq_load_nospr_max,Motor_Max_Torque,"B SERVO - NO SPRING - GREEN");
 
-    B_trq_load_spr = [ for (a = [0 : steps-1]) combined_weight*lenBC*cos(angles[a][1])+torsion_spr_torque(B_K,angles[a][1],B_theta_zero)+C_moment ];
+    // The B spring is a torsion spring
+    B_trq_load_spr = [ for (a = [0 : steps-1]) combined_weight*lenBC*cos(angles[a][1])+torsion_spr_torque(B_K,angles[a][1],B_theta_zero)+C_mom[a] ];
     B_trq_load_spr_min=min(B_trq_load_spr);
     B_trq_load_spr_max=max(B_trq_load_spr);
     Margin_Safety(B_trq_load_spr_min,B_trq_load_spr_max,Motor_Max_Torque,"B SERVO - SPRING - BLUE");
 
-    B_trq_noload_spr = [ for (a = [0 : steps-1]) end_weight*lenBC*cos(angles[a][1]) +torsion_spr_torque(B_K,angles[a][1],B_theta_zero)+C_moment];
+    B_trq_noload_spr = [ for (a = [0 : steps-1]) end_weight*lenBC*cos(angles[a][1]) +torsion_spr_torque(B_K,angles[a][1],B_theta_zero)+C_mom[a]];
     B_trq_noload_spr_min=min(B_trq_noload_spr);
     B_trq_noload_spr_max=max(B_trq_noload_spr);
     Margin_Safety(B_trq_noload_spr_min,B_trq_noload_spr_max,Motor_Max_Torque,"B SERVO - SPRING - NO PAYLOAD - YELLOW");
@@ -163,33 +159,41 @@ if (calc_forces) {
     // The A spring helps the Joint A MOTOR
     // fill point array to moving end of spring
     A_spr_pt_AB = [ for (a = [0 : steps-1]) [spr_dist_AB*cos(angles[a][0]),spr_dist_AB*sin(angles[a][0]),0] ];
-    A_spr_torque = [ for (a = [0 : steps-1]) spring_torque(A_spr_pt_gnd,A_spr_pt_AB[a],origin,A_spr_k,A_spr_free_len) ];  
+    // spring_torque is in force_lib.scad
+    
+    // Spring Design 1: a point to point spring
+    //A_spr_torque = [ for (a = [0 : steps-1]) spring_torque(A_spr_pt_gnd,A_spr_pt_AB[a],origin,A_spr_k,A_spr_free_len) ]; 
+    
+    // Spring Design 2: a torsion spring
+    A_spr_torque = [ for (a = [0 : steps-1]) torsion_spr_torque(A_K,angles[a][0],A_theta_zero) ];  
     A_spr_torque_min=min(A_spr_torque);
     A_spr_torque_max=max(A_spr_torque);
     echo (A_spr_torque_min=A_spr_torque_min,A_spr_torque_max=A_spr_torque_max);
     //echo(A_spr_torque=A_spr_torque);
     
-    A_trq_load_spr = [ for (a = [0 : steps-1]) combined_weight*lenAB*cos(angles[a][0])+ B_trq_load_nospr[a] - A_spr_torque[a] ]; 
+    A_trq_load_spr = [ for (a = [0 : steps-1]) combined_weight*lenAB*cos(angles[a][0]) - A_spr_torque[a] ]; 
     A_trq_load_spr_min=min(A_trq_load_spr);
     A_trq_load_spr_max=max(A_trq_load_spr);
     Margin_Safety(A_trq_load_spr_min,A_trq_load_spr_max,Motor_Max_Torque,"A SERVO - SPRING - BLUE");
     
-    A_trq_noload_spr = [ for (a = [0 : steps-1]) end_weight*lenAB*cos(angles[a][0])+ B_trq_noload_spr[a] - A_spr_torque[a] ]; 
+    A_trq_noload_spr = [ for (a = [0 : steps-1]) end_weight*lenAB*cos(angles[a][0]) - A_spr_torque[a] ]; 
     A_trq_noload_spr_min=min(A_trq_noload_spr);
     A_trq_noload_spr_max=max(A_trq_noload_spr);
     Margin_Safety(A_trq_noload_spr_min,A_trq_noload_spr_max,Motor_Max_Torque,"A SERVO - SPRING - NO PAYLOAD - YELLOW");
     
     // draw_3d_list => force_lib.scad
     // JOINT A TORQUES
-    //draw_3d_list(c,max_range/100,"green",A_trq_load_nospr/400); 
-    //draw_3d_list(c,max_range/80,"blue",A_trq_load_spr/400); 
-    //draw_3d_list(c,max_range/70,"yellow",A_trq_noload_spr/400); 
+    draw_3d_list(c,max_range/100,"green",A_trq_load_nospr/400); 
+    draw_3d_list(c,max_range/80,"blue",A_trq_load_spr/400); 
+    draw_3d_list(c,max_range/70,"yellow",A_trq_noload_spr/400); 
     
     // draw_3d_list => force_lib.scad
     // JOINT B TORQUES
-    draw_3d_list(c,max_range/100,"green",B_trq_load_nospr/400); 
-    draw_3d_list(c,max_range/80,"blue",B_trq_load_spr/400); 
-    draw_3d_list(c,max_range/70,"yellow",B_trq_noload_spr/400); 
+    //draw_3d_list(c,max_range/100,"green",B_trq_load_nospr/400); 
+    //draw_3d_list(c,max_range/80,"blue",B_trq_load_spr/400); 
+    //draw_3d_list(c,max_range/70,"yellow",B_trq_noload_spr/400); 
+    
+    draw_3d_list(d,max_range/70,"red"); 
 
 }
 
@@ -198,10 +202,12 @@ if (calc_forces) {
 //pt = [3,3,0];  // LengthEnd point, No animation. change to position arm
 
 alphas=get_angles_from_t($t,min_A,max_A,min_B,max_B);
-new_end = rotZ_pt(C_angle,LengthEnd);
-pt = get_pt_from_angles(alphas) + new_end;
 A_angle = alphas[0];
 B_angle = alphas[1];
+C_angle = alphas[2];
+//new_end = rotZ_pt(C_angle,LengthEnd);
+//pt = get_pt_from_angles(alphas) + new_end;
+
 
 if (display_assembly) {
         draw_assy (A_angle,B_angle,C_angle); 
@@ -337,11 +343,12 @@ function get_pt_from_angles (A)= ([C_x_ang(A[0],A[1]),C_y_ang(A[0],A[1]),0]);
 function get_angles_from_t 
 (t=0.5,min_A=-10,max_A=150,min_B=-50,max_B=90)= 
 (t<0.15) ? ([min_A,linear_interp(min_B,0,t,0,0.15),0]) : 
- (t<0.38) ? ([linear_interp(min_A,100,t,0.15,0.38),linear_interp(0,100,t,0.15,0.38),0]): 
- (t<0.5) ? ([linear_interp(100,max_A,t,0.38,0.5),linear_interp(100,max_B,t,0.38,0.5),0]): 
-(t<0.63) ? ([max_A,linear_interp(max_B,0,t,0.5,0.63),0]): 
-(t<0.75) ?([linear_interp(max_A,max_A-40,t,0.63,0.75),linear_interp(0,min_B,t,0.63,0.75),0]) :
-([linear_interp(max_A-40,min_A,t,0.75,1),min_B,0]); 
+ (t<0.30) ? ([linear_interp(min_A,100,t,0.15,0.30),linear_interp(0,100,t,0.15,0.30),0]): 
+ (t<0.45) ? ([linear_interp(100,max_A,t,0.30,0.45),linear_interp(100,max_B,t,0.30,0.45),0]): 
+(t<0.60) ? ([max_A,max_B,linear_interp(0,140,t,0.45,0.6)]): 
+(t<0.75) ?([max_A,linear_interp(max_B,0,t,0.6,0.75),linear_interp(140,-60,t,0.6,0.75)]): 
+(t<0.90) ? ([linear_interp(max_A,max_A-40,t,0.75,0.9),linear_interp(0,min_B,t,0.75,0.9),-60]) :
+([linear_interp(max_A-40,min_A,t,0.9,1),min_B,linear_interp(-60,0,t,0.9,1)]); 
 
 function C_x_ang (A,B) = (cos(A)*lenAB+cos(B)*lenBC);
 

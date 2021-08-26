@@ -76,7 +76,7 @@ claw_radius = 18;
 // SPRINGS TO HELP JOINT A AND B, AND ARE OPTIONAL
 
 // True if there is a sprint helping joint A
-Spring_at_A = true;
+//Spring_at_A = true;
 // A spring free length (NO SPRING IN SOME CONFIGURATIONS)
 A_spr_free_len = 30; // 50 mm
 // A spring rate K (force/distance)
@@ -84,11 +84,11 @@ A_spr_k = 20; // 17 g/mm
 // spring attach pt on base up from A
 spr_dist_base = 60; // 2 inch = 50.8 mm
 // spring attach pt on AB arm from A
-spr_dist_AB = 172.7; // 6.8 inch = 172.72 mm
-A_spr_pt_gnd = [-35,spr_dist_base,50];   // spring attach point on base
+spr_dist_AB = 181; // 6.8 inch = 172.72 mm
+A_spr_pt_gnd = [-20,spr_dist_base,50];   // spring attach point on base
 
 // True if there is a sprint helping joint B
-Spring_at_B = true;
+//Spring_at_B = true;
 // B spring free length
 B_spr_free_len = 56; // mm
 // B spring rate K (force/distance)

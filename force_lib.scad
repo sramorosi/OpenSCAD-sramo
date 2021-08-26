@@ -66,6 +66,8 @@ module plot_circle(rad=2,n=10,dot_r=2,center=[0,0,0]) {
     };
 }
 // recursive module that draws a 3D point list
+//   An optional value list can be provided and the height of the
+//   cylinders will be set to the corresponding value in the list.
 module draw_3d_list(the3dlist=[],size=10,dot_color="blue",value=[],idx=0) {
     point=the3dlist[idx];
     height=value[idx];
@@ -80,6 +82,16 @@ module draw_3d_list(the3dlist=[],size=10,dot_color="blue",value=[],idx=0) {
        draw_3d_list(the3dlist,size,dot_color,value,idx);
     }  
     // Note: that an undefined causes the recursion to stop
+}
+
+module Margin_Safety(min,max,allowable,name="THING NAME") {
+    // calculate Engineering Margin of Safety for "thing"
+    // Two actual values can be provided, representing most negative and most pos
+    // allowable = the allowable value
+    // Move this module to the force library
+    MAX = max(abs(max),abs(min));
+    MS = (allowable/MAX)-1;
+    echo(name," MARGIN OF SAFETY ",MS=MS,MAX=MAX);
 }
 
 module force_arrow(from=[1,1,0],vec=[1,0,0],mag=10) {
@@ -150,6 +162,11 @@ module torque_arrow(to=[10,4,0],mag=10) {
         echo("MODULE TORQUE_ARROW; small mag = ",mag);
     }
 }
+
+// return the torque given a rotation theta of a torsion spring of strength K
+function torsion_spr_torque(K,theta,theta_zero) =
+    K*(theta-theta_zero);
+
 // Calculate the torque about a joint ptj caused by a pt1-pt2 spring
 // of spring constant K and free length freelen
 function spring_torque(pt1=[10,0,0],pt2=[10,10,0],ptj=[-10,0,0],K=1,freelen=1) = 
