@@ -36,15 +36,13 @@ display_C_horn= false;
 // Draw B Spring Pulley
 display_B_spring_pulley= false;
 
-xcp = -20 + 0;   // x clipping plane
-
 if (display_assy) {
     difference () {
-        rotate ([90,0,0]) draw_assy(90,0,0);
+        draw_assy(A_angle=90,B_angle=0,C_angle=0);
         if (clip_yz) // x = xcp cut 
-            translate ([xcp,-10,-10]) cube (20,center=false);
+            translate ([0,-lenAB*2,-lenAB*2]) cube (lenAB*4,center=false);
         if (clip_xy) // z = 0 cut 
-            translate ([-10,-10,-20]) cube (20,center=false);
+            translate ([-lenAB*2,-lenAB*2,0]) cube (lenAB*4,center=false);
         }
     }
 
@@ -114,8 +112,7 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
         translate([lenAB,0,-widthBC/2-wall_t-bearing_flange_t]) {
             rotate([0,0,B_angle-A_angle]) final_BC_arm ();
             rotate ([180,0,0]) B_Drive_at_B_Pulley ();
-            translate([0,0,3*wall_t]) 
-                rotate([0,0,180]) final_B_Spring_pulley();
+            //translate([0,0,3*wall_t]) rotate([0,0,180]) final_B_Spring_pulley();
 
         }
     }
@@ -161,11 +158,15 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
                 robot_arm_base (); 
 
     // Draw springs
+        
+    // torsion spring at A
+    translate([0,0,-6]) torsion_spring (deflection_angle=180,OD=13,wire_d=1.5,leg_len=51,coils=8);
+    
     spr_pt_AB = spr_dist_AB*vecAB;
     //echo(spr_pt_AB=spr_pt_AB);
     B_spr_pt = [B_spr_r*cos(B_angle),B_spr_r*sin(B_angle),-widthAB ];
 
-    // Draw the A spring (latex tube with pulleys)
+    /* Draw the A spring (latex tube with pulleys)
     y_a_p = -A_servo_y-GT2pulleyt/2;
     color ("grey") 
     pt_pt_belt ([A_spr_pt_gnd[0],A_spr_pt_gnd[1],y_a_p],[spr_pt_AB[0],spr_pt_AB[1],y_a_p],d=6,r_pulley=GT2pulleyd/2,round=true);
@@ -175,6 +176,7 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
     translate([spr_pt_AB[0],spr_pt_AB[1],widthAB/2+GT2pulleyt/2]) GT2_2_idle_pulley();
     translate ([spr_pt_AB[0],spr_pt_AB[1],widthAB/2+GT2pulleyt/2]) 
         rotate([0,180,0]) M5_RHS(length=55); 
+        */
     
     // Draw the B spring (latex tube with pulleys)
     /*
@@ -193,12 +195,31 @@ module end_effector_assy() {
     color ("red",.5) translate([claw_servo_x,claw_height/2-svo_flange_d,0]) 
         rotate([0,90,-90]) servo_body();
 }
+module single_offset_link (length=50,w=15,offset=7,d_pin=5,t=2) {
+    // Create a Link on xy plane along the X axis 
+    // First joint is at [0,0], Second joint is at [length,0]
+    // link width is w (y dimension), constant along length of part
+    // Method of making a dog leg link, using law of sines:
+    c_ang=135;
+    a_ang = law_sines_angle (C=length,a=offset,c_ang=c_ang);
+    b_ang = 180 - a_ang-c_ang;
+    L1 = law_sines_length (C=length,c_ang=c_ang,b_ang=b_ang);
+    echo(a_ang=a_ang,b_ang=b_ang,L1=L1);
+    rotate([0,0,a_ang]) {
+        simple_link (l=L1,w=w,t=w,d=0); // collection of operations
+        translate([L1,0,0]) rotate([0,0,c_ang-180]) 
+            simple_link (l=offset,w=w,t=w,d=0); // collection of operations
+    }
+}
+
 module final_AB_arm () {
     $fa=$preview ? 6 : 1; // minimum angle fragment
 
     difference () {
         union () {
-            hollow_offset_link(length=lenAB,d_pin=pinSize,w=widthAB,t=widthAB,offset=widthAB/2.5,ang=45,wall=wall_t,$fn=48); 
+            single_offset_link (length=lenAB,w=widthAB,offset=widthAB/2.5,d_pin=pinSize,t=wall_t,$fn=48);
+            
+            //hollow_offset_link(length=lenAB,d_pin=pinSize,w=widthAB,t=widthAB,offset=widthAB/2.5,ang=45,wall=wall_t,$fn=48); 
             
                 // add the spring attachment boss
                 translate([spr_dist_AB,0,widthAB/2])

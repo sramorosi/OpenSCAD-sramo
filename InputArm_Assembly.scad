@@ -191,7 +191,6 @@ module single_offset_link (length=50,w=15,offset=7,d_pin=5,pot_short=false) {
                         translate([widthAB/1.8, 0, 0]) 
                             circle(d=wire_hole_dia*1.3, $fn = 48);
                     }
-
             }
     }
 }

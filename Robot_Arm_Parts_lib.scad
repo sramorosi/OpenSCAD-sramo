@@ -19,7 +19,7 @@ display_pt_pt_belt = false;
 display_lug = false;
 // Simple Link (2 force member)
 display_simple_link = false;
-// Simple Dog Leg
+// Simple Dog Leg 2
 display_dog_leg = true;
 // Fancy Dog Leg (hollow with clevis and pin hole)
 display_fancy_dog_leg = false;
@@ -64,7 +64,7 @@ display_P090S_pot = false;
 
 if (display_round_cube) rounded_cube();
 if (display_lug) lug();
-if (display_simple_link) simple_link(l=1.8,w=0.5,t=0.17);
+if (display_simple_link) simple_link();
 if (display_dog_leg) dog_leg2 ();
 if (display_fancy_dog_leg) fancy_dog_leg ();
 if (display_hollow_link) hollow_offset_link ();
@@ -74,7 +74,10 @@ if (display_V_Claw) color ("blue") compliant_claw2 ();
 if (display_pulley) pulley ();
 //if (display_pulley) translate ([0,0,1]) pulley (round=false);
 if (display_spacer) spacer ();
-if (display_spring) tension_spring ();
+if (display_spring) {
+    tension_spring ();
+    torsion_spring (deflection_angle=180,OD=13,wire_d=1.5,leg_len=51,coils=8);
+}
 if (display_pt_pt_cylinder) pt_pt_cylinder (d=.5);
 if (display_pt_pt_belt) {
     color ("black") pt_pt_belt (round=false);
@@ -99,6 +102,30 @@ if (display_3_pt_cube) {
     p = [[0,0,0] , [10,0,-20], [-30,20,10] ];
     cubeOnThreePoints(p); 
 }
+function law_sines_angle (C=30,a=10,c_ang=120) = 
+   asin((a/C)*sin(c_ang));
+
+function law_sines_length (C=30,c_ang=120,b_ang=30) =
+   C * (sin(b_ang)/sin(c_ang));
+
+c_ang=135;
+//a_ang = law_sines_angle (c_ang=c_ang);
+//b_ang = 180 - a_ang-c_ang;
+//b_len = law_sines_length (c_ang=c_ang,b_ang=b_ang);
+
+// Method of making a dog leg link
+LAB = 100;
+L2 = 10;  // 10 or 92.7
+a_ang = law_sines_angle (C=LAB,a=L2,c_ang=c_ang);
+b_ang = 180 - a_ang-c_ang;
+L1 = law_sines_length (C=LAB,c_ang=c_ang,b_ang=b_ang);
+echo(a_ang=a_ang,b_ang=b_ang,L1=L1);
+rotate([0,0,a_ang]) {
+    simple_link (l=L1,w=5,t=4,d=0);
+    translate([L1,0,0]) rotate([0,0,c_ang-180]) simple_link (l=L2,w=5,t=4,d=0);
+}
+
+
 module zip_tie_holes (arm_l = 10,arm_w=1) {
     zip_hole_d = hole_M3;
     rotate([90,0,0]) {
@@ -161,22 +188,22 @@ module lug (r=1,w=3,h=2,t=.2,d=0.1) {
             cylinder (h=3*t,d=d,center=true);
     }
 }
-module simple_link (l=5,w=0.5,t=0.2,d=0.1) {
+module simple_link (l=50,w=5,t=4,d=1) {
     // Simple two force link, normale to xy plane, pointing x
     // l=Lenth, w=Width, t=Thickness, d=bord Diameter
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.03; // minimum size of fragment (default is 2)
     difference () {
-        union () {
+        hull () {
             cylinder (h=t,d=w,center=false);
             translate([l,0,0])
                 cylinder (h=t,d=w,center=false);
-            translate([0,-w/2,0])
-                cube ([l,w,t],center=false);
         }
-        cylinder (h=3*t,d=d,center=true);
-        translate([l,0,0])
-            cylinder (h=3*t,d=d,center=true);        
+        if (d != 0) {
+            cylinder (h=3*t,d=d,center=true);
+            translate([l,0,0])
+                cylinder (h=3*t,d=d,center=true);
+        }     
     }
 }
 module dog_leg2 (d1=45,ang=45,d2=12.77,w=15,t=15) {
@@ -195,17 +222,17 @@ module dog_leg2 (d1=45,ang=45,d2=12.77,w=15,t=15) {
     fs = 0.02*Pdist;  // inside chamfer size
     rotate([0,0,180]) translate ([-dx,0,-t/2]) 
         union () {
-        translate([0,-w/2,0]) // first leg
-            cube([d1+xtra,w,t],center=false);
-        cylinder(h=t,d=w,center=false); // rounded end d1
-        translate([d1,0,0])   // second leg
-            rotate([0,0,ang])
-                translate([-xtra,-w/2,0])
-                    cube([d2+xtra,w,t],center=false);
-        translate([dx,dy,0])   // rounded end d2
-            cylinder(h=t,d=w,center=false);
-        linear_extrude(height=t,convexity=10) // add inside chamfer
-            polygon([[fx,w/2],[fx-fs,w/2],[fx+fs,w/2+fs*tan(ang)],[fx+fs,w/2],[fx,w/2]]);
+            translate([0,-w/2,0]) // first leg
+                cube([d1+xtra,w,t],center=false);
+            cylinder(h=t,d=w,center=false); // rounded end d1
+            translate([d1,0,0])   // second leg
+                rotate([0,0,ang])
+                    translate([-xtra,-w/2,0])
+                        cube([d2+xtra,w,t],center=false);
+            translate([dx,dy,0])   // rounded end d2
+                cylinder(h=t,d=w,center=false);
+            linear_extrude(height=t,convexity=10) // add inside chamfer
+                polygon([[fx,w/2],[fx-fs,w/2],[fx+fs,w/2+fs*tan(ang)],[fx+fs,w/2],[fx,w/2]]);
     }
 }
 module dog_leg (d1=10,ang=45,d2=5,w=2,t=1) {
@@ -463,28 +490,50 @@ module spacer(d=.35,t=.13,d_pin=0.255){
         cylinder(2*t,d=d_pin,center=true);
         };
 }
-module tension_spring(from=[0,0,0],to=[6,5,5]){
+module tension_spring(from=[10,0,0],to=[20,30,20],wire_dia=0.5,od=2,coils=10,ends=true){
     // Create a tenstion spring
     // UPGRADE TO DO A PROPOER LINEAR EXTRUDE
     $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.1; // minimum size of fragment (default is 2)
-    vector=from - to;
-    slength=norm(vector);
-    if ((slength>0.8) && $preview) {
-        ang=atan2(vector[1],vector[0]);
-        translate ([from[0],from[1],from[2]]) 
-        rotate ([0,0,ang]) rotate([0,90,0])
-        linear_extrude(height=slength,center=false,convexity=10,
-        twist = -3000)
-        translate([.3, 0, 0]) circle(r = .1);  
+    $fs=wire_dia/2; // minimum size of fragment (default is 2)
+    vec=to - from;
+    length=norm(vec);
+    dx = vec[0];
+    dy = vec[1];
+    dz = vec[2];
+
+    if (length>0.01) {  // check for non zero vector
         
-        translate ([from[0],from[1],from[2]]) sphere(.25);
+        // These are the angles needed to rotate to correct direction
+        ay = 90 - atan2(dz, sqrt(dx*dx + dy*dy));
+        az = atan2(dy, dx);
+        angles = [0, ay, az];
         
-        translate ([to[0],to[1],to[2]]) sphere(.25);
+        translate (from) 
+        rotate (angles) 
+        linear_extrude(height=length,center=false,convexity=10,twist = coils*360)
+            translate([od/2, 0, 0]) circle(d = wire_dia);  
+        
+        if (ends) { // draw spheres at the ends, for debugging
+            translate (from) sphere(d=wire_dia);
+            translate (to) sphere(d=wire_dia);
+        }
     } else {
         echo("MODULE TENSION_SPRING; small spring = ",slength," or render");
     }
-    
+}
+module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5) {
+    // deflection_angle is not implimented
+    $fs=wire_d/2; // minimum size of fragment (default is 2)
+
+    sp_len = coils*wire_d;
+    tension_spring(from=[0,0,0],to=[0,0,sp_len],wire_dia=wire_d,od=OD,coils=coils,ends=false);
+    // straight legs on each end
+    translate([OD/2,leg_len/2,0]) 
+        rotate([90,0,0]) 
+            cylinder(h=leg_len,d=wire_d,center=true);
+    translate([OD/2,-leg_len/2,sp_len]) 
+        rotate([90,0,0]) 
+            cylinder(h=leg_len,d=wire_d,center=true);
 }
 module pt_pt_cylinder (from=[1,1,0],to=[-1,0,-1], d = 0.1){
     // Create a cylinder from point to point
