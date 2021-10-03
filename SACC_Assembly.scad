@@ -1,6 +1,6 @@
 // Robot Arm Assembly
 //  Started on 3/24/2020 by SrAmo
-//  last modified August 16 2021 by SrAmo
+//  last modified September 29 2021 by SrAmo
 
 use <force_lib.scad>
 use <Robot_Arm_Parts_lib.scad>
@@ -8,7 +8,7 @@ use <Pulley-GT2_2.scad>
 include <SACC-26-Configuration.scad>
 
 // Draw the Robot Arm Assembly
-display_assy = true;
+display_assy = false;
 // Section cut at X = 0?
 clip_yz = false;
 // Section cut at Z = 0?
@@ -16,7 +16,7 @@ clip_xy = false;
 // Draw Final Base
 display_base = false;
 // Draw Final AB arm
-display_ABarm = false;
+display_ABarm = true;
 // Draw Final BC arm
 display_BCarm = false;
 // Draw Final Claw 
@@ -95,99 +95,7 @@ module final_B_Spring_pulley() {
     }
 }
    
-module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
-    // calculate b and c positions from angles
-    b=[lenAB*cos(A_angle),lenAB*sin(A_angle),0];  // B location
-    c = [(cos(A_angle)*lenAB+cos(B_angle)*lenBC),(sin(A_angle)*lenAB+sin(B_angle)*lenBC),0];
-    // lower arm vector
-    vecAB=[b[0]/lenAB,b[1]/lenAB,b[2]/lenAB];
-        
-    // draw the upper and lower arms
-    rotate([0,0,A_angle]) {
-        // Draw the AB link
-        color("plum",1) 
-            translate ([0,0,-widthAB/2])
-                final_AB_arm ();
-        // Draw the BC link
-        translate([lenAB,0,-widthBC/2-wall_t-bearing_flange_t]) {
-            rotate([0,0,B_angle-A_angle]) final_BC_arm ();
-            rotate ([180,0,0]) B_Drive_at_B_Pulley ();
-            //translate([0,0,3*wall_t]) rotate([0,0,180]) final_B_Spring_pulley();
 
-        }
-    }
-    // Draw the end effector
-    translate([c[0],c[1],c[2]-wall_t-bearing_flange_t]) 
-        rotate ([0,0,C_angle])  end_effector_assy();
-    
-    // Draw the B drive pulley at A
-    yb=-(extra_lug_y+base_svo_lug_t+AB_pulley_t+bearing_flange_t);
-    color("navy",1)  
-        rotate([0,0,(B_angle+180)]) 
-            translate([0,0,yb]) B_drive_at_A_Pulley ();
-    
-    // A Servo
-    color ("red",.5) rotate([0,180,-90])
-        translate([0,0,A_servo_y+base_svo_lug_t/2]) {
-            servo_body();
-            rotate([0,0,45-A_angle])
-                servo_horn();
-        }
-    // B Servo
-    color ("red",.5) rotate([0,0,90])
-        translate([0,0,-B_servo_y+svo_flange_d]) {
-            servo_body();
-            rotate([0,0,B_angle+90])
-                servo_horn();
-        }
-    // C Servo
-    color ("red",.5) 
-        translate([c[0],c[1],c[2]-widthBC/2+1.5]) {
-            rotate([0,0,-45]) servo_body();
-            rotate([0,0,C_angle])
-                servo_horn();
-        }
-            
-    // B drive belt (displayed with base assembly)
-    color("navy") 
-        pt_pt_belt([0,0,-widthAB/1.5],[b[0],b[1],-widthAB/1.3],d=6,r_pulley=AB_pulley_d/2,round=false);
-
-    // BASE    
-    color("green",.5)
-        rotate([-90,0,0])
-                robot_arm_base (); 
-
-    // Draw springs
-        
-    // torsion spring at A
-    translate([0,0,-6]) torsion_spring (deflection_angle=180,OD=13,wire_d=1.5,leg_len=51,coils=8);
-    
-    spr_pt_AB = spr_dist_AB*vecAB;
-    //echo(spr_pt_AB=spr_pt_AB);
-    B_spr_pt = [B_spr_r*cos(B_angle),B_spr_r*sin(B_angle),-widthAB ];
-
-    /* Draw the A spring (latex tube with pulleys)
-    y_a_p = -A_servo_y-GT2pulleyt/2;
-    color ("grey") 
-    pt_pt_belt ([A_spr_pt_gnd[0],A_spr_pt_gnd[1],y_a_p],[spr_pt_AB[0],spr_pt_AB[1],y_a_p],d=6,r_pulley=GT2pulleyd/2,round=true);
-        
-    translate ([A_spr_pt_gnd[0],A_spr_pt_gnd[1],y_a_p-GT2pulleyt/2]) GT2_2_idle_pulley ();
-    translate ([A_spr_pt_gnd[0],A_spr_pt_gnd[1],y_a_p-GT2pulleyt/2]) M5_RHS (length=20); 
-    translate([spr_pt_AB[0],spr_pt_AB[1],widthAB/2+GT2pulleyt/2]) GT2_2_idle_pulley();
-    translate ([spr_pt_AB[0],spr_pt_AB[1],widthAB/2+GT2pulleyt/2]) 
-        rotate([0,180,0]) M5_RHS(length=55); 
-        */
-    
-    // Draw the B spring (latex tube with pulleys)
-    /*
-    y_b_p = -B_servo_y+GT2pulleyt*1.3;
-    color ("grey") 
-    pt_pt_belt ([B_spr_pt_gnd[0],B_spr_pt_gnd[1],y_b_p],B_spr_pt,d=6,r_pulley=GT2pulleyd/2,round=true);
-    translate ([B_spr_pt_gnd[0],B_spr_pt_gnd[1],y_b_p-GT2pulleyt/2]) GT2_2_idle_pulley ();
-    translate ([B_spr_pt_gnd[0],B_spr_pt_gnd[1],y_b_p+GT2pulleyt/2]) 
-        rotate([0,180,0]) M5_RHS (length=20); 
-        */
-} 
 module end_effector_assy() {
     color("SpringGreen") final_C_horn (); 
     color("green") final_claw();
@@ -195,7 +103,18 @@ module end_effector_assy() {
     color ("red",.5) translate([claw_servo_x,claw_height/2-svo_flange_d,0]) 
         rotate([0,90,-90]) servo_body();
 }
-module single_offset_link (length=50,w=15,offset=7,d_pin=5,t=2) {
+module zip_tie_AB (x = 50,y=5) {
+    // holes are parallel to the Y axis
+    zip_hole_d = hole_M3;
+    rotate([90,0,0]) {
+        translate ([x,-y,0]) 
+            cylinder(h=100,d=zip_hole_d,center=true,$fn=16);
+        translate ([x,y,0]) 
+            cylinder(h=100,d=zip_hole_d,center=true,$fn=16);
+    }
+}
+
+module AB_offset_link (length=50,w=15,offset=7,d_pin=5,t=2) {
     // Create a Link on xy plane along the X axis 
     // First joint is at [0,0], Second joint is at [length,0]
     // link width is w (y dimension), constant along length of part
@@ -206,9 +125,19 @@ module single_offset_link (length=50,w=15,offset=7,d_pin=5,t=2) {
     L1 = law_sines_length (C=length,c_ang=c_ang,b_ang=b_ang);
     echo(a_ang=a_ang,b_ang=b_ang,L1=L1);
     rotate([0,0,a_ang]) {
-        simple_link (l=L1,w=w,t=w,d=0); // collection of operations
+        
+        // collection of operations for the first leg
+        simple_link (l=L1,w=w,t=w,d=0,cored=w*.75); 
+        // add the servo horn pad
+        difference () {
+            rotate([0,0,-90]) translate([0,widthAB*.25,widthAB+a_svo_boss/2])
+                rounded_cube(size=[widthAB,widthAB*1.5,a_svo_boss],r=widthAB/2,center=true);
+            // remove the servo horn shape
+            translate([0,0,widthAB-.01]) servo_horn ();
+        }
         translate([L1,0,0]) rotate([0,0,c_ang-180]) 
-            simple_link (l=offset,w=w,t=w,d=0); // collection of operations
+            // collection of operations for the second leg
+            simple_link (l=offset,w=w,t=w,d=0,cored=0); 
     }
 }
 
@@ -216,33 +145,19 @@ module final_AB_arm () {
     $fa=$preview ? 6 : 1; // minimum angle fragment
 
     difference () {
-        union () {
-            single_offset_link (length=lenAB,w=widthAB,offset=widthAB/2.5,d_pin=pinSize,t=wall_t,$fn=48);
+        AB_offset_link (length=lenAB,w=widthAB,offset=widthAB/2.5,d_pin=pinSize,t=wall_t,$fn=48);
             
-            //hollow_offset_link(length=lenAB,d_pin=pinSize,w=widthAB,t=widthAB,offset=widthAB/2.5,ang=45,wall=wall_t,$fn=48); 
-            
-                // add the spring attachment boss
-                translate([spr_dist_AB,0,widthAB/2])
-                    cylinder(h=widthAB,d=2.5*hole_M5,center=true);
-                
-                // add the servo horn pad
-                rotate([0,0,-45])
-                    translate([0,widthAB*.25,widthAB+a_svo_boss/2])
-                rounded_cube(size=[widthAB,widthAB*1.5,a_svo_boss],r=widthAB/2,center=true);
-        }
-            // remove the servo horn shape
-            rotate([0,0,45])
-                translate([0,0,widthAB-.01])
-                    servo_horn ();
-            // remove the spring bolt hole
-            translate([spr_dist_AB,0,widthAB/2])
-                cylinder(h=2*widthAB,d=hole_M5,center=true);
-            // remove the A hole!
-            cylinder(h=4*widthAB,d=bearing_od,center=true);
+        // remove the A hole!
+        cylinder(h=4*widthAB,d=bearing_od,center=true);
         
+        translate([0,0,widthAB/2.4]) zip_tie_AB (x=46,y=4);
+        
+        // remove the B hole and end donut
+        translate([lenAB,0,widthAB/2]) {
+            cylinder(h=4*widthAB,d=pinSize,center=true);
+            filled_donut(t=widthAB*.75,d=widthAB*1.4,r=widthAB*.2);
+        }
    }
-   translate([0,0,wall_t]) bearing_flng_qtr ();
-   translate([0,0,wAB_inside+wall_t]) rotate([180,0,0]) bearing_flng_qtr ();
 }
 module final_BC_arm () {
     $fa=$preview ? 6 : 1; // minimum angle fragment
@@ -552,4 +467,100 @@ module robot_arm_base () {
     }
 }
 
+module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
+    // calculate b and c positions from angles
+    b=[lenAB*cos(A_angle),lenAB*sin(A_angle),0];  // B location
+    c = [(cos(A_angle)*lenAB+cos(B_angle)*lenBC),(sin(A_angle)*lenAB+sin(B_angle)*lenBC),0];
+    // lower arm vector
+    vecAB=[b[0]/lenAB,b[1]/lenAB,b[2]/lenAB];
+        
+    // draw the upper and lower arms
+    rotate([0,0,A_angle]) {
+        // Draw the AB link
+        color("plum",1) 
+            translate ([0,0,-widthAB/2]) {
+                final_AB_arm ();
+       translate([0,0,wall_t]) bearing_flng_qtr ();
+       translate([0,0,wAB_inside+wall_t]) rotate([180,0,0]) bearing_flng_qtr ();
+            }
+        
+        // Draw the BC link
+        translate([lenAB,0,-widthBC/2-wall_t-bearing_flange_t]) {
+            rotate([0,0,B_angle-A_angle]) final_BC_arm ();
+            rotate ([180,0,0]) B_Drive_at_B_Pulley ();
+            //translate([0,0,3*wall_t]) rotate([0,0,180]) final_B_Spring_pulley();
 
+        }
+    }
+    // Draw the end effector
+    translate([c[0],c[1],c[2]-wall_t-bearing_flange_t]) 
+        rotate ([0,0,C_angle])  end_effector_assy();
+    
+    // Draw the B drive pulley at A
+    yb=-(extra_lug_y+base_svo_lug_t+AB_pulley_t+bearing_flange_t);
+    color("navy",1)  
+        rotate([0,0,(B_angle+180)]) 
+            translate([0,0,yb]) B_drive_at_A_Pulley ();
+    
+    // A Servo
+    color ("red",.5) rotate([0,180,-90])
+        translate([0,0,A_servo_y+base_svo_lug_t/2]) {
+            servo_body();
+            rotate([0,0,90-A_angle])
+                servo_horn();
+        }
+    // B Servo
+    color ("red",.5) rotate([0,0,90])
+        translate([0,0,-B_servo_y+svo_flange_d]) {
+            servo_body();
+            rotate([0,0,B_angle+90])
+                servo_horn();
+        }
+    // C Servo
+    color ("red",.5) 
+        translate([c[0],c[1],c[2]-widthBC/2+1.5]) {
+            rotate([0,0,-45]) servo_body();
+            rotate([0,0,C_angle])
+                servo_horn();
+        }
+            
+    // B drive belt (displayed with base assembly)
+    color("navy") 
+        pt_pt_belt([0,0,-widthAB/1.5],[b[0],b[1],-widthAB/1.3],d=6,r_pulley=AB_pulley_d/2,round=false);
+
+    // BASE    
+    color("green",.5)
+        rotate([-90,0,0])
+                robot_arm_base (); 
+
+    // Draw springs
+        
+    // torsion spring at A
+    translate([0,0,-6]) torsion_spring (deflection_angle=180,OD=13,wire_d=1.5,leg_len=51,coils=8);
+    
+    spr_pt_AB = spr_dist_AB*vecAB;
+    //echo(spr_pt_AB=spr_pt_AB);
+    B_spr_pt = [B_spr_r*cos(B_angle),B_spr_r*sin(B_angle),-widthAB ];
+
+    /* Draw the A spring (latex tube with pulleys)
+    y_a_p = -A_servo_y-GT2pulleyt/2;
+    color ("grey") 
+    pt_pt_belt ([A_spr_pt_gnd[0],A_spr_pt_gnd[1],y_a_p],[spr_pt_AB[0],spr_pt_AB[1],y_a_p],d=6,r_pulley=GT2pulleyd/2,round=true);
+        
+    translate ([A_spr_pt_gnd[0],A_spr_pt_gnd[1],y_a_p-GT2pulleyt/2]) GT2_2_idle_pulley ();
+    translate ([A_spr_pt_gnd[0],A_spr_pt_gnd[1],y_a_p-GT2pulleyt/2]) M5_RHS (length=20); 
+    translate([spr_pt_AB[0],spr_pt_AB[1],widthAB/2+GT2pulleyt/2]) GT2_2_idle_pulley();
+    translate ([spr_pt_AB[0],spr_pt_AB[1],widthAB/2+GT2pulleyt/2]) 
+        rotate([0,180,0]) M5_RHS(length=55); 
+        */
+    
+    // Draw the B spring (latex tube with pulleys)
+    /*
+    y_b_p = -B_servo_y+GT2pulleyt*1.3;
+    color ("grey") 
+    pt_pt_belt ([B_spr_pt_gnd[0],B_spr_pt_gnd[1],y_b_p],B_spr_pt,d=6,r_pulley=GT2pulleyd/2,round=true);
+    translate ([B_spr_pt_gnd[0],B_spr_pt_gnd[1],y_b_p-GT2pulleyt/2]) GT2_2_idle_pulley ();
+    translate ([B_spr_pt_gnd[0],B_spr_pt_gnd[1],y_b_p+GT2pulleyt/2]) 
+        rotate([0,180,0]) M5_RHS (length=20); 
+        */
+} 

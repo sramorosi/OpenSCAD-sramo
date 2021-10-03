@@ -13,9 +13,9 @@ An 8" ctc is about 9.5" total length. This fits in x bed of Prusa i3.
 An 9" ctc is about 10.5" total length. This fits rotated 40 deg on bed of Prusa i3.
 */
 // length of A-B arm, color = plum
-lenAB=228.6;     // 9 in = 228.6 mm
+lenAB=240;     // 9 in = 228.6 mm
 // length of B-C arm, color = blue
-lenBC=228.6;     // 9 in = 228.6 mm
+lenBC=240;     // 9 in = 228.6 mm
 // Arm wall thickness throughout
 wall_t=bearing_t;  
 // Joint/Pin size throughout

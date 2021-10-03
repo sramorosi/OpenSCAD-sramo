@@ -18,9 +18,9 @@ display_pt_pt_belt = false;
 // Lug or Padeye
 display_lug = false;
 // Simple Link (2 force member)
-display_simple_link = false;
+display_simple_link = true;
 // Simple Dog Leg 2
-display_dog_leg = true;
+display_dog_leg = false;
 // Fancy Dog Leg (hollow with clevis and pin hole)
 display_fancy_dog_leg = false;
 // Hollow offset link (two fancy dog legs, mirrored about x=0)
@@ -64,7 +64,7 @@ display_P090S_pot = false;
 
 if (display_round_cube) rounded_cube();
 if (display_lug) lug();
-if (display_simple_link) simple_link();
+if (display_simple_link) simple_link(l=50,w=5,t=4,d=1,cored=3);
 if (display_dog_leg) dog_leg2 ();
 if (display_fancy_dog_leg) fancy_dog_leg ();
 if (display_hollow_link) hollow_offset_link ();
@@ -113,7 +113,7 @@ c_ang=135;
 //b_ang = 180 - a_ang-c_ang;
 //b_len = law_sines_length (c_ang=c_ang,b_ang=b_ang);
 
-// Method of making a dog leg link
+/* Method of making a dog leg link
 LAB = 100;
 L2 = 10;  // 10 or 92.7
 a_ang = law_sines_angle (C=LAB,a=L2,c_ang=c_ang);
@@ -124,7 +124,24 @@ rotate([0,0,a_ang]) {
     simple_link (l=L1,w=5,t=4,d=0);
     translate([L1,0,0]) rotate([0,0,c_ang-180]) simple_link (l=L2,w=5,t=4,d=0);
 }
-
+*/
+module filled_donut(t=10,d=50, r = 2) {
+    // t = donut thickness,   d = donut diameter, r = fillet radius
+    // Fillet radius must be less than d/4.
+    if (r < d/4) {
+        hull() {
+        translate([0,0,t/2-r]) 
+            rotate_extrude(convexity = 10) translate([(d/2)-r/2, 0, 0]) 
+                circle(r = r, $fn = 72);
+        translate([0,0,-t/2+r]) 
+            rotate_extrude(convexity = 10) translate([(d/2)-r/2, 0, 0]) 
+                circle(r = r, $fn = 72);
+        }
+    } else {
+        echo("ERROR in Filled Donut. Fillet radius must be less than d/4");
+    }
+}
+filled_donut();
 
 module zip_tie_holes (arm_l = 10,arm_w=1) {
     zip_hole_d = hole_M3;
@@ -188,9 +205,9 @@ module lug (r=1,w=3,h=2,t=.2,d=0.1) {
             cylinder (h=3*t,d=d,center=true);
     }
 }
-module simple_link (l=50,w=5,t=4,d=1) {
+module simple_link (l=50,w=5,t=4,d=1,cored=0) {
     // Simple two force link, normale to xy plane, pointing x
-    // l=Lenth, w=Width, t=Thickness, d=bord Diameter
+    // l=Lenth, w=Width, t=Thickness, d=Pin bore Diameter, cored = Core diameter
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.03; // minimum size of fragment (default is 2)
     difference () {
@@ -203,6 +220,10 @@ module simple_link (l=50,w=5,t=4,d=1) {
             cylinder (h=3*t,d=d,center=true);
             translate([l,0,0])
                 cylinder (h=3*t,d=d,center=true);
+        }     
+        if (cored != 0) {
+            translate([0,0,t/2]) rotate([0,90,0]) 
+                cylinder (h=3*l+2*w,d=cored,center=true);
         }     
     }
 }
@@ -286,11 +307,6 @@ module fancy_dog_leg (d1=50,ang=45,d2=20,w=15,t=25,d_pin=1,wall=3) {
         translate([dx-1.05*w,w,t_inside+wall])   
             rotate([-15,90,-90])
             rounded_cube([t_inside,4*w_inside,d1+d2],fillet_r,center=false);
-        
-        // hollow the leg
-//        translate([-d2/2,-w_inside/2,t_inside+wall]) 
-//            rotate([0,90,0])
-//            rounded_cube([t_inside,w_inside,d1+d2],fillet_r,center=false);
     }
 }
 module hollow_offset_link (length=50,d_pin=2,w=10,t=10,offset=5,ang=45,wall=2) {
