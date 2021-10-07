@@ -17,9 +17,9 @@ lenAB=240;     // 9 in = 228.6 mm
 // length of B-C arm, color = blue
 lenBC=240;     // 9 in = 228.6 mm
 // Arm wall thickness throughout
-wall_t=bearing_t;  
+wall_t=Qtr_bearing_t;  
 // Joint/Pin size throughout
-pinSize = hole_p25_inch;
+pinSize = hole_qtr_inch;
 
 // Number of teeth in AB ARM pulleys
 AB_pulley_teeth = 80;
@@ -27,26 +27,25 @@ AB_pulley_teeth = 80;
 AB_pulley_d = 50.8; // 2 inch = 50.8 mm
 // BC ARM pulley thichness mm
 AB_pulley_t = 10; // mm, note subtract 2 mm for flanges
-AB_boss_t = 7.112; // 0.28 inch = 7.112 mm
-a_svo_boss = 7.112; // 0.28 inch = 7.112 mm
+AB_boss_t = 20; // used for the B servo horn on the pulley
+
+a_svo_boss = 8; // used for the A servo horn
 
 // BASE RELATED POSITIONING and dimensions
 base_z_top = 45.72;  // 1.8 inch = 45.72 mm
 // translation distance for face of A servo
 A_servo_y = -31; // 1.22 in = 30.988 mm
 // translation distance for face of B servo
-B_servo_y = 45.61; // 2.15 in = 45.61 mm
+B_servo_y = 65; //
 // base servo lug thickness
 base_svo_lug_t = 6.35; // 0.25 inch = 6.35 mm
 
-// center A pulley (THIS DRIVES THE JOINT WIDTH)
-a_pulley_t = 12.25; // mm
+// center thickness (WIDTH OF TORSION SPRING
+center_t = 13; // mm
 
-// extra lug y location, USED IN THE BASE
-extra_lug_y = (a_pulley_t*mm_inch)/2 + base_svo_lug_t + wall_t + 2*bearing_flange_t+.01;
 
 // A-B arm width. The section is square.
-widthAB=a_pulley_t+2*wall_t+2*base_svo_lug_t+4*bearing_flange_t;   
+widthAB=center_t+2*wall_t+2*base_svo_lug_t+4*Qtr_bearing_flange_t;   
 // B-C arm width. The section is square.
 widthBC=widthAB;   
 // AB Slot inside (calculated)
@@ -58,7 +57,7 @@ wBC_inside = widthBC - 2*wall_t;
 // Horizontal distance from C joint to claw back plate
 End_x=50.8; // 2 inch = 50.8 mm
 // Horizontal distance from C to pin
-End_pin_x = End_x - hole_p25_inch*1.5;
+End_pin_x = End_x - hole_qtr_inch*1.5;
 // Vertical distance from C joint to pin
 End_pin_y=0;
 // End effector interface width. 

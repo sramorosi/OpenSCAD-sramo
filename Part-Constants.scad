@@ -1,23 +1,23 @@
 // PART CONSTANT Configuration File
-//  last modified June 8 2021 by SrAmo
+//  last modified October 5 2021 by SrAmo
 
 // conversions
 mm_inch = 1/25.4;
 
 // 1/4 ID bearing OD if using a bearing (PART FR4-ZZ C3)
-bearing_od=15.9512; // 0.628 inch = 15.9512 mm
+Qtr_bearing_od=15.9512; // 0.628 inch = 15.9512 mm
 // 1/4 ID bearing flange OD (with clearance)
-bearing_flange_od=18.034; // .71 inch = 18.034 mm
+Qtr_bearing_flange_od=18.034; // .71 inch = 18.034 mm
 // 1/4 ID bearing flange thickness
-bearing_flange_t=1.27; // 0.05 inch = 1.27 mm
+Qtr_bearing_flange_t=1.27; // 0.05 inch = 1.27 mm
 // 1/4 ID bearing thickness (under the flange)
-bearing_t=3.937; // 0.155 inch = 3.937 mm
+Qtr_bearing_t=3.937; // 0.155 inch = 3.937 mm
 
 // round belt diameter throughout, if used
 //belt_d=4.826;   // 0.19 in = 4.826 mm
 
 // hole for 0.25 inch joint/bolt
-hole_p25_inch=6.477;   // 0.255 inch = 6.477 mm
+hole_qtr_inch=6.477;   // 0.255 inch = 6.477 mm
 // hole start diameter for number 6 screw
 hole_no6_screw = 2.413; // 0.095 inch = 2.413
 // hole for M3 (3 mm) joint/bolt
@@ -47,6 +47,17 @@ svo_flange_t = 3;
 // Servo depth from Horn interface to top of flange
 svo_flange_d = 10;
 
-GT2pulleyd = 12;
-GT2pulleyt = 8.5;
+// Springs
+//  McMaster Carr 9271K619, torsion spring
+9271K619_angle = 180; // free leg angle
+9271K619_OD = 19.35; // mm
+9271K619_wd = 1.9;  // wire diameter mm
+9271K619_len = 51;  // arm length mm
+9271K619_coils = 7;  // number of coils
+9271K619_LH = true;  // LH or RH (false)
+
+
+
+//GT2pulleyd = 12;
+//GT2pulleyt = 8.5;
 

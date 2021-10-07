@@ -11,6 +11,8 @@ claw_servo_x=10;
 
 // Rounded Cube
 display_round_cube = false;
+// Filled Donut
+display_filled_donut = false;
 // Point to Point Cylinder
 display_pt_pt_cylinder = false;
 // Point to Point belt over 2 pulleys
@@ -18,7 +20,7 @@ display_pt_pt_belt = false;
 // Lug or Padeye
 display_lug = false;
 // Simple Link (2 force member)
-display_simple_link = true;
+display_simple_link = false;
 // Simple Dog Leg 2
 display_dog_leg = false;
 // Fancy Dog Leg (hollow with clevis and pin hole)
@@ -37,8 +39,8 @@ display_pulley = false;
 display_spacer = false;
 // Calculate and display round cross belt for pulleys
 //display_cross_belt = false;
-// Tension Spring (low quality)
-display_spring = false;
+// Springs, coil and torsion (low quality)
+display_spring = true;
 // Balance Weight Arm for Servo
 //display_balance_arm = false;
 // Servo Horn (for subtracting from solids)
@@ -75,8 +77,8 @@ if (display_pulley) pulley ();
 //if (display_pulley) translate ([0,0,1]) pulley (round=false);
 if (display_spacer) spacer ();
 if (display_spring) {
-    tension_spring ();
-    torsion_spring (deflection_angle=180,OD=13,wire_d=1.5,leg_len=51,coils=8);
+    tension_spring (from=[20,0,0],to=[50,30,50],wire_dia=1,od=2,coils=20);
+    torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
 }
 if (display_pt_pt_cylinder) pt_pt_cylinder (d=.5);
 if (display_pt_pt_belt) {
@@ -141,7 +143,7 @@ module filled_donut(t=10,d=50, r = 2) {
         echo("ERROR in Filled Donut. Fillet radius must be less than d/4");
     }
 }
-filled_donut();
+if(display_filled_donut) filled_donut();
 
 module zip_tie_holes (arm_l = 10,arm_w=1) {
     zip_hole_d = hole_M3;
@@ -537,19 +539,32 @@ module tension_spring(from=[10,0,0],to=[20,30,20],wire_dia=0.5,od=2,coils=10,end
         echo("MODULE TENSION_SPRING; small spring = ",slength," or render");
     }
 }
-module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5) {
+module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5,LH=true,inverse=false) {
     // deflection_angle is not implimented
-    $fs=wire_d/2; // minimum size of fragment (default is 2)
-
-    sp_len = coils*wire_d;
-    tension_spring(from=[0,0,0],to=[0,0,sp_len],wire_dia=wire_d,od=OD,coils=coils,ends=false);
+    
+    //$fs=wire_d/2; // minimum size of fragment (default is 2)
+    
+    if (deflection_angle != 180) echo("ONLY 180 DEG TORSION SPRINGS IMPLEMENTED");
+        
+    turn_sign = LH ? 1 : -1 ;  // used for LH or RH springs
+    sp_len = (coils+1)*wire_d;
+    //echo(sp_len=sp_len);
+    ID = OD-2*wire_d;
+    difference () {
+        cylinder(h=sp_len,d=OD);
+        if (inverse == false) translate([0,0,-sp_len*0.05]) 
+            cylinder(h=sp_len*1.1,d=ID);
+    }
+    //tension_spring(from=[0,0,0],to=[0,0,sp_len-wire_d],wire_dia=wire_d,od=OD-wire_d,coils=coils,ends=false);
+    
     // straight legs on each end
-    translate([OD/2,leg_len/2,0]) 
+    x_offset = OD/2 - wire_d/2;
+    translate([x_offset,turn_sign*leg_len/2,wire_d/2]) 
         rotate([90,0,0]) 
-            cylinder(h=leg_len,d=wire_d,center=true);
-    translate([OD/2,-leg_len/2,sp_len]) 
+            cylinder(h=leg_len,d=wire_d,center=true,$fn=16);
+    translate([x_offset,-1*turn_sign*leg_len/2,sp_len-wire_d/2]) 
         rotate([90,0,0]) 
-            cylinder(h=leg_len,d=wire_d,center=true);
+            cylinder(h=leg_len,d=wire_d,center=true,$fn=16);
 }
 module pt_pt_cylinder (from=[1,1,0],to=[-1,0,-1], d = 0.1){
     // Create a cylinder from point to point
@@ -758,14 +773,14 @@ module bearing_flng_qtr () {
     
     difference () {
         union() {
-            translate ([0,0,-bearing_t])
+            translate ([0,0,-Qtr_bearing_t])
                 // main body, slightly undersize for assembly visibility
-                cylinder(h=bearing_t,d=bearing_od-.01,center=false); 
+                cylinder(h=Qtr_bearing_t,d=Qtr_bearing_od-.01,center=false); 
             
             // flange, slightly less thick for assembly visibility
-            cylinder(h=bearing_flange_t-.01,d=bearing_flange_od,center=false);
+            cylinder(h=Qtr_bearing_flange_t-.01,d=Qtr_bearing_flange_od,center=false);
         }
-    cylinder(h=bearing_t*3,d=hole_p25_inch,center=true); // center hole
+    cylinder(h=Qtr_bearing_t*3,d=hole_qtr_inch,center=true); // center hole
     }
 }
 module M5_RHS (length=10) {
