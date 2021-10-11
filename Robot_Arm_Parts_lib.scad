@@ -40,7 +40,7 @@ display_spacer = false;
 // Calculate and display round cross belt for pulleys
 //display_cross_belt = false;
 // Springs, coil and torsion (low quality)
-display_spring = true;
+display_spring = false;
 // Balance Weight Arm for Servo
 //display_balance_arm = false;
 // Servo Horn (for subtracting from solids)
@@ -53,8 +53,8 @@ display_servo_shim = false;
 display_3_pt_cube = false;
 // display GT2-2 Idler Pulley
 display_GT2_idle_pulley = false;
-// display 1/4 inch ID flanged bearing
-display_qtr_flng_bearing = false;
+// display Flanged Bearing
+display_Flanged_Bearing = true;
 // display M5 Rounded Head Screw
 display_M5_RHS = false;
 // display hex cylinder (for nuts)
@@ -91,7 +91,13 @@ if (display_servo_horn) servo_horn ();
 if (display_servo_body) servo_body ();
 if (display_servo_shim) servo_shim (t=.2);
 if (display_GT2_idle_pulley) GT2_2_idle_pulley();
-if (display_qtr_flng_bearing) bearing_flng_qtr ();
+if (display_Flanged_Bearing) {
+    Bearing_Flanged (); // default
+    
+    translate([15,0,0]) Bearing_Flanged (t=Qtr_bearing_t,flange_t=Qtr_bearing_flange_t,od=Qtr_bearing_od,id=hole_qtr_inch,flange_od=Qtr_bearing_flange_od);
+    
+    translate([-10,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+}
 if (display_M5_RHS) M5_RHS (length=20);
 if (display_hex) hex ();
 if (display_barb) tube_barb ();
@@ -767,20 +773,21 @@ module GT2_2_idle_pulley () {
             }
     }
 }
-module bearing_flng_qtr () {
-    $fs=0.05; // minimum size of fragment (default is 2)
+module Bearing_Flanged (t=2,flange_t=1,od=3,id=1,flange_od=4) {
+    $fn=64; 
+    
     color ("SlateGrey") 
     
     difference () {
         union() {
-            translate ([0,0,-Qtr_bearing_t])
+            translate ([0,0,-t])
                 // main body, slightly undersize for assembly visibility
-                cylinder(h=Qtr_bearing_t,d=Qtr_bearing_od-.01,center=false); 
+                cylinder(h=t,d=od*.98,center=false); 
             
             // flange, slightly less thick for assembly visibility
-            cylinder(h=Qtr_bearing_flange_t-.01,d=Qtr_bearing_flange_od,center=false);
+            cylinder(h=flange_t*.98,d=flange_od,center=false);
         }
-    cylinder(h=Qtr_bearing_t*3,d=hole_qtr_inch,center=true); // center hole
+    cylinder(h=t*3,d=id,center=true); // center hole
     }
 }
 module M5_RHS (length=10) {

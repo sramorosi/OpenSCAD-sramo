@@ -6,12 +6,14 @@ mm_inch = 1/25.4;
 
 // 1/4 ID bearing OD if using a bearing (PART FR4-ZZ C3)
 Qtr_bearing_od=15.9512; // 0.628 inch = 15.9512 mm
-// 1/4 ID bearing flange OD (with clearance)
 Qtr_bearing_flange_od=18.034; // .71 inch = 18.034 mm
-// 1/4 ID bearing flange thickness
 Qtr_bearing_flange_t=1.27; // 0.05 inch = 1.27 mm
-// 1/4 ID bearing thickness (under the flange)
 Qtr_bearing_t=3.937; // 0.155 inch = 3.937 mm
+
+M6_bearing_od=12; 
+M6_bearing_flange_od=13.6;
+M6_bearing_flange_t=0.8;
+M6_bearing_t=3.15;
 
 // round belt diameter throughout, if used
 //belt_d=4.826;   // 0.19 in = 4.826 mm
@@ -24,6 +26,7 @@ hole_no6_screw = 2.413; // 0.095 inch = 2.413
 hole_M3=3.1;  // inch
 // hole for M5 (5 mm) joint/bolt
 hole_M5=5.1;  // inch
+hole_M6=6;
 // hole for servo bushing
 hole_servo_bushing=3.81;   // 0.15 inch = 3.81 mm
 

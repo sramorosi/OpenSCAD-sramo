@@ -8,7 +8,7 @@ use <Pulley-GT2_2.scad>
 include <SACC-26-Configuration.scad>
 
 // Draw the Robot Arm Assembly
-display_assy = false;
+display_assy = true;
 // Section cut at X = 0?
 clip_yz = false;
 // Section cut at Z = 0?
@@ -28,7 +28,7 @@ curved_shooter=false;
 // Draw Final Forks (option to claw)
 display_fork= false;
 // BC Arm Pulley at A
-display_B_drive_pulley_at_A= true;
+display_B_drive_pulley_at_A= false;
 // BC Arm Pulley at B
 display_B_drive_pulley_at_B= false;
 // Draw Final End (C) Horn
@@ -188,9 +188,9 @@ module final_BC_arm () {
                 servo_body (vis=false);
 
     }    
-   translate([0,0,wall_t]) bearing_flng_qtr ();
-   translate([0,0,-AB_pulley_t+Qtr_bearing_flange_t]) rotate([180,0,0]) bearing_flng_qtr ();
-   translate([0,0,wBC_inside+2*wall_t]) bearing_flng_qtr();
+   translate([0,0,wall_t]) Bearing_Flanged (t=Qtr_bearing_t,flange_t=Qtr_bearing_flange_t,od=Qtr_bearing_od,id=hole_qtr_inch,flange_od=Qtr_bearing_flange_od);
+   translate([0,0,-AB_pulley_t+Qtr_bearing_flange_t]) rotate([180,0,0]) Bearing_Flanged (t=Qtr_bearing_t,flange_t=Qtr_bearing_flange_t,od=Qtr_bearing_od,id=hole_qtr_inch,flange_od=Qtr_bearing_flange_od);
+   translate([0,0,wBC_inside+2*wall_t]) Bearing_Flanged (t=Qtr_bearing_t,flange_t=Qtr_bearing_flange_t,od=Qtr_bearing_od,id=hole_qtr_inch,flange_od=Qtr_bearing_flange_od);
 }
 
 module tube_arm (length=50, w=10, t=1) { // NOT USED PRESENTLY
@@ -218,27 +218,33 @@ module B_Drive_at_B_Pulley () {
        hex (size=22.94,l=AB_pulley_t+.5);
     }
 }
+module plastic_screw() {
+    translate([0,0,20/2])cylinder(h=21,d=2.8,center=true);
+    translate([0,0,-2.5/2]) cylinder(h=2.5,d=7,center=true);
+}
 
 module B_drive_at_A_Pulley () {
     // This pulley is on the outside of the AB arm at A
+    // PRINT THIS IN TWO PARTS
     $fn=$preview ? 64 : 128; // minimum angle fragment
     
     pulley_OD = tooth_spacing (AB_pulley_teeth,2,0.254) +2;
     
     difference () {
         union () {
+            // PART A
             pulley_gt2_2(teeth=AB_pulley_teeth,pulley_t_ht=AB_pulley_t ,motor_shaft=hole_qtr_inch);
             translate([0,0,AB_pulley_t*1.5]) 
-                cylinder(h=AB_pulley_t,d=pulley_OD,center=true); // big boss
+                cylinder(h=AB_pulley_t,d=pulley_OD,center=true); // big boss A side
+            
+            // PART B
             translate([0,0,-3]) 
-                cylinder(h=6,d=pulley_OD,center=true); // big boss
+                cylinder(h=6,d=pulley_OD,center=true); // big boss B side
             translate([0,0,-AB_boss_t/2]) 
                 rotate([0,0,-10]) 
                     rotate_extrude(angle=60,convexity = 10)
                         translate([20, 0, 0]) 
                             square([15,AB_boss_t],center=true);
-            *translate([0,0,-2]) rotate([0,0,-90])
-            torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
 
             }
         // remove the servo horn shape
@@ -246,22 +252,23 @@ module B_drive_at_A_Pulley () {
         // remove the spring
         translate([0,0,-2]) rotate([0,0,-90])
             torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd*1.2,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH,inverse=true);
-        translate([9271K619_OD/2,0,20]) 
-            rotate([0,0,-70]) 
-                rotate_extrude(angle=180,convexity = 10)
-                    translate([-24, 0, 0]) 
-                        square([28,AB_boss_t],center=true);
-            
+        translate([-30,-50,10]) cube([40,40,20],center=false);
+        translate([-50,-11,10]) cube([40,40,20],center=false);
+        translate([0,0,13.5]) cube([21,21,7],center=true);
         // remove the A hole!
-        cylinder(h=10*AB_boss_t,d=hole_qtr_inch,center=true);
-        *translate([0,0,AB_pulley_t])
-            cylinder(h=Qtr_bearing_t,d=Qtr_bearing_od,center=true);
+        cylinder(h=10*AB_boss_t,d=M6_bearing_od,center=true);
+        // remove the screw holes that hold the two parts together
+        rotate([0,0,70]) translate([16,0,-4]) plastic_screw();
+        rotate([0,0,160]) translate([16,0,-4]) plastic_screw();
+        rotate([0,0,250]) translate([16,0,-4]) plastic_screw();
+        rotate([0,0,335]) translate([16,0,-4]) plastic_screw();
+
         // remove the outside bearing flange cylinder
         *translate([0,0,-AB_pulley_t])
             cylinder(h=AB_pulley_t,d=Qtr_bearing_flange_od+.5,center=false);
     }
-   *rotate([180,0,0]) bearing_flng_qtr ();
-   *translate([0,0,AB_pulley_t]) bearing_flng_qtr ();
+   translate([0,0,-6]) rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+   translate([0,0,AB_pulley_t*2]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
 }
 
 module final_C_horn(){
@@ -499,13 +506,13 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
     vecAB=[b[0]/lenAB,b[1]/lenAB,b[2]/lenAB];
         
     // draw the upper and lower arms
-    *rotate([0,0,A_angle]) {
+    rotate([0,0,A_angle]) {
         // Draw the AB link
         color("plum",1) 
             translate ([0,0,-widthAB/2]) {
                 final_AB_arm ();
-       translate([0,0,wall_t]) bearing_flng_qtr ();
-       translate([0,0,wAB_inside+wall_t]) rotate([180,0,0]) bearing_flng_qtr ();
+       translate([0,0,wall_t]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+       translate([0,0,wAB_inside+wall_t]) rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
             }
         
         // Draw the BC link
@@ -517,7 +524,7 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0) {
         }
     }
     // Draw the end effector
-    *translate([c[0],c[1],c[2]-wall_t-Qtr_bearing_flange_t]) 
+    translate([c[0],c[1],c[2]-wall_t-Qtr_bearing_flange_t]) 
         rotate ([0,0,C_angle])  end_effector_assy();
     
     // Draw the B drive pulley at A
