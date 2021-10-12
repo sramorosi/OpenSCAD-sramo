@@ -13,17 +13,17 @@ gear (circular_pitch=700,
 */
 
 //Complex Spur Gear Test:
-test_gears ();
+*test_gears ();
 
 // Meshing Double Helix:
-//test_meshing_double_helix ();
+*test_meshing_double_helix ();
 
 module test_meshing_double_helix(){
     meshing_double_helix ();
 }
 
 // Demonstrate the backlash option for Spur gears.
-//test_backlash ();
+*test_backlash ();
 
 // Demonstrate how to make meshing bevel gears.
 //test_bevel_gear_pair();
@@ -846,3 +846,21 @@ module test_backlash ()
     translate([0,0,-5])
     cylinder ($fn=20,r=backlash / 4,h=25);
 }
+module 64T_32P_Actobotics ()
+{
+    teeth = 64;
+
+    gear (
+        number_of_teeth = teeth,
+        circular_pitch= 2.54, //1*25.4, //32*180*pi/180,
+        gear_thickness = 0.25*25.4,
+        rim_thickness = 0,
+        rim_width = 0.3*25.4, // controls the circles diameter
+        hub_thickness = 0.2*25.4,  // ?
+        hub_diameter=1.5*25.4,// controls the circles diameter
+        bore_diameter=0.5*25.4, // center bore
+        backlash = 0,
+        circles=16);
+
+}
+*64T_32P_Actobotics();

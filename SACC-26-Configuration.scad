@@ -32,17 +32,35 @@ AB_boss_t = 20; // used for the B servo horn on the pulley
 a_svo_boss = 8; // used for the A servo horn
 
 // BASE RELATED POSITIONING and dimensions
-base_z_top = 45.72;  // 1.8 inch = 45.72 mm
-// translation distance for face of A servo
-A_servo_y = -31; // 1.22 in = 30.988 mm
-// translation distance for face of B servo
-B_servo_y = 65; //
+base_z_top = 40;  // mm
 // base servo lug thickness
 base_svo_lug_t = 6.35; // 0.25 inch = 6.35 mm
-
 // center thickness (WIDTH OF TORSION SPRING
 center_t = 13; // mm
-
+// Y translation distance for lugs
+base_y_A = 0; 
+base_y_1 = svo_flange_d+base_svo_lug_t+base_svo_lug_t;
+base_y_2 = base_y_1+center_t+base_svo_lug_t+2*Qtr_bearing_flange_t;
+base_y_3 = base_y_2+center_t+4*base_svo_lug_t+Qtr_bearing_flange_t;
+base_y_B = 102; 
+// base plate size
+base_w = 75;
+base_l = 112;
+base_t = 7;
+// distance of base plate from zero
+base_y_shift = 49;
+// parameters for the 4 base attach bolts to the bearing
+hole_space = 58;
+x_b = hole_space/2;
+y_b = hole_space/2;
+// parameters for the 4 gear attach screws
+hole_space_gear = 38;
+x_g = hole_space_gear/2;
+y_g = hole_space_gear/2;
+// paramenters for the base gussetts
+t_guss = 7.5;
+h_guss = 18; // height
+x_guss = 15; // offset from center
 
 // A-B arm width. The section is square.
 widthAB=center_t+2*wall_t+2*base_svo_lug_t+4*Qtr_bearing_flange_t;   
