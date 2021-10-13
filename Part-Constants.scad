@@ -23,10 +23,9 @@ hole_qtr_inch=6.48;   // 0.255 inch = 6.477 mm
 // hole start diameter for number 6 screw
 hole_no6_screw = 2.4; // 0.095 inch = 2.413
 // hole for M3 (3 mm) joint/bolt
-hole_M3=3.1;  // inch
-// hole for M5 (5 mm) joint/bolt
-hole_M5=5.1;  // inch
-hole_M6=6;
+hole_M3=3.1; 
+hole_M5=5.1;  
+hole_M6=6.1;
 // hole for servo bushing
 hole_servo_bushing=3.81;   // 0.15 inch = 3.81 mm
 
@@ -58,8 +57,8 @@ svo_flange_d = 10;
 9271K619_len = 51;  // arm length mm
 9271K619_coils = 7;  // number of coils
 9271K619_LH = true;  // LH or RH (false)
-
-
+9271K619_t = (9271K619_coils+1)*9271K619_wd; // thickness of the spring
+9271K619_ID = 9271K619_OD-2*9271K619_wd;  // ID of the coil
 
 //GT2pulleyd = 12;
 //GT2pulleyt = 8.5;

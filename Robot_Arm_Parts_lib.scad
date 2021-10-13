@@ -136,14 +136,15 @@ rotate([0,0,a_ang]) {
 module filled_donut(t=10,d=50, r = 2) {
     // t = donut thickness,   d = donut diameter, r = fillet radius
     // Fillet radius must be less than d/4.
+    $f4=$preview ? 20 : 72; // minimum angle fragment
     if (r < d/4) {
         hull() {
         translate([0,0,t/2-r]) 
             rotate_extrude(convexity = 10) translate([(d/2)-r/2, 0, 0]) 
-                circle(r = r, $fn = 72);
+                circle(r = r);
         translate([0,0,-t/2+r]) 
             rotate_extrude(convexity = 10) translate([(d/2)-r/2, 0, 0]) 
-                circle(r = r, $fn = 72);
+                circle(r = r);
         }
     } else {
         echo("ERROR in Filled Donut. Fillet radius must be less than d/4");
@@ -501,7 +502,7 @@ module pulley_groove(r=2,d_grv=0.25,round=true){
             }
         }
 }
-module spacer(d=.35,t=.13,d_pin=0.255){
+module spacer(d=20,t=2,d_pin=10){
     // Create spacer (washer) on xy plane at 0,0,0 of radius r
     // t is thickness (centered about z=0)
     $fa=$preview ? 6 : 1; // minimum angle fragment

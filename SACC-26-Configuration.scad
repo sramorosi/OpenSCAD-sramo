@@ -1,6 +1,6 @@
 // Robot Arm Configuration File
 // ALL UNITS ARE IN MM
-//  last modified August 16 2021 by SrAmo
+//  last modified October 13 2021 by SrAmo
 
 include <Part-Constants.scad>
 
@@ -17,7 +17,7 @@ lenAB=240;     // 9 in = 228.6 mm
 // length of B-C arm, color = blue
 lenBC=240;     // 9 in = 228.6 mm
 // Arm wall thickness throughout
-wall_t=Qtr_bearing_t;  
+wall_t=4;  
 // Joint/Pin size throughout
 pinSize = hole_qtr_inch;
 
@@ -31,25 +31,26 @@ AB_boss_t = 20; // used for the B servo horn on the pulley
 
 a_svo_boss = 8; // used for the A servo horn
 
-// BASE RELATED POSITIONING and dimensions
-base_z_top = 40;  // mm
-// base servo lug thickness
-base_svo_lug_t = 6.35; // 0.25 inch = 6.35 mm
+// shoulder RELATED POSITIONING and dimensions
+shoulder_z_top = 40;  // mm
+// shoulder servo lug thickness
+shoulder_svo_lug_t = 7; // 0.25 inch = 6.35 mm
 // center thickness (WIDTH OF TORSION SPRING
 center_t = 13; // mm
 // Y translation distance for lugs
-base_y_A = 0; 
-base_y_1 = svo_flange_d+base_svo_lug_t+base_svo_lug_t;
-base_y_2 = base_y_1+center_t+base_svo_lug_t+2*Qtr_bearing_flange_t;
-base_y_3 = base_y_2+center_t+4*base_svo_lug_t+Qtr_bearing_flange_t;
-base_y_B = 102; 
-// base plate size
-base_w = 75;
-base_l = 112;
-base_t = 7;
-// distance of base plate from zero
-base_y_shift = 49;
-// parameters for the 4 base attach bolts to the bearing
+shoulder_y_A = 0; 
+shoulder_y_1 = 20;
+shoulder_y_2 = 73;
+//shoulder_y_3 = shoulder_y_2+center_t+4*shoulder_svo_lug_t+Qtr_bearing_flange_t;
+shoulder_y_B = 90; 
+echo(shoulder_y_1=shoulder_y_1,shoulder_y_2=shoulder_y_2);
+// distance of shoulder plate from zero
+shoulder_y_shift = 35;
+// shoulder plate size
+shoulder_w = 75;
+shoulder_l = shoulder_y_B+shoulder_svo_lug_t;
+shoulder_t = 7;
+// parameters for the 4 shoulder attach bolts to the bearing
 hole_space = 58;
 x_b = hole_space/2;
 y_b = hole_space/2;
@@ -57,13 +58,13 @@ y_b = hole_space/2;
 hole_space_gear = 38;
 x_g = hole_space_gear/2;
 y_g = hole_space_gear/2;
-// paramenters for the base gussetts
+// paramenters for the shoulder gussetts
 t_guss = 7.5;
 h_guss = 18; // height
 x_guss = 15; // offset from center
 
 // A-B arm width. The section is square.
-widthAB=center_t+2*wall_t+2*base_svo_lug_t+4*Qtr_bearing_flange_t;   
+widthAB=center_t+2*wall_t+2*shoulder_svo_lug_t+4*Qtr_bearing_flange_t;   
 // B-C arm width. The section is square.
 widthBC=widthAB;   
 // AB Slot inside (calculated)
@@ -71,6 +72,10 @@ wAB_inside = widthAB - 2*wall_t;
 // BC Slot inside (calculated)
 wBC_inside = widthBC - 2*wall_t;
 //echo (wall_t=wall_t,widthAB=widthAB,widthBC=widthBC,wAB_inside=wAB_inside,wBC_inside=wBC_inside);
+
+base_z_top = -60;
+base_t = 12;
+
 
 // Horizontal distance from C joint to claw back plate
 End_x=50.8; // 2 inch = 50.8 mm
@@ -98,11 +103,11 @@ claw_radius = 18;
 A_spr_free_len = 30; // 50 mm
 // A spring rate K (force/distance)
 A_spr_k = 20; // 17 g/mm
-// spring attach pt on base up from A
-spr_dist_base = 60; // 2 inch = 50.8 mm
+// spring attach pt on shoulder up from A
+spr_dist_shoulder = 60; // 2 inch = 50.8 mm
 // spring attach pt on AB arm from A
 spr_dist_AB = 181; // 6.8 inch = 172.72 mm
-A_spr_pt_gnd = [-20,spr_dist_base,50];   // spring attach point on base
+A_spr_pt_gnd = [-20,spr_dist_shoulder,50];   // spring attach point on shoulder
 
 // True if there is a sprint helping joint B
 //Spring_at_B = true;
@@ -110,11 +115,11 @@ A_spr_pt_gnd = [-20,spr_dist_base,50];   // spring attach point on base
 B_spr_free_len = 56; // mm
 // B spring rate K (force/distance)
 B_spr_k = 45; // 39 g/mm
-// B spring attach pt on base up from A
-B_spr_dist_base = 130; // mm
+// B spring attach pt on shoulder up from A
+B_spr_dist_shoulder = 130; // mm
 // radius of B spring attachment, opposite from C on BC
 B_spr_r = 50; // 0.78 inch = 19.812 mm
-B_spr_pt_gnd = [0,B_spr_dist_base,0];   // spring attach point on base
+B_spr_pt_gnd = [0,B_spr_dist_shoulder,0];   // spring attach point on shoulder
 
 
 // DEFINITION OF ARM ANGLES
