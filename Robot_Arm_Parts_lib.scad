@@ -40,7 +40,7 @@ display_spacer = false;
 // Calculate and display round cross belt for pulleys
 //display_cross_belt = false;
 // Springs, coil and torsion (low quality)
-display_spring = false;
+display_spring = true;
 // Balance Weight Arm for Servo
 //display_balance_arm = false;
 // Servo Horn (for subtracting from solids)
@@ -54,7 +54,7 @@ display_3_pt_cube = false;
 // display GT2-2 Idler Pulley
 display_GT2_idle_pulley = false;
 // display Flanged Bearing
-display_Flanged_Bearing = true;
+display_Flanged_Bearing = false;
 // display M5 Rounded Head Screw
 display_M5_RHS = false;
 // display hex cylinder (for nuts)
@@ -79,6 +79,7 @@ if (display_spacer) spacer ();
 if (display_spring) {
     tension_spring (from=[20,0,0],to=[50,30,50],wire_dia=1,od=2,coils=20);
     torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
+    translate([-30,0,0]) torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH, inverse=true);
 }
 if (display_pt_pt_cylinder) pt_pt_cylinder (d=.5);
 if (display_pt_pt_belt) {
@@ -97,6 +98,8 @@ if (display_Flanged_Bearing) {
     translate([15,0,0]) Bearing_Flanged (t=Qtr_bearing_t,flange_t=Qtr_bearing_flange_t,od=Qtr_bearing_od,id=hole_qtr_inch,flange_od=Qtr_bearing_flange_od);
     
     translate([-10,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+    
+    Bearing();
 }
 if (display_M5_RHS) M5_RHS (length=20);
 if (display_hex) hex ();
@@ -116,16 +119,13 @@ function law_sines_angle (C=30,a=10,c_ang=120) =
 function law_sines_length (C=30,c_ang=120,b_ang=30) =
    C * (sin(b_ang)/sin(c_ang));
 
+/*  test code for dog leg link
 c_ang=135;
-//a_ang = law_sines_angle (c_ang=c_ang);
-//b_ang = 180 - a_ang-c_ang;
-//b_len = law_sines_length (c_ang=c_ang,b_ang=b_ang);
-
-/* Method of making a dog leg link
 LAB = 100;
 L2 = 10;  // 10 or 92.7
 a_ang = law_sines_angle (C=LAB,a=L2,c_ang=c_ang);
 b_ang = 180 - a_ang-c_ang;
+b_len = law_sines_length (c_ang=c_ang,b_ang=b_ang);
 L1 = law_sines_length (C=LAB,c_ang=c_ang,b_ang=b_ang);
 echo(a_ang=a_ang,b_ang=b_ang,L1=L1);
 rotate([0,0,a_ang]) {
@@ -133,10 +133,25 @@ rotate([0,0,a_ang]) {
     translate([L1,0,0]) rotate([0,0,c_ang-180]) simple_link (l=L2,w=5,t=4,d=0);
 }
 */
+module hole_pair (x = 50,y=10,d=hole_M3,h=100) {
+    // make a pair of holes that are y appart, 
+    // at x location. holes are parallel to the Z axis
+    // Created for zip tie holes
+    $fn=$preview ? 8 : 16; // minimum angle fragment
+    translate ([x,-y/2,0]) cylinder(h=h,d=d,center=true);
+    translate ([x,y/2,0]) cylinder(h=h,d=d,center=true);
+}
+module Cbore_Screw_Hole(d=3,h=21,cb_d=7,cb_h=2) {
+    // Hole for a screw with counter bore, to hid the head
+    $fn=$preview ? 8 : 16; // minimum angle fragment
+    translate([0,0,20/2])cylinder(h=h,d=d,center=true);
+    translate([0,0,-1.1]) cylinder(h=cb_h,d=cb_d,center=true);
+}
+
 module filled_donut(t=10,d=50, r = 2) {
     // t = donut thickness,   d = donut diameter, r = fillet radius
     // Fillet radius must be less than d/4.
-    $f4=$preview ? 20 : 72; // minimum angle fragment
+    $fn=$preview ? 20 : 72; // minimum angle fragment
     if (r < d/4) {
         hull() {
         translate([0,0,t/2-r]) 
@@ -218,7 +233,6 @@ module simple_link (l=50,w=5,t=4,d=1,cored=0) {
     // Simple two force link, normale to xy plane, pointing x
     // l=Lenth, w=Width, t=Thickness, d=Pin bore Diameter, cored = Core diameter
     $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.03; // minimum size of fragment (default is 2)
     difference () {
         hull () {
             cylinder (h=t,d=w,center=false);
@@ -353,7 +367,6 @@ module hollow_offset_link (length=50,d_pin=2,w=10,t=10,offset=5,ang=45,wall=2) {
 
 module fork (l_fork=2,d_fork=0.2) {
     $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.03; // minimum size of fragment (default is 2)
     difference() {
         cylinder(h=l_fork,d1=6*d_fork/4,d2=3*d_fork/4,center=true);
         translate([-d_fork/2,-d_fork*1.5,0])
@@ -469,7 +482,6 @@ module pulley(r=2,t=.5,d_pin=0.25,d_grv=0.25,round=true){
     // t is thickness (centered about z=0)
     // Add option for V-groove 4/22/2020
     $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.03; // minimum size of fragment (default is 2)
 
     difference(){
         cylinder(t,r=r,center=true);  // outside of pulley
@@ -486,7 +498,6 @@ module pulley_groove(r=2,d_grv=0.25,round=true){
     // Create pulley groove on xy plane at 0,0,0 of radius r
     // Add option for V-groove 4/22/2020
     $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.03; // minimum size of fragment (default is 2)
 
     // subtract outside groove 
     rotate_extrude(convexity = 10)
@@ -506,7 +517,6 @@ module spacer(d=20,t=2,d_pin=10){
     // Create spacer (washer) on xy plane at 0,0,0 of radius r
     // t is thickness (centered about z=0)
     $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.03; // minimum size of fragment (default is 2)
 
     difference(){
         cylinder(t,d=d,center=true);  // outside
@@ -517,7 +527,7 @@ module spacer(d=20,t=2,d_pin=10){
 }
 module tension_spring(from=[10,0,0],to=[20,30,20],wire_dia=0.5,od=2,coils=10,ends=true){
     // Create a tenstion spring
-    // UPGRADE TO DO A PROPOER LINEAR EXTRUDE
+    // LINEAR EXTRUDE DOES NOT PRODUCE TRUE COIL
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=wire_dia/2; // minimum size of fragment (default is 2)
     vec=to - from;
@@ -526,7 +536,7 @@ module tension_spring(from=[10,0,0],to=[20,30,20],wire_dia=0.5,od=2,coils=10,end
     dy = vec[1];
     dz = vec[2];
 
-    if (length>0.01) {  // check for non zero vector
+    if (length != 0) {  // check for non zero vector
         
         // These are the angles needed to rotate to correct direction
         ay = 90 - atan2(dz, sqrt(dx*dx + dy*dy));
@@ -566,12 +576,14 @@ module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5,LH=t
     
     // straight legs on each end
     x_offset = OD/2 - wire_d/2;
-    translate([x_offset,turn_sign*leg_len/2,wire_d/2]) 
+    WD = (inverse != false) ? wire_d*1.25 :  wire_d;
+    LL = (inverse != false) ? leg_len*1.25 :  leg_len;
+    translate([x_offset,turn_sign*LL/2,WD/2]) 
         rotate([90,0,0]) 
-            cylinder(h=leg_len,d=wire_d,center=true,$fn=16);
-    translate([x_offset,-1*turn_sign*leg_len/2,sp_len-wire_d/2]) 
+            cylinder(h=LL,d=WD,center=true,$fn=16);
+    translate([x_offset,-1*turn_sign*LL/2,sp_len-WD/2]) 
         rotate([90,0,0]) 
-            cylinder(h=leg_len,d=wire_d,center=true,$fn=16);
+            cylinder(h=LL,d=WD,center=true,$fn=16);
 }
 module pt_pt_cylinder (from=[1,1,0],to=[-1,0,-1], d = 0.1){
     // Create a cylinder from point to point
@@ -602,7 +614,6 @@ module pt_pt_cylinder (from=[1,1,0],to=[-1,0,-1], d = 0.1){
 module pt_pt_belt (from=[10,10,10],to=[-10,0,10], d = 0.1,r_pulley=3,round=true){
     // Create belts from point to point
     $fa=$preview ? 6 : 1; // minimum ange fragment
-    $fs=0.03; // minimum size of fragment (default is 2)
     
     // default is round belt
     // if round = false, then draw a GT2-6 belt
@@ -724,7 +735,6 @@ module servo_body (vis=true){
     // body from z=0 down
     // used for BOOLEAN SUBTRACTION
     $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.01; // minimum size of fragment (default is 2)
 
     difference () {
         union () {
@@ -753,7 +763,6 @@ module servo_body (vis=true){
 }
 module servo_shim (l=61,w=25.4,t=2.54) {
     $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.03; // minimum size of fragment (default is 2)
     flange_z = -9.65;
     difference () {
         translate([-svo_shaft,0,flange_z+t/2]) cube([l,w,t],center=true);
@@ -761,7 +770,6 @@ module servo_shim (l=61,w=25.4,t=2.54) {
     }
 }
 module GT2_2_idle_pulley () {
-    $fs=0.1; // minimum size of fragment (default is 2)
     // draw in inches (always scaled)
     color ("Silver") 
         translate ([0,0,GT2pulleyt/2])
@@ -774,6 +782,17 @@ module GT2_2_idle_pulley () {
             }
     }
 }
+module Bearing (t=4,od=30,id=25) {
+    $fn=64; 
+    color ("Grey") 
+    difference () {
+        translate ([0,0,-t])
+        // main body, slightly undersize for assembly visibility
+        cylinder(h=t,d=od*.98,center=false); 
+        cylinder(h=t*3,d=id,center=true); // center hole
+    }
+}
+*Bearing();
 module Bearing_Flanged (t=2,flange_t=1,od=3,id=1,flange_od=4) {
     $fn=64; 
     

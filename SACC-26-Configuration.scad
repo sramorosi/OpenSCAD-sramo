@@ -73,7 +73,7 @@ wAB_inside = widthAB - 2*wall_t;
 wBC_inside = widthBC - 2*wall_t;
 //echo (wall_t=wall_t,widthAB=widthAB,widthBC=widthBC,wAB_inside=wAB_inside,wBC_inside=wBC_inside);
 
-base_z_top = -60;
+base_z_top = -62;
 base_t = 12;
 
 

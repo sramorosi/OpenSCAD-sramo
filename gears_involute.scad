@@ -849,7 +849,6 @@ module test_backlash ()
 module 64T_32P_Actobotics ()
 {
     teeth = 64;
-
     gear (
         number_of_teeth = teeth,
         circular_pitch= 2.54, //1*25.4, //32*180*pi/180,
@@ -861,6 +860,21 @@ module 64T_32P_Actobotics ()
         bore_diameter=0.5*25.4, // center bore
         backlash = 0,
         circles=16);
-
 }
 *64T_32P_Actobotics();
+module 32T_32P_Actobotics ()
+{
+    teeth = 32;
+    gear (
+        number_of_teeth = teeth,
+        circular_pitch= 2.54, //1*25.4, //32*180*pi/180,
+        gear_thickness = 6,
+        rim_thickness = 0,
+        rim_width = 0, // controls the circles diameter
+        hub_thickness = 0,  // ?
+        hub_diameter=0,// controls the circles diameter
+        bore_diameter=2, // center bore
+        backlash = 0,
+        circles=0);
+}
+32T_32P_Actobotics();
