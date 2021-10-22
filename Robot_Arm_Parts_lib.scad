@@ -207,7 +207,7 @@ module rounded_cube(size=[10,20,10],r=1,center=true) {
             cylinder(h=size[2],r=r,center=true);       
     }  
 }
-module lug (r=1,w=3,h=2,t=.2,d=0.1) {
+module lug (r=1,w=3,h=2,t=.2,d=10) {
     // Create a lug part on the xy plane, thickness t from z=0
     //   base is on y=0 and has width w
     //   center of lug is at [0,h] with radius r
@@ -225,11 +225,11 @@ module lug (r=1,w=3,h=2,t=.2,d=0.1) {
             linear_extrude(height = t)
                 polygon(points=[[-w/2,0],[w/2,0],[x,y],[-x,y],[-w/2,0]]);
         }
-        translate([0,h,t/2])  
+        if (d != 0) translate([0,h,t/2])  
             cylinder (h=3*t,d=d,center=true);
     }
 }
-module simple_link (l=50,w=5,t=4,d=1,cored=0) {
+module simple_link (l=50,w=5,t=4,d=1,cored=2) {
     // Simple two force link, normale to xy plane, pointing x
     // l=Lenth, w=Width, t=Thickness, d=Pin bore Diameter, cored = Core diameter
     $fa=$preview ? 6 : 1; // minimum angle fragment
@@ -250,6 +250,7 @@ module simple_link (l=50,w=5,t=4,d=1,cored=0) {
         }     
     }
 }
+simple_link();
 module dog_leg2 (d1=45,ang=45,d2=12.77,w=15,t=15) {
     // Create a Dog Leg part on the xy plane, along x axis
     // First length is d1, turn is ang, second length is d2

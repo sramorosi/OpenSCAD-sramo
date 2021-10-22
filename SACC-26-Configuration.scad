@@ -19,7 +19,7 @@ lenBC=240;     // 9 in = 228.6 mm
 // Arm wall thickness throughout
 wall_t=4;  
 // Joint/Pin size throughout
-pinSize = hole_qtr_inch;
+pinSize = hole_M6;
 
 // Number of teeth in AB ARM pulleys
 AB_pulley_teeth = 80;
@@ -39,21 +39,30 @@ shoulder_svo_lug_t = 7; // 0.25 inch = 6.35 mm
 center_t = 13; // mm
 // Y translation distance for lugs
 shoulder_y_A = 0; 
-shoulder_y_1 = 20;
-shoulder_y_2 = 73;
+shoulder_y_1 = 18;
+shoulder_y_2 = 72;
 //shoulder_y_3 = shoulder_y_2+center_t+4*shoulder_svo_lug_t+Qtr_bearing_flange_t;
-shoulder_y_B = 90; 
-echo(shoulder_y_1=shoulder_y_1,shoulder_y_2=shoulder_y_2);
+shoulder_y_B = 93; 
+//echo(shoulder_y_1=shoulder_y_1,shoulder_y_2=shoulder_y_2);
 // distance of shoulder plate from zero
-shoulder_y_shift = 35;
+shoulder_y_shift = 38;
 // shoulder plate size
 shoulder_w = 75;
 shoulder_l = shoulder_y_B+shoulder_svo_lug_t;
 shoulder_t = 7;
+// Base plate size
+base_x = 130;  // base width
+base_y = 150;  // base length
+
 // parameters for the 4 shoulder attach bolts to the bearing
-hole_space = 58;
-x_b = hole_space/2;
-y_b = hole_space/2;
+shoulder_bearing_hole_space = 59;
+x_bs = shoulder_bearing_hole_space/2;
+y_bs = shoulder_bearing_hole_space/2;
+// parameters for the 4 base attach bolts to the bearing
+base_bearing_hole_space = 77;
+x_bb = base_bearing_hole_space/2;
+y_bb = base_bearing_hole_space/2;
+
 // parameters for the 4 gear attach screws
 hole_space_gear = 38;
 x_g = hole_space_gear/2;
@@ -74,7 +83,7 @@ wBC_inside = widthBC - 2*wall_t;
 //echo (wall_t=wall_t,widthAB=widthAB,widthBC=widthBC,wAB_inside=wAB_inside,wBC_inside=wBC_inside);
 
 base_z_top = -62;
-base_t = 12;
+base_t = 10;
 
 
 // Horizontal distance from C joint to claw back plate
