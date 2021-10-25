@@ -6,8 +6,6 @@ use <Pulley-GT2_2.scad>
 
 include <Part-Constants.scad>
 
-// THIS STUFF SHOULD BE IN AN INCLUDE OR SOMETHING
-claw_servo_x=10; 
 
 // Rounded Cube
 display_round_cube = false;
@@ -40,7 +38,7 @@ display_spacer = false;
 // Calculate and display round cross belt for pulleys
 //display_cross_belt = false;
 // Springs, coil and torsion (low quality)
-display_spring = true;
+display_spring = false;
 // Balance Weight Arm for Servo
 //display_balance_arm = false;
 // Servo Horn (for subtracting from solids)
@@ -250,7 +248,7 @@ module simple_link (l=50,w=5,t=4,d=1,cored=2) {
         }     
     }
 }
-simple_link();
+*simple_link();
 module dog_leg2 (d1=45,ang=45,d2=12.77,w=15,t=15) {
     // Create a Dog Leg part on the xy plane, along x axis
     // First length is d1, turn is ang, second length is d2
@@ -375,6 +373,30 @@ module fork (l_fork=2,d_fork=0.2) {
                 cube([d_fork,d_fork,l_fork],center=false);
     }
 }
+module servo_connection(len=100,t1=2,t2=38,r=18,lug_t=4.4,claw_servo_x=2,link_adjust=0) {
+    module subtract_1 () { // profile of links to servo
+    linear_extrude(height = t2)
+    polygon(points=[[0,0],[-len/5,-poly_z/2],[-len/1.2,-poly_z],[-len*2,-poly_z],[-len*2,t2/2],[0,0]]);
+    }  
+    
+    poly_z = t2/2-lug_t/2;   
+    y_link = link_adjust+(claw_servo_x+r);
+    servo_lug_h = 20;
+
+    difference () {
+        union() {
+            // Link to the servo
+            translate ([servo_lug_h-len,y_link,0]) rotate ([0,0,90])
+                lug (r=1.5*hole_servo_bushing,w=t1,h=servo_lug_h,t=t2,d=hole_servo_bushing,$fn=32);
+            translate ([-len+hole_servo_bushing,y_link-t1/2,0]) cube([len-hole_servo_bushing,t1,t2]);
+        }
+        // subtract lug features
+        translate ([0,link_adjust+t2/3,0]) rotate ([-90,0,0]) subtract_1();
+        translate ([0,link_adjust+t2,t2]) rotate ([90,0,0]) subtract_1();
+    }
+}
+*servo_connection(len=50,t1=2,t2=38);
+
 module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4) {
     // U shaped claw with a pre angle
     //    t1 = general compliant thickness
@@ -383,21 +405,15 @@ module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4)
     // Draws half and uses mirror
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.05; // minimum size of fragment (default is 2)
+    
+    // 
+    claw_servo_x=10; 
+    
     poly_z = t2/2-lug_t/2;
-    module subtract_1 () { // profile of links to servo
-        linear_extrude(height = t2)
-        polygon(points=[[0,0],[-t2/4,-poly_z/2],[-t2/0.93,-poly_z],[-t2*2,-poly_z],[-t2*2,t2/2],[0,0]]);
-    }    
     module subtract_2 () { // triangle removal on end of claw
         linear_extrude(height = t2)
             polygon(points=[[-t2/3,0],[0,t2/3],[t2/3,0],[-t2/3,0]]);
     }
-    
-    // DRAW THE CLAW HALVES
-    half_claw (link_adjust=20); // modify link location this side
-    mirror([1,0,0]) half_claw (link_adjust=5); 
-    // Add a cube to connect the back plate
-   translate([-r/2,0,0]) cube([r,r,t2],center=false);
     
     module half_claw (link_adjust=0) {    
         // The cylinder part of the claw
@@ -408,45 +424,43 @@ module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4)
                 translate([r, 0, 0])
                     square([t1,t2],center=false); // on X,Z plane
         // Everything else
-        union () {
-           // top of the U, flat cube
-           x9 = width/2-2*r;  // local x
-           //echo(x9=x9);
-           back_height = t2; // match claw interface
-           
-           // back plate
-           translate([0,r,0]) cube([x9,3.5*t1,back_height],center=false);
-            // The long Finger and the link to the servo
-            // Multiple transformations to the preload
-            y_link = link_adjust+(claw_servo_x+r);
-            translate([width/2-r,r+t1,0])
-            rotate([0,0,pre_angle]) 
-            translate ([r,0,0]) { // x=r
-                // Long finger thicker section
-                cube([2*t1,len/1.5-r,t2],center=false);
-                difference () {
-                    union() {
-                        // Link to the servo
-                        translate ([-t2,y_link,0]) rotate ([0,0,90])
-                            lug (r=1.5*hole_servo_bushing,w=t1,h=t2/3,t=t2,d=hole_servo_bushing,$fn=32);
-                        translate ([-t2,y_link-t1/2,0]) cube([t2,t1,t2]);
-                    }
-                    // subtract lug features
-                    translate ([0,t2/2,0]) rotate ([-90,0,0]) subtract_1();
-                    translate ([0,t2*1.5,t2]) rotate ([90,0,0]) subtract_1();
-                }
-                difference () {
-                    // Long finger full length
-                    cube([t1,len-r,t2],center=false);
-                    // subtract end chamfers
-                    translate ([-t2/10,len-r+t1,-t1]) rotate ([90,0,90]) subtract_2();
-                    translate ([t2/2,len-r+t1,t2+1]) rotate ([-90,0,90]) subtract_2();
-                }
+       // top of the U, flat cube
+       x9 = width/2-2*r;  // local x
+       //echo(x9=x9);
+       back_height = t2; // match claw interface
+       
+       // back plate
+       translate([0,r,0]) cube([x9,3.5*t1,back_height],center=false);
+        // The long Finger and the link to the servo
+        // Multiple transformations to the preload
+        y_link = link_adjust+(claw_servo_x+r);
+        translate([width/2-r,r+t1,0])
+        rotate([0,0,pre_angle]) 
+        translate ([r,0,0]) { // x=r
+            servo_connection(len=52,t1=t1,t2=t2,r=r,lug_t=lug_t,claw_servo_x=claw_servo_x,link_adjust=link_adjust);
+            
+            // Long finger thicker section
+            cube([2*t1,len/1.5-r,t2],center=false);
+            
+            difference () {
+                // Long finger full length
+                cube([t1,len-r,t2],center=false);
+                // subtract end chamfers
+                translate ([-t2/10,len-r+t1,-t1]) rotate ([90,0,90]) subtract_2();
+                translate ([t2/2,len-r+t1,t2+1]) rotate ([-90,0,90]) subtract_2();
             }
         }
-    }
+    } // end module half_claw
     
+    // DRAW THE CLAW HALVES
+    half_claw (link_adjust=20); // modify link location this side
+    mirror([1,0,0]) half_claw (link_adjust=5); 
+    // Add a cube to connect the back plate
+    translate([-r/2,0,0]) cube([r,r,t2],center=false);
 }
+compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4);
+*compliant_claw2 (len=claw_length,width=claw_width,t1=1.73,t2=claw_height,r=claw_radius,pre_angle=15);
+/*
 module compliant_claw(l=5,w=4.6,t1=0.075,t2=1) {
     // original version. U shaped.
 
@@ -478,6 +492,7 @@ module compliant_claw(l=5,w=4.6,t1=0.075,t2=1) {
             lug (r=0.25,w=1,h=0.5,t=0.17,d=hole_M3);
     }
 }
+*/
 module pulley(r=2,t=.5,d_pin=0.25,d_grv=0.25,round=true){
     // Create pulley on xy plane at 0,0,0 of radius r
     // t is thickness (centered about z=0)
