@@ -9,9 +9,9 @@ use <gears_involute.scad>
 include <SACC-26-Configuration.scad>
 
 // Draw the Robot Arm Assembly
-display_assy = false;
+display_assy = true;
 // Section cut at X = 0?
-clip_yz = false;
+clip_yz = true;
 // Section cut at Z = 0?
 clip_xy = false;
 // Draw Final shoulder
@@ -23,21 +23,13 @@ if (display_assy) {
             translate ([0,-lenAB*2,-lenAB*2]) cube (lenAB*4,center=false);
         if (clip_xy) // z = 0 cut 
             translate ([-lenAB*2,-lenAB*2,0]) cube (lenAB*4,center=false);
-        }
     }
-
-    
+}   
 module torsion_spring_spacer() {
     translate([0,0,9271K619_t/2]) 
         spacer(d=9271K619_ID*0.9,t=9271K619_t,d_pin=hole_M6*1.03);
 }
 *torsion_spring_spacer();
-
-module end_effector_assy() {
-    color("SpringGreen") final_C_horn (); 
-    color("green") final_claw();
-    color ("red",.5) translate([claw_servo_x,claw_height/2-svo_flange_d,0]) rotate([0,90,-90]) servo_body();
-}
 
 module AB_offset_link (length=50,w=15,offset=7,d_pin=5) {
     // Create a Link on xy plane along the X axis 
@@ -52,7 +44,7 @@ module AB_offset_link (length=50,w=15,offset=7,d_pin=5) {
     L1 = law_sines_length (C=length,c_ang=c_ang,b_ang=b_ang);
     a_ang = (offset > 0) ? a_angle : -a_angle;
     c_angle = (offset > 0) ? c_ang : -c_ang;
-    echo(offset=offset,a_ang=a_ang,b_ang=b_ang,L1=L1);
+    echo("AB",offset=offset,a_ang=a_ang,b_ang=b_ang,L1=L1);
     rotate([0,0,a_ang]) {
         
         // collection of operations for the first leg
@@ -64,7 +56,9 @@ module AB_offset_link (length=50,w=15,offset=7,d_pin=5) {
                     rounded_cube(size=[widthAB,widthAB*1.5,a_svo_boss],r=widthAB/2,center=true);
             }
             // remove the servo horn shape
-            translate([0,0,widthAB-a_svo_boss/2]) servo_horn ();
+            translate([0,0,widthAB-a_svo_boss/2-1]) servo_horn ();
+            // remove a screw hole for the horn
+            translate([servo_horn_l*0.85,0,widthAB-3]) rotate([90,0,0]) cylinder(h=100,d=3,center=true);
             
             // remove screw holes, used to hold two halfs together
             translate([0,0,w]) hole_pair (x = length*.18,y=w*0.8,d=hole_M3,h=w*.7);
@@ -83,7 +77,7 @@ module final_AB_arm () {
     // Adds operations to the link/arm
 
     color("plum",1) difference () {
-        AB_offset_link (length=lenAB,w=widthAB,offset=-widthAB/2.25,d_pin=pinSize,$fn=48);
+        AB_offset_link (length=lenAB,w=widthAB,offset=widthAB/2.25,d_pin=pinSize,$fn=48);
             
         // remove the A hole and donut
         cylinder(h=4*widthAB,d=M6_bearing_od,center=true);
@@ -92,7 +86,7 @@ module final_AB_arm () {
             filled_donut(t=widthAB*.55,d=widthAB*1.4,r=widthAB*.2);
         
         // remove the spring leg hole
-        translate([0,0,22]) rotate([0,180,80])
+        translate([0,0,22]) rotate([0,180,90-A_Tspr_rot])
             torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH,inverse=true);
         
         // remove the B hole and end donut
@@ -106,12 +100,12 @@ module final_AB_arm () {
         *translate([0,0,widthAB+split_offset]) cube([lenAB*4,lenAB*2,widthAB],center=true);
         *translate([0,0,split_offset]) cube([lenAB*4,lenAB*2,widthAB],center=true);
    }
-    *rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+    rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
    
-    *translate([0,0,wAB_inside]) rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+    translate([0,0,wAB_inside]) rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
    
     // torsion spring at A
-    *translate([0,0,22]) rotate([0,180,80]){
+    translate([0,0,22]) rotate([0,180,90-A_Tspr_rot]){
         torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
         torsion_spring_spacer();
     }
@@ -129,9 +123,9 @@ module BC_offset_link (length=50,w=15,offset=7,d_pin=5) {
     a_angle = law_sines_angle (C=length,a=A,c_ang=c_ang);
     b_ang = 180 - a_angle - c_ang;
     L1 = law_sines_length (C=length,c_ang=c_ang,b_ang=b_ang);
-    a_ang = (offset > 0) ? a_angle : -a_angle;
+    a_ang = (offset > 0) ? -a_angle : a_angle;
     c_angle = (offset > 0) ? c_ang : -c_ang;
-    echo(offset=offset,a_ang=a_ang,b_ang=b_ang,L1=L1);
+    echo("BC",offset=offset,a_ang=a_ang,b_ang=b_ang,L1=L1);
        
     // collection of operations for the first leg
     difference () {
@@ -144,7 +138,7 @@ module BC_offset_link (length=50,w=15,offset=7,d_pin=5) {
             translate([length,0,0]) {
                 translate([0,0,w-4]) cylinder(h=8,d=w/2,center=true); // for the bolt
                 
-                rotate([0,0,a_angle]) 
+                rotate([0,0,a_ang]) 
                 translate([-L1,0,0]) {
                     difference() {
                         simple_link (l=L1,w=w,t=w,d=0,cored=w*.8); 
@@ -166,6 +160,7 @@ module BC_offset_link (length=50,w=15,offset=7,d_pin=5) {
     }
 }
 *BC_offset_link (length=lenBC,w=widthAB,offset=-widthAB/2.25,d_pin=pinSize,$fn=48);
+
 module final_BC_arm () {
     $fn=$preview ? 64 : 128; // minimum angle fragment
     
@@ -173,7 +168,7 @@ module final_BC_arm () {
 
     color("lightblue",1) difference () {
         union () {
-            BC_offset_link (length=lenBC,w=widthAB,offset=-widthAB/2.25,d_pin=pinSize,$fn=48);
+            BC_offset_link (length=lenBC,w=widthAB,offset=widthAB/2.25,d_pin=pinSize,$fn=48);
 
             // union HEX for pulley
             translate ([ 0,0,-hex_h+M6_bearing_flange_t])
@@ -209,12 +204,6 @@ module final_BC_arm () {
    translate([0,0,wBC_inside+2*wall_t]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
     
     rotate ([180,0,0]) B_Drive_at_B_Pulley ();
-    // C Servo
-    color ("red",.5) 
-        translate([lenBC,0,6]) {
-            servo_body();
-            servo_horn();
-        }
 //
 }
 *final_BC_arm ();
@@ -251,8 +240,13 @@ module B_drive_at_A_Pulley () {
                             square([15,AB_boss_t],center=true);
 
             }
-        // remove the servo horn shape
-        rotate([0,0,20]) translate([0,0,-AB_boss_t-1]) servo_horn();
+        // remove the servo horn shape and screw hole for holding screw
+        rotate([0,0,20]) translate([0,0,-AB_boss_t-1]) {
+            servo_horn();
+            rotate([90,0,0]) 
+                translate([servo_horn_l*.85,servo_horn_t/2,0]) 
+                    cylinder(h=100,d=3,center=true);
+        }
         // remove the spring
         translate([0,0,-3]) rotate([0,0,-90+45]) // ADJUSTMENT ANGLE
             torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd*1.05,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH,inverse=true);
@@ -279,6 +273,7 @@ module B_drive_at_A_Pulley () {
     }
 }
 *B_drive_at_A_Pulley ();
+
 module final_C_horn(){
     // Pulley at joint C
     // This is the arm end-effector interface
@@ -318,6 +313,7 @@ module final_C_horn(){
     }
 }
 *final_C_horn();
+
 module final_claw(){
     // DRAW THE COMPLIANT CLAW
     servo_plate_t = 8;
@@ -343,10 +339,10 @@ module final_claw(){
         }
     }
     translate([End_x,-claw_height/2,0]) rotate([0,-90,-90])     
-    compliant_claw2 (len=claw_length,width=claw_width,t1=1.73,t2=claw_height,r=claw_radius,pre_angle=15);
+    compliant_claw2 (len=claw_length,width=claw_width,t1=claw_t,t2=claw_height,r=claw_radius,pre_angle=15);
 }
 *final_claw();
-*compliant_claw2 (len=claw_length,width=claw_width,t1=1.73,t2=claw_height,r=claw_radius,pre_angle=15);
+*compliant_claw2 (len=claw_length,width=claw_width,t1=claw_t,t2=claw_height,r=claw_radius,pre_angle=15);
 
 module shoulder_servo_lug() {
     $fn=$preview ? 64 : 128; // minimum number of fragements
@@ -360,6 +356,7 @@ module shoulder_servo_lug() {
     }
 }
 *shoulder_servo_lug();
+
 module shoulder_lug() {
     $fn=$preview ? 64 : 128; // minimum number of fragements
     difference() {
@@ -378,8 +375,8 @@ module shoulder_assy () {
     difference () {
         union () {
             // shoulder plate
-            translate([0,shoulder_l/2-shoulder_svo_lug_t,-shoulder_z_top - shoulder_t/2])
-                rounded_cube(size=[shoulder_w,shoulder_l,shoulder_t],r=hole_qtr_inch,center=true);
+            translate([0,shoulder_l/2,-shoulder_z_top - shoulder_t/2])
+                rounded_cube(size=[shoulder_w,shoulder_l,shoulder_t],r=10,center=true);
             translate([0,shoulder_y_shift,-shoulder_z_top - shoulder_t - 5])
                 cylinder(h=10,d=60,center=true);
 
@@ -403,9 +400,9 @@ module shoulder_assy () {
             
             // shoulder gussets
             color("blue") translate([x_guss,shoulder_y_A,-shoulder_z_top])
-                cube([t_guss,shoulder_y_B-shoulder_y_A-shoulder_svo_lug_t,h_guss],center=false);
+                cube([t_guss,shoulder_l,h_guss],center=false);
             color("blue") translate([-x_guss-t_guss,shoulder_y_A,-shoulder_z_top])
-                cube([t_guss,shoulder_y_B-shoulder_y_A-shoulder_svo_lug_t,h_guss],center=false);
+                cube([t_guss,shoulder_l,h_guss],center=false);
             *color("skyblue") translate([-x_guss,y1,-shoulder_z_top])
                 cube([2*x_guss,extra_lug_y-y1+shoulder_svo_lug_t,h_guss],center=false);
                 
@@ -425,20 +422,25 @@ module shoulder_assy () {
                 cylinder(h=shoulder_t*3,d=2.5,center=true);
         
         // subtract the 4 gear mounting screw holes
-        translate([0,y_g+shoulder_y_shift,-shoulder_z_top-10])
+        translate([0,y_g+shoulder_y_shift,-shoulder_z_top-12])
                 cylinder(h=shoulder_t*2,d=hole_no6_screw,center=true);
-        translate([x_g,shoulder_y_shift,-shoulder_z_top-10])
+        translate([x_g,shoulder_y_shift,-shoulder_z_top-12])
                 cylinder(h=shoulder_t*2,d=hole_no6_screw,center=true);
-        translate([-x_g,shoulder_y_shift,-shoulder_z_top-10])
+        translate([-x_g,shoulder_y_shift,-shoulder_z_top-12])
                 cylinder(h=shoulder_t*2,d=hole_no6_screw,center=true);
-        translate([0,-y_g+shoulder_y_shift,-shoulder_z_top-10])
+        translate([0,-y_g+shoulder_y_shift,-shoulder_z_top-12])
                 cylinder(h=shoulder_t*2,d=hole_no6_screw,center=true);
         
         // screw holes long ways in gussets
-        translate([x_guss+t_guss/2,h_guss/2,-shoulder_z_top + h_guss/2]) 
-            rotate([90,0,0]) hole_pair (x = 0,y=h_guss/2,d=hole_no6_screw,h=shoulder_l*2);
-        translate([-(x_guss+t_guss/2),h_guss/2,-shoulder_z_top + h_guss/2]) 
-            rotate([90,0,0]) hole_pair (x = 0,y=h_guss/2,d=hole_no6_screw,h=shoulder_l*2);
+        translate([x_guss+t_guss/2,3,-shoulder_z_top + h_guss/2]) 
+            rotate([90,0,0]) hole_pair (x = 0,y=h_guss/2,d=hole_no6_screw,h=10);
+        translate([x_guss+t_guss/2,shoulder_y_B-10,-shoulder_z_top + h_guss/2]) 
+            rotate([90,0,0]) hole_pair (x = 0,y=h_guss/2,d=hole_no6_screw,h=10);
+        translate([-(x_guss+t_guss/2),3,-shoulder_z_top + h_guss/2]) 
+            rotate([90,0,0]) hole_pair (x = 0,y=h_guss/2,d=hole_no6_screw,h=10);
+        translate([-(x_guss+t_guss/2),shoulder_y_B-10,-shoulder_z_top + h_guss/2]) 
+            rotate([90,0,0]) hole_pair (x = 0,y=h_guss/2,d=hole_no6_screw,h=10);
+            
         // screw holes perpendicular to gussets
         translate([0,shoulder_y_1-shoulder_svo_lug_t/2,-shoulder_z_top + h_guss/2]) 
             rotate([90,0,90]) hole_pair (x = 0,y=h_guss/2,d=hole_no6_screw,h=x_guss*4);
@@ -449,11 +451,12 @@ module shoulder_assy () {
         translate([0,shoulder_y_1+9271K619_t+4,0]) rotate([90,180,0])
             torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH,inverse=true);
         // subtract the AB torsion spring leg hole
-        translate([0,shoulder_y_2-8,0]) rotate([90,170,0])
+        translate([0,shoulder_y_2-8,0]) rotate([90,180-A_Tspr_rot,0])
             torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH,inverse=true);
     }
 }
 *shoulder_assy ();
+
 module base_assy() {
     $fn=$preview ? 32 : 72; // minimum angle fragment
     // location for the holes that screw the base to the wood
@@ -501,6 +504,7 @@ module base_assy() {
     }
 }
 *base_assy();
+
 module base_and_shoulder_assy(base_ang=0,A_angle=0,B_angle=0){
     // shoulder, adjust z translation as required
     rotate([-90,base_ang,0]) 
@@ -535,6 +539,32 @@ module base_and_shoulder_assy(base_ang=0,A_angle=0,B_angle=0){
 }
 *base_and_shoulder_assy(base_ang=0,A_angle=0,B_angle=0);
 
+module end_effector_assy() {
+    color("SpringGreen") final_C_horn (); 
+    color("green") final_claw();
+    color ("gold",.5) 
+        translate([claw_servo_x,claw_height/2-svo_flange_d,0]) 
+            rotate([0,90,-90]) servo_body();
+}
+*end_effector_assy();
+
+module BC_arm_and_End (C_angle=0) {
+    
+    final_BC_arm ();
+    
+    // Draw the end effector
+    translate([lenBC,0,0]) {
+        
+        translate([0,0,6])color ("red",.5) servo_body();  // C Servo
+        
+        rotate ([0,0,C_angle]) {
+            translate([0,0,widthBC/2]) end_effector_assy();
+            translate([0,0,6])color ("darkred",.5) servo_horn();
+        }
+    }
+}
+*BC_arm_and_End (C_angle=0);
+
 module draw_assy (A_angle=0,B_angle=0,C_angle=0,base_ang=0) {
     // XZ = HORIZON
     // calculate b and c positions from angles
@@ -551,11 +581,8 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,base_ang=0) {
                 
                 // Draw the BC link
                 translate([lenAB,0,-13.5])
-                    rotate([0,0,B_angle-A_angle]) final_BC_arm ();
+                    rotate([0,0,B_angle-A_angle]) BC_arm_and_End(C_angle);
             }
-            // Draw the end effector
-            translate([c[0],c[1],6]) 
-                rotate ([0,0,C_angle])  end_effector_assy();
             
             // Draw the B drive pulley at A
             color("navy",0.5)  
@@ -570,4 +597,4 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,base_ang=0) {
     // Draw Base and Shoulder assembly adjust z translation as required
     rotate([0,180,0]) base_and_shoulder_assy(base_ang=base_ang,A_angle=A_angle,B_angle=B_angle);
 } 
-draw_assy (A_angle=90,B_angle=240,C_angle=180,base_ang=180);
+*draw_assy (A_angle=90,B_angle=-20,C_angle=40,base_ang=180);

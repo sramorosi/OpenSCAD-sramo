@@ -6,131 +6,12 @@ use <Pulley-GT2_2.scad>
 
 include <Part-Constants.scad>
 
-
-// Rounded Cube
-display_round_cube = false;
-// Filled Donut
-display_filled_donut = false;
-// Point to Point Cylinder
-display_pt_pt_cylinder = false;
-// Point to Point belt over 2 pulleys
-display_pt_pt_belt = false;
-// Lug or Padeye
-display_lug = false;
-// Simple Link (2 force member)
-display_simple_link = false;
-// Simple Dog Leg 2
-display_dog_leg = false;
-// Fancy Dog Leg (hollow with clevis and pin hole)
-display_fancy_dog_leg = false;
-// Hollow offset link (two fancy dog legs, mirrored about x=0)
-display_hollow_link = false;
-// Fork attachment for End
-display_fork = false;
-// Compliant U Claw for End (90 deg fixed)
-display_U_Claw = false;
-// Compliant adjustable Claw (Variable angle)
-display_V_Claw = false;
-// Pulley for round belt
-display_pulley = false;
-// Spacer or Washer
-display_spacer = false;
-// Calculate and display round cross belt for pulleys
-//display_cross_belt = false;
-// Springs, coil and torsion (low quality)
-display_spring = false;
-// Balance Weight Arm for Servo
-//display_balance_arm = false;
-// Servo Horn (for subtracting from solids)
-display_servo_horn = false;
-// Servo Body with screw holes (for subtracting from solids)
-display_servo_body = false;
-// Servo Body Shim
-display_servo_shim = false;
-// 3 point cubes
-display_3_pt_cube = false;
-// display GT2-2 Idler Pulley
-display_GT2_idle_pulley = false;
-// display Flanged Bearing
-display_Flanged_Bearing = false;
-// display M5 Rounded Head Screw
-display_M5_RHS = false;
-// display hex cylinder (for nuts)
-display_hex = false;
-// display tube barb (for hooking ends of tube together)
-display_barb = false;
-// display P090S Potentiometer
-display_P090S_pot = false;
-
-if (display_round_cube) rounded_cube();
-if (display_lug) lug();
-if (display_simple_link) simple_link(l=50,w=5,t=4,d=1,cored=3);
-if (display_dog_leg) dog_leg2 ();
-if (display_fancy_dog_leg) fancy_dog_leg ();
-if (display_hollow_link) hollow_offset_link ();
-if (display_fork) color ("green") fork ();
-if (display_U_Claw) compliant_claw ();
-if (display_V_Claw) color ("blue") compliant_claw2 ();
-if (display_pulley) pulley ();
-//if (display_pulley) translate ([0,0,1]) pulley (round=false);
-if (display_spacer) spacer ();
-if (display_spring) {
-    tension_spring (from=[20,0,0],to=[50,30,50],wire_dia=1,od=2,coils=20);
-    torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
-    translate([-30,0,0]) torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH, inverse=true);
-}
-if (display_pt_pt_cylinder) pt_pt_cylinder (d=.5);
-if (display_pt_pt_belt) {
-    color ("black") pt_pt_belt (round=false);
-    color ("grey") pt_pt_belt ([2,0,0],[-2,-1,0],round=true);
-}
-//if (display_cross_belt) cross_belt ();
-//if (display_balance_arm) balance_weight ();
-if (display_servo_horn) servo_horn ();
-if (display_servo_body) servo_body ();
-if (display_servo_shim) servo_shim (t=.2);
-if (display_GT2_idle_pulley) GT2_2_idle_pulley();
-if (display_Flanged_Bearing) {
-    Bearing_Flanged (); // default
-    
-    translate([15,0,0]) Bearing_Flanged (t=Qtr_bearing_t,flange_t=Qtr_bearing_flange_t,od=Qtr_bearing_od,id=hole_qtr_inch,flange_od=Qtr_bearing_flange_od);
-    
-    translate([-10,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
-    
-    Bearing();
-}
-if (display_M5_RHS) M5_RHS (length=20);
-if (display_hex) hex ();
-if (display_barb) tube_barb ();
-if (display_P090S_pot) {
-    P090S_pot(L=20,negative=true);
-    translate([20,0,0]) P090S_pot(L=20,negative=false);
-}
-    
-if (display_3_pt_cube) {
-    p = [[0,0,0] , [10,0,-20], [-30,20,10] ];
-    cubeOnThreePoints(p); 
-}
 function law_sines_angle (C=30,a=10,c_ang=120) = 
    asin((a/C)*sin(c_ang));
 
 function law_sines_length (C=30,c_ang=120,b_ang=30) =
    C * (sin(b_ang)/sin(c_ang));
 
-/*  test code for dog leg link
-c_ang=135;
-LAB = 100;
-L2 = 10;  // 10 or 92.7
-a_ang = law_sines_angle (C=LAB,a=L2,c_ang=c_ang);
-b_ang = 180 - a_ang-c_ang;
-b_len = law_sines_length (c_ang=c_ang,b_ang=b_ang);
-L1 = law_sines_length (C=LAB,c_ang=c_ang,b_ang=b_ang);
-echo(a_ang=a_ang,b_ang=b_ang,L1=L1);
-rotate([0,0,a_ang]) {
-    simple_link (l=L1,w=5,t=4,d=0);
-    translate([L1,0,0]) rotate([0,0,c_ang-180]) simple_link (l=L2,w=5,t=4,d=0);
-}
-*/
 module hole_pair (x = 50,y=10,d=hole_M3,h=100) {
     // make a pair of holes that are y appart, 
     // at x location. holes are parallel to the Z axis
@@ -145,7 +26,6 @@ module Cbore_Screw_Hole(d=3,h=21,cb_d=7,cb_h=2) {
     translate([0,0,20/2])cylinder(h=h,d=d,center=true);
     translate([0,0,-1.1]) cylinder(h=cb_h,d=cb_d,center=true);
 }
-
 module filled_donut(t=10,d=50, r = 2) {
     // t = donut thickness,   d = donut diameter, r = fillet radius
     // Fillet radius must be less than d/4.
@@ -163,10 +43,9 @@ module filled_donut(t=10,d=50, r = 2) {
         echo("ERROR in Filled Donut. Fillet radius must be less than d/4");
     }
 }
-if(display_filled_donut) filled_donut();
+*filled_donut();
 
-module zip_tie_holes (arm_l = 10,arm_w=1) {
-    zip_hole_d = hole_M3;
+module zip_tie_holes (arm_l = 10,arm_w=1,zip_hole_d = hole_M3) {
     rotate([90,0,0]) {
         translate ([.15*arm_l,.35*arm_w,-arm_w]) 
             cylinder(h=4*arm_w,d=zip_hole_d,center=true);
@@ -205,7 +84,7 @@ module rounded_cube(size=[10,20,10],r=1,center=true) {
             cylinder(h=size[2],r=r,center=true);       
     }  
 }
-module lug (r=1,w=3,h=2,t=.2,d=10) {
+module lug (r=1,w=3,h=2,t=.2,d=0) {
     // Create a lug part on the xy plane, thickness t from z=0
     //   base is on y=0 and has width w
     //   center of lug is at [0,h] with radius r
@@ -306,6 +185,21 @@ module dog_leg (d1=10,ang=45,d2=5,w=2,t=1) {
             polygon([[fx,w/2],[fx-fs,w/2],[fx+fs,w/2+fs*tan(ang)],[fx+fs,w/2],[fx,w/2]]);
     }
 }
+/*  test code for dog leg link
+c_ang=135;
+LAB = 100;
+L2 = 10;  // 10 or 92.7
+a_ang = law_sines_angle (C=LAB,a=L2,c_ang=c_ang);
+b_ang = 180 - a_ang-c_ang;
+b_len = law_sines_length (c_ang=c_ang,b_ang=b_ang);
+L1 = law_sines_length (C=LAB,c_ang=c_ang,b_ang=b_ang);
+echo(a_ang=a_ang,b_ang=b_ang,L1=L1);
+rotate([0,0,a_ang]) {
+    simple_link (l=L1,w=5,t=4,d=0);
+    translate([L1,0,0]) rotate([0,0,c_ang-180]) simple_link (l=L2,w=5,t=4,d=0);
+}
+*/
+
 module fancy_dog_leg (d1=50,ang=45,d2=20,w=15,t=25,d_pin=1,wall=3) {
     // Create dog leg with center and pin-holes removed
     // padeye is the same thing as a lug 
@@ -458,7 +352,7 @@ module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4)
     // Add a cube to connect the back plate
     translate([-r/2,0,0]) cube([r,r,t2],center=false);
 }
-compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4);
+*compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4);
 *compliant_claw2 (len=claw_length,width=claw_width,t1=1.73,t2=claw_height,r=claw_radius,pre_angle=15);
 /*
 module compliant_claw(l=5,w=4.6,t1=0.075,t2=1) {
@@ -572,6 +466,8 @@ module tension_spring(from=[10,0,0],to=[20,30,20],wire_dia=0.5,od=2,coils=10,end
         echo("MODULE TENSION_SPRING; small spring = ",slength," or render");
     }
 }
+*tension_spring (from=[20,0,0],to=[50,30,50],wire_dia=1,od=2,coils=20);
+
 module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5,LH=true,inverse=false) {
     // deflection_angle is not implimented
     
@@ -601,6 +497,8 @@ module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5,LH=t
         rotate([90,0,0]) 
             cylinder(h=LL,d=WD,center=true,$fn=16);
 }
+*torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
+*translate([-30,0,0]) torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH, inverse=true);
 module pt_pt_cylinder (from=[1,1,0],to=[-1,0,-1], d = 0.1){
     // Create a cylinder from point to point
     $fa=$preview ? 6 : 1; // minimum angle fragment
@@ -627,7 +525,7 @@ module pt_pt_cylinder (from=[1,1,0],to=[-1,0,-1], d = 0.1){
         echo("MODULE PT_PT_CYLINDER; small length =",length);
     }
 }
-module pt_pt_belt (from=[10,10,10],to=[-10,0,10], d = 0.1,r_pulley=3,round=true){
+module pt_pt_belt (from=[10,10,10],to=[-10,0,10], d = 1,r_pulley=30,round=true){
     // Create belts from point to point
     $fa=$preview ? 6 : 1; // minimum ange fragment
     
@@ -684,6 +582,9 @@ module pt_pt_belt (from=[10,10,10],to=[-10,0,10], d = 0.1,r_pulley=3,round=true)
         echo("MODULE PT_PT_BELT; small length =",length);
     }
 }
+*color ("black") pt_pt_belt (round=false);
+*color ("grey") pt_pt_belt ([20,0,0],[-200,-100,0],round=true);
+
 module cross_belt(a=[0,0,0],b=[5,0,0],r=1, d = 0.1,right=true){
     // Create a Cross Belt cylinder from pulley a to pulley b
     // of radius r and wire diameter d
@@ -723,28 +624,29 @@ module balance_weight(l=3,r=1,t=.5,d_pin=0.25,d_grv=0.25){
             cylinder(4*t,d=d_pin,center=true);
     }
 }
-module servo_horn (l=25, d1=15.25, d2=7.5, t=7.4){
+module servo_horn (l=servo_horn_l, d1=servo_horn_d1, d2=servo_horn_d2, t=servo_horn_t){
     // Create servo horn on xy plane, spline center at 0,0,0
     // horn length l pointing along x axis
     // spline end dia d1, other end d2, thickness t, from z=0 up
     // used for BOOLEAN SUBTRACTION
-    $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.1; // minimum size of fragment (default is 2)
-    difference () {
-        union () {
-        translate([0,0,t/2])
-            cylinder(t,d=d1,center=true);
-        translate([l,0,t/2])
-            cylinder(t,d=d2,center=true);
-        translate([0,-d2/2,0])
-            cube([l,d2,t],center=false);
-        rotate([0,0,-90])
-            lug (r=d2/2,w=d1,h=l/2,t=t);
-        }
+    $fn=$preview ? 24 : 48; // minimum angle fragment
+    //difference () {
+        //union () {
+            translate([0,0,t/2])
+                cylinder(t,d=d1,center=true);
+            translate([l,0,t/2])
+                cylinder(t,d=d2,center=true);
+            translate([0,-d2/2,0])
+                cube([l,d2,t],center=false);
+            rotate([0,0,-90])
+                lug (r=d2/2,w=d1,h=l/2,t=t);
+        //}
         // subtract main axis cyl for visulization
-        cylinder (h=2,d=0.18,center=true);
-    }
+        //cylinder (h=2,d=0.18,center=true);
+    //}
 }
+servo_horn();
+
 module servo_body (vis=true){
     // Create servo body on xy plane, spline shaft center at 0,0,0
     // long body direction along -x axis
@@ -826,6 +728,12 @@ module Bearing_Flanged (t=2,flange_t=1,od=3,id=1,flange_od=4) {
     cylinder(h=t*3,d=id,center=true); // center hole
     }
 }
+*Bearing_Flanged (); // default
+
+*translate([15,0,0]) Bearing_Flanged (t=Qtr_bearing_t,flange_t=Qtr_bearing_flange_t,od=Qtr_bearing_od,id=hole_qtr_inch,flange_od=Qtr_bearing_flange_od);
+
+*translate([-10,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+
 module M5_RHS (length=10) {
     // Make a M5 Round Head Screw of length length
     // draw in inches (always scaled)
@@ -894,11 +802,13 @@ module P090S_pot (L=20,negative=false) {
             polygon([[0,0],[8.5,0],[9.5,.8],[10.5,0],[13,0],[13,-1],[0,-1],[0,0]]);
     }
 }
+*P090S_pot(L=20,negative=true);
+*translate([20,0,0]) P090S_pot(L=20,negative=false);
 
 module tube_barb (ID=4.763, OD=6.35) {
     // barb to connect two ends of tube into a loop
     // UNITS ARE METRIC
-    $fn=24;
+    $fn=48;
     barb ();
     mirror ([0,0,1]) barb(); 
     
@@ -907,6 +817,8 @@ module tube_barb (ID=4.763, OD=6.35) {
             polygon([[0,0],[0,1.5*ID],[ID/2,1.5*ID],[OD/2,1.25*ID],[OD/2,ID],[ID/2,ID],[ID/2,.2*ID],[OD/2,.2*ID],[OD/2,0],[0,0]]);
     }
 }
+*tube_barb();
+
 module above_plane(p1,p2,p3,s=100) {
         v1 = p2 - p1;
         v2 = p3 - p1;
@@ -921,6 +833,12 @@ module above_plane(p1,p2,p3,s=100) {
                 translate(cp) rotate(a=ang,v=axis) translate([0,0,-2*s]) cube(4*s,center=true);
         }
 }
+// minimum rotation that brings direction di to direction do
+module rotFromTo(di,do)
+  if( norm(di-do)==0 || norm(di)==0 || norm(do)==0 )
+    children();
+  else
+    mirror(do/norm(do)+di/norm(di)) mirror(di) children();
 
 module cubeOnThreePoints(p) {
   norml = (cross(p[0]-p[1],p[0]-p[2]));
@@ -937,11 +855,4 @@ module cubeOnThreePoints(p) {
   for(pi=p) translate(pi) cube(3,center=true);
 
 }
-
-// minimum rotation that brings direction di to direction do
-module rotFromTo(di,do)
-  if( norm(di-do)==0 || norm(di)==0 || norm(do)==0 )
-    children();
-  else
-    mirror(do/norm(do)+di/norm(di)) mirror(di) children();
-  
+*cubeOnThreePoints([[0,0,0] , [10,0,-20], [-30,20,10] ]); 

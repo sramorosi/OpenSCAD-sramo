@@ -51,11 +51,11 @@ use <force_lib.scad> // contains forces, springs, MS modules and functions
 use <Robot_Arm_Parts_lib.scad>
 
 // Check to calculate forces
-calc_forces = true;
+calc_forces = false;
 // Check to display assembly
 display_assembly = true;
 // Check to display reach path 
-display_reach = true; 
+display_reach = false; 
 // Number of position step in internal calculation
 steps = 60;
 // Maximum Motor Torque (gram-mm) 
@@ -158,7 +158,7 @@ if (calc_forces) {
 
     // The A spring helps the Joint A MOTOR
     // fill point array to moving end of spring
-    A_spr_pt_AB = [ for (a = [0 : steps-1]) [spr_dist_AB*cos(angles[a][0]),spr_dist_AB*sin(angles[a][0]),0] ];
+    //A_spr_pt_AB = [ for (a = [0 : steps-1]) [spr_dist_AB*cos(angles[a][0]),spr_dist_AB*sin(angles[a][0]),0] ];
     // spring_torque is in force_lib.scad
     
     // Spring Design 1: a point to point spring

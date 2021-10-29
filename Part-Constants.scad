@@ -18,36 +18,27 @@ M6_bearing_t=3.15;
 // round belt diameter throughout, if used
 //belt_d=4.826;   // 0.19 in = 4.826 mm
 
-// hole for 0.25 inch joint/bolt
-hole_qtr_inch=6.48;   // 0.255 inch = 6.477 mm
-// hole start diameter for number 6 screw
-hole_no6_screw = 2.4; // 0.095 inch = 2.413
-// hole for M3 (3 mm) joint/bolt
-hole_M3=3.1; 
+hole_qtr_inch=6.48;   // hole for 0.25 inch joint/bolt 0.255 inch = 6.477 mm
+hole_no6_screw = 2.4; // hole start diameter for number 6 screw 0.095 inch = 2.413
+hole_M3=3.1; // hole for M3 (3 mm) joint/bolt
 hole_M5=5.1;  
 hole_M6=6.1;
-// hole for servo bushing
-hole_servo_bushing=3.81;   // 0.15 inch = 3.81 mm
+hole_servo_bushing=3.81; // hole for servo bushing 0.15 inch = 3.81 mm
 
 // STANDARD 40MM X 20MM X 40MM SERVO DIMENSIONS
-// Servo Length for openings in parts
-svo_l = 40.66; 
-// Servo Width for openings in parts
-svo_w = 20.3;
-// Servo Depth from Horn interface to bottom of part
-svo_d = 42;
-// Servo dist from shaft to edge of body in length direction
-svo_shaft = 10.2;
-// Servo screw hole length between
-svo_screw_l = 49.5;
-// Servo screw hole width between
-svo_screw_w = 10;
-// Servo flange length
-svo_flange_l = 55;
-// Servo flange thickness
-svo_flange_t = 3;
-// Servo depth from Horn interface to top of flange
-svo_flange_d = 10;
+svo_l = 40.66; // Servo Length for openings in parts
+svo_w = 20.3; // Servo Width for openings in parts
+svo_d = 42; // Servo Depth from Horn interface to bottom of part
+svo_shaft = 10.2; // Servo dist from shaft to edge of body in length direction
+svo_screw_l = 49.5; // Servo screw hole length between
+svo_screw_w = 10; // Servo screw hole width between
+svo_flange_l = 55; // Servo flange length
+svo_flange_t = 3; // Servo flange thickness
+svo_flange_d = 10; // Servo depth from Horn interface to top of flange
+servo_horn_l=25;
+servo_horn_d1=15.25;
+servo_horn_d2=7.5;
+servo_horn_t=7.4;
 
 // Springs
 //  McMaster Carr 9271K619, torsion spring
