@@ -33,9 +33,9 @@ shoulder_y_A = 0; // A servo position
 shoulder_y_1 = 18;
 shoulder_y_2 = 72;
 //shoulder_y_3 = not used
-shoulder_y_B = 93; // B servo length
+shoulder_y_B = 95; // B servo length, was 93
 // distance of shoulder plate from zero
-shoulder_y_shift = 38;
+shoulder_y_shift = 45;  // was 38
 // shoulder plate size
 shoulder_w = 75;
 shoulder_l = shoulder_y_B-shoulder_svo_lug_t;

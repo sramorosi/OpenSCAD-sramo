@@ -16,9 +16,11 @@ clip_yz = true;
 clip_xy = false;
 // Draw Final shoulder
 
+gear_space_adjustment = 1; // mm
+
 if (display_assy) {
     difference () {
-        draw_assy(A_angle=90,B_angle=-20,C_angle=0,base_ang=0);
+        draw_assy(A_angle=90,B_angle=120,C_angle=0,base_ang=0);
         if (clip_yz) // x = xcp cut 
             translate ([0,-lenAB*2,-lenAB*2]) cube (lenAB*4,center=false);
         if (clip_xy) // z = 0 cut 
@@ -236,7 +238,7 @@ module B_drive_at_A_Pulley () {
             translate([0,0,-AB_boss_t/2]) 
                 rotate([0,0,-10]) 
                     rotate_extrude(angle=60,convexity = 10)
-                        translate([20, 0, 0]) 
+                        translate([25, 0, 0]) 
                             square([15,AB_boss_t],center=true);
 
             }
@@ -473,11 +475,11 @@ module base_assy() {
         cylinder(h=shoulder_t*2.,d=94,center=true); 
         
         // hole for small gear on servo
-        translate([(64+32)/2*(2.54/3.14159),0,0]) 
+        translate([(64+32)/2*(2.54/3.14159)-gear_space_adjustment,0,1]) 
             cylinder(h=shoulder_t*2.1,d=30,center=true);
         
         // the distance between gears is the teeth*pitch/pi
-        translate([(64+32)/2*(2.54/3.14159)+0.5,0,-3]) 
+        translate([(64+32)/2*(2.54/3.14159)-gear_space_adjustment,0,-3]) 
             rotate([0,0,180]) 
             servo_body(vis=false);  // shoulder servo
         
@@ -514,7 +516,7 @@ module base_and_shoulder_assy(base_ang=0,A_angle=0,B_angle=0){
             color ("red",.5) rotate([-90,-90,0])
                 translate([0,0,shoulder_y_A+shoulder_svo_lug_t/2]) {
                     servo_body();
-                    rotate([0,0,60-A_angle])
+                    rotate([0,0,B_angle-120])
                         servo_horn();
                 }
             // A Servo  (was B)
@@ -522,16 +524,18 @@ module base_and_shoulder_assy(base_ang=0,A_angle=0,B_angle=0){
                 translate([0,shoulder_y_B-svo_flange_d,0]) 
                 rotate([90,-90,0]) {
                     servo_body();
-                    rotate([0,0,B_angle-90])
+                    rotate([0,0,A_angle-90])
                         servo_horn();
                 }
         }
     // sholder big gear  64 tooth
     translate([0,-1.42*shoulder_z_top,0]) rotate([90,0,0]) 64T_32P_Actobotics();
     // the distance between gears is the teeth*pitch/pi
-    color ("red",.5) translate([-(64+32)/2*(2.54/3.14159)+0.5,base_z_top-2,0]) rotate([-90,0,0]) {
-        servo_body();  // shoulder servo
-        32T_32P_Actobotics();   // servo gear 32 tooth
+    color ("red",.5) 
+        translate([-(64+32)/2*(2.54/3.14159)+gear_space_adjustment,base_z_top-2,0])
+            rotate([-90,0,0]) {
+                servo_body();  // shoulder servo
+                32T_32P_Actobotics();   // servo gear 32 tooth
     }
         
     // Base
@@ -573,13 +577,13 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,base_ang=0) {
     // lower arm vector
     vecAB=[b[0]/lenAB,b[1]/lenAB,b[2]/lenAB];
     rotate([0,base_ang,0]) {
-        translate([0,0,12]) {     // fix the UGLYNESS of where is Y center   
+        translate([0,0,5]) {     // fix the UGLYNESS of where is Y center   
             // draw the upper and lower arms
             rotate([0,0,A_angle]) {
                 // Draw the AB link
                 translate ([0,0,-8]) final_AB_arm ();
                 
-                // Draw the BC link
+                // Draw the BC link and End
                 translate([lenAB,0,-13.5])
                     rotate([0,0,B_angle-A_angle]) BC_arm_and_End(C_angle);
             }
@@ -596,5 +600,8 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,base_ang=0) {
     }
     // Draw Base and Shoulder assembly adjust z translation as required
     rotate([0,180,0]) base_and_shoulder_assy(base_ang=base_ang,A_angle=A_angle,B_angle=B_angle);
+    
+    // A joint shaft
+    translate([0,0,-1]) cylinder(h=66,d=5.5,center=true);
 } 
 *draw_assy (A_angle=90,B_angle=-20,C_angle=40,base_ang=180);

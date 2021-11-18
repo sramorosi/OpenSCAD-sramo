@@ -645,7 +645,7 @@ module servo_horn (l=servo_horn_l, d1=servo_horn_d1, d2=servo_horn_d2, t=servo_h
         //cylinder (h=2,d=0.18,center=true);
     //}
 }
-servo_horn();
+*servo_horn();
 
 module servo_body (vis=true){
     // Create servo body on xy plane, spline shaft center at 0,0,0
@@ -679,6 +679,8 @@ module servo_body (vis=true){
         if (vis) cylinder (h=4*svo_d,d=4,center=true);
     }
 }
+*servo_body(vis=false);
+
 module servo_shim (l=61,w=25.4,t=2.54) {
     $fa=$preview ? 6 : 1; // minimum angle fragment
     flange_z = -9.65;
@@ -856,3 +858,44 @@ module cubeOnThreePoints(p) {
 
 }
 *cubeOnThreePoints([[0,0,0] , [10,0,-20], [-30,20,10] ]); 
+
+module ruler_ticks(end){
+    for(j=[1:end]) {
+        color("DeepSkyBlue")translate([j,0,0,])cube([.1,3,.03]);
+        color ("SpringGreen")translate([j-.5,0,0])cube([.1,2,.03]);
+    }
+    for(i=[0:10:end]){
+        color("Black")translate([i,0,0])cube([.2,4,.04]);
+        color("Black")linear_extrude(.02)translate([i,4,0])text(str(i),size
+= 2);
+    }
+}
+*ruler_ticks(100);
+
+module ruler(end){
+    color("DeepSkyBlue")
+        linear_extrude(0.03)
+            for(j=[1:end])
+                translate([j-0.05,0,])square([.1,3]);
+
+    color ("SpringGreen")
+        linear_extrude(0.03)
+            for(j=[1:end])
+                translate([j-.55,0,0])square([.1,2]);
+
+    color("Black") {
+        linear_extrude(0.04)
+            for(i=[0:10:end])
+                translate([i - 0.1,0])square([.2,4]);
+
+        linear_extrude(.02)
+            for(i=[0:10:end])
+                translate([i,4,0])text(str(i),size = 2);
+    }
+}
+*ruler(100);
+
+Vector=[for( i = [0:72*12.5]) [i*5,(cos(i*5)*31)+31+(20*100) ] ] ;  // your formula
+Poly=[for(L=[[[0,200]], Vector, [[72*12.5*5,200]]], a=L) a];  // add the end points
+*polygon(Poly);//echo(Poly) ; // verify the flat shape
+*rotate_extrude() rotate(90) polygon(Poly) ; // and there it is ?

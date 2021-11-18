@@ -29,10 +29,10 @@ hole_servo_bushing=3.81; // hole for servo bushing 0.15 inch = 3.81 mm
 svo_l = 40.66; // Servo Length for openings in parts
 svo_w = 20.3; // Servo Width for openings in parts
 svo_d = 42; // Servo Depth from Horn interface to bottom of part
-svo_shaft = 10.2; // Servo dist from shaft to edge of body in length direction
+svo_shaft = 10.6; // Servo dist from shaft to edge of body in length direction, was 10.2
 svo_screw_l = 49.5; // Servo screw hole length between
 svo_screw_w = 10; // Servo screw hole width between
-svo_flange_l = 55; // Servo flange length
+svo_flange_l = 56; // Servo flange length, was 55
 svo_flange_t = 3; // Servo flange thickness
 svo_flange_d = 10; // Servo depth from Horn interface to top of flange
 servo_horn_l=25;
