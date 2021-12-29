@@ -9,7 +9,7 @@ use <gears_involute.scad>
 include <SACC-26-Configuration.scad>
 
 // Draw the Robot Arm Assembly
-display_assy = true;
+display_assy = false;
 // Section cut at X = 0?
 clip_yz = true;
 // Section cut at Z = 0?
@@ -53,10 +53,12 @@ module AB_offset_link (length=50,w=15,offset=7,d_pin=5) {
         difference () {
             union() {
                 simple_link (l=L1,w=w,t=w,d=0,cored=w*.75); 
+                *simple_link (l=L1,w=w,t=w,d=0,cored=0); 
                 // add the servo horn pad
                 rotate([0,0,-90]) translate([0,widthAB*.25,widthAB-a_svo_boss/2])
                     rounded_cube(size=[widthAB,widthAB*1.5,a_svo_boss],r=widthAB/2,center=true);
             }
+    *translate([lenAB/2,0,w/2]) cube([lenAB*2,25.5,25.5],center=true);
             // remove the servo horn shape
             translate([0,0,widthAB-a_svo_boss/2-1]) servo_horn ();
             // remove a screw hole for the horn
@@ -113,6 +115,49 @@ module final_AB_arm () {
     }
 }
 *final_AB_arm();
+
+module final_7462_arm () {
+    $fn=$preview ? 64 : 128; // minimum angle fragment
+    // Adds operations to the link/arm
+
+    color("blue",1) difference () {
+        AB_offset_link (length=lenAB,w=widthAB,offset=widthAB/2.25,d_pin=pinSize,$fn=48);
+            
+        // remove the A hole and donut
+        cylinder(h=4*widthAB,d=M6_bearing_od,center=true);
+        
+        translate([0,0,widthAB/2])
+            filled_donut(t=widthAB*.64,d=widthAB*1.4,r=widthAB*.2);
+        
+        // remove the spring leg hole
+        translate([0,0,22]) rotate([0,180,90-A_Tspr_rot])
+            torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH,inverse=true);
+        
+        // remove the B hole and end donut
+        *translate([lenAB,0,widthAB/2]) {
+            cylinder(h=4*widthAB,d=pinSize,center=true);
+            filled_donut(t=widthAB*.75,d=widthAB*1.8,r=widthAB*.1);
+        }
+        
+        translate([lenAB,0,widthAB/2]) cube([lenAB,lenAB*2,widthAB*2],center=true);
+
+        //  BIG CUBES TO MAKE TWO PARTS, FOR PRINTING
+        split_offset=11;
+        // USE ONE OR THE OTHER
+        *translate([0,0,widthAB+split_offset]) cube([lenAB*4,lenAB*2,widthAB],center=true);
+        *translate([0,0,split_offset]) cube([lenAB*4,lenAB*2,widthAB],center=true);
+   }
+    *rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+   
+    *translate([0,0,wAB_inside]) rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+   
+    // torsion spring at A
+    *translate([0,0,22]) rotate([0,180,90-A_Tspr_rot]){
+        torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
+        torsion_spring_spacer();
+    }
+}
+*final_7462_arm();
 
 module BC_offset_link (length=50,w=15,offset=7,d_pin=5) {
     // Create a Link on xy plane along the X axis 
@@ -357,7 +402,7 @@ module shoulder_servo_lug() {
         translate([-(x_guss+t_guss/2),h_guss/2,0]) hole_pair (x = 0,y=h_guss/2,d=hole_no6_screw,h=20);
     }
 }
-*shoulder_servo_lug();
+shoulder_servo_lug();
 
 module shoulder_lug() {
     $fn=$preview ? 64 : 128; // minimum number of fragements
