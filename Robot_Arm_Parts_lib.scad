@@ -1,10 +1,12 @@
 // Robot Arm Parts Object Library
 //  Started on 4/6/2020 by SrAmo
-//  last modified July 22 2021 by SrAmo (used built in vector add/sub)
+//  last modified December 2021 by SrAmo
 use <force_lib.scad>
 use <Pulley-GT2_2.scad>
 
+
 include <Part-Constants.scad>
+include <SACC-26-Configuration.scad>
 
 function law_sines_angle (C=30,a=10,c_ang=120) = 
    asin((a/C)*sin(c_ang));
@@ -267,31 +269,32 @@ module fork (l_fork=2,d_fork=0.2) {
                 cube([d_fork,d_fork,l_fork],center=false);
     }
 }
-module servo_connection(len=100,t1=2,t2=38,r=18,lug_t=4.4,claw_servo_x=2,link_adjust=0) {
+module servo_connection(len=100,t1=2,t2=38) {
+    // Compliant Beam that connects Claw to Servo
+    
     module subtract_1 () { // profile of links to servo
-    linear_extrude(height = t2)
-    polygon(points=[[0,0],[-len/5,-poly_z/2],[-len/1.2,-poly_z],[-len*2,-poly_z],[-len*2,t2/2],[0,0]]);
+        linear_extrude(height = t2)
+        polygon(points=[[0,0],[-len/5,-poly_z/2],[-len/1.2,-poly_z],[-len*2,-poly_z],[-len*2,t2/2],[0,0]]);
     }  
     
-    poly_z = t2/2-lug_t/2;   
-    y_link = link_adjust+(claw_servo_x+r);
-    servo_lug_h = 20;
+    poly_z = t2/2;   
+    servo_lug_h = len/2.2; // Smooth transition to lug. manage the stress at the lug.
 
     difference () {
         union() {
             // Link to the servo
-            translate ([servo_lug_h-len,y_link,0]) rotate ([0,0,90])
+            translate ([servo_lug_h-len,0,0]) rotate ([0,0,90])
                 lug (r=1.5*hole_servo_bushing,w=t1,h=servo_lug_h,t=t2,d=hole_servo_bushing,$fn=32);
-            translate ([-len+hole_servo_bushing,y_link-t1/2,0]) cube([len-hole_servo_bushing,t1,t2]);
+            translate ([-len+hole_servo_bushing,-t1/2,0]) cube([len-hole_servo_bushing,t1,t2]);
         }
         // subtract lug features
-        translate ([0,link_adjust+t2/3,0]) rotate ([-90,0,0]) subtract_1();
-        translate ([0,link_adjust+t2,t2]) rotate ([90,0,0]) subtract_1();
+        translate ([0,-t2/2,0]) rotate ([-90,0,0]) subtract_1();
+        //translate ([0,link_adjust+t2,t2]) rotate ([90,0,0]) subtract_1();
     }
 }
-*servo_connection(len=50,t1=2,t2=38);
+*translate([0,0,50]) servo_connection(len=52,t1=claw_t,t2=claw_height);
 
-module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4) {
+module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15) {
     // U shaped claw with a pre angle
     //    t1 = general compliant thickness
     //    t2 = height of part
@@ -300,38 +303,29 @@ module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4)
     $fa=$preview ? 6 : 1; // minimum angle fragment
     $fs=0.05; // minimum size of fragment (default is 2)
     
-    // 
-    claw_servo_x=10; 
-    
-    poly_z = t2/2-lug_t/2;
+    poly_z = t2/2;
     module subtract_2 () { // triangle removal on end of claw
         linear_extrude(height = t2)
             polygon(points=[[-t2/3,0],[0,t2/3],[t2/3,0],[-t2/3,0]]);
     }
     
     module half_claw (link_adjust=0) {    
-        // The cylinder part of the claw
+        // The Half Cylinder part of the claw
         rotate([0,0,-90])
             translate([-r-t1,width/2-r,0])
             rotate([0,0,-90]) 
             rotate_extrude(angle=180+pre_angle,convexity = 20)
                 translate([r, 0, 0])
                     square([t1,t2],center=false); // on X,Z plane
+        
         // Everything else
-       // top of the U, flat cube
-       x9 = width/2-2*r;  // local x
-       //echo(x9=x9);
-       back_height = t2; // match claw interface
-       
-       // back plate
-       translate([0,r,0]) cube([x9,3.5*t1,back_height],center=false);
         // The long Finger and the link to the servo
         // Multiple transformations to the preload
-        y_link = link_adjust+(claw_servo_x+r);
+        y_link = link_adjust+r;
         translate([width/2-r,r+t1,0])
         rotate([0,0,pre_angle]) 
         translate ([r,0,0]) { // x=r
-            servo_connection(len=52,t1=t1,t2=t2,r=r,lug_t=lug_t,claw_servo_x=claw_servo_x,link_adjust=link_adjust);
+            translate([0,link_adjust+r,0]) servo_connection(len=52,t1=t1,t2=t2);
             
             // Long finger thicker section
             cube([2*t1,len/1.5-r,t2],center=false);
@@ -346,14 +340,20 @@ module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4)
         }
     } // end module half_claw
     
-    // DRAW THE CLAW HALVES
-    half_claw (link_adjust=20); // modify link location this side
-    mirror([1,0,0]) half_claw (link_adjust=5); 
+    // back plate
+    x9 = width-4*r;  // local x
+    back_height = t2; // match claw interface
+    translate([-x9/2,r-3*t1,0]) cube([x9,6*t1,back_height],center=false);
+    
     // Add a cube to connect the back plate
-    translate([-r/2,0,0]) cube([r,r,t2],center=false);
+    translate([-End_w/2,-r,0]) cube([End_w,2*r,t2],center=false);
+    
+    // DRAW THE CLAW HALVES
+    half_claw (link_adjust=24); // modify link location this side
+    mirror([1,0,0]) half_claw (link_adjust=9); 
 }
-*compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15,lug_t=4.4);
-*compliant_claw2 (len=claw_length,width=claw_width,t1=1.73,t2=claw_height,r=claw_radius,pre_angle=15);
+*compliant_claw2(len=150,width=120,t1=2,t2=25,r=18,pre_angle=15);
+*translate ([0,0,40]) compliant_claw2 (len=claw_length,width=claw_width,t1=claw_t,t2=claw_height,r=claw_radius,pre_angle=15);
 /*
 module compliant_claw(l=5,w=4.6,t1=0.075,t2=1) {
     // original version. U shaped.
@@ -897,5 +897,35 @@ module ruler(end){
 
 Vector=[for( i = [0:72*12.5]) [i*5,(cos(i*5)*31)+31+(20*100) ] ] ;  // your formula
 Poly=[for(L=[[[0,200]], Vector, [[72*12.5*5,200]]], a=L) a];  // add the end points
+*
 *polygon(Poly);//echo(Poly) ; // verify the flat shape
 *rotate_extrude() rotate(90) polygon(Poly) ; // and there it is ?
+
+module Power_Energy_Meter() {
+    // model of bayite DC 6.5-100V 0-100A LCD Digital Current Voltage Power Energy Meter
+    color("DarkGray") {
+        translate([0,0,-11.15]) cube([45,87,22.3],center=true);
+        translate([0,0,1]) cube([50,90,2],center=true);
+    }
+}
+Power_Energy_Meter();
+
+module Rocker_Switch () {
+    color ("DarkRed") {
+        translate([0,0,-10]) cube([10.5,29,20],center=true);
+        translate([0,0,1]) cube([13.7,30.7,2],center=true);
+    }
+}
+translate([40,0,0]) Rocker_Switch();
+
+module Current_Shunt () {
+    bolt_center = 86.55;
+    color ("DarkCyan") {
+        cube([15,105,2],center=true);
+        translate([0,bolt_center/2,0]) cylinder(h=20,d=5,center=true);
+        translate([0,-bolt_center/2,0]) cylinder(h=20,d=5,center=true);
+        
+    }
+}
+translate([60,0,0]) Current_Shunt();
+

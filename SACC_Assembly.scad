@@ -1,11 +1,12 @@
 // Robot Arm Assembly
 //  Started on 3/24/2020 by SrAmo
-//  last modified October 25 2021 by SrAmo
+//  last modified December 2021 by SrAmo
 
 use <force_lib.scad>
 use <Robot_Arm_Parts_lib.scad>
 use <Pulley-GT2_2.scad>
 use <gears_involute.scad>
+use <arduino.scad>
 include <SACC-26-Configuration.scad>
 
 // Draw the Robot Arm Assembly
@@ -325,8 +326,7 @@ module final_C_horn(){
     // Pulley at joint C
     // This is the arm end-effector interface
     // center is 0,0,0 on xy plane, length is +x
-    // The belt can be slipped over the pulley
-    // The interface is a standard width
+    $fn=$preview ? 64 : 128; // minimum number of fragements
 
     offx = 5;
     t_at_C=wBC_inside-2*Qtr_bearing_flange_t-offx; // thickness at C
@@ -345,48 +345,75 @@ module final_C_horn(){
         translate([0,0,-t_at_C/2-.01]) servo_horn();
         
         // remove End attach pin
-        translate ([End_pin_x,End_pin_y,0])
-            cylinder(2*t_at_C,d=hole_qtr_inch,center=true);
+        translate ([claw_radius*1.5,0,0])
+            hole_pair (x = 0,y=claw_height*0.7,d=hole_M3,h=100);
     }
-    //translate([0,0,-t_at_C/2+10]) rotate([180,0,0]) bearing_flng_qtr ();
-    //translate([0,0,t_at_C/2+offx/2]) bearing_flng_qtr ();
     module ear () {
         End_angle = atan2(End_pin_y,End_pin_x);
-        translate ([End_pin_x,End_pin_y,End_w/2+End_w/4]) 
-            cube([hole_qtr_inch*3,hole_qtr_inch*3,End_w/2],center=true);
-        translate ([0,-hole_qtr_inch*2,End_w/2]) 
+        translate ([0,-claw_height/2,End_w/2]) 
             rotate([0,0,End_angle])
-            cube([End_x,hole_qtr_inch*4,End_w/2],center=false);
+            cube([claw_radius*2,claw_height,End_w/2],center=false);
     }
 }
 *final_C_horn();
 
+module claw_servo_bracket() {
+    $fn=$preview ? 64 : 128; // minimum number of fragements
+    servo_plate_t = 8;
+    shim_t = 7;
+    servo_plate_l = 55;
+    back_plate_w = 12+claw_width - 4*claw_radius;
+    difference() {
+        // interface top
+        union() {
+            translate ([-servo_plate_l/2-svo_w+5,0,-back_plate_w/2+10]) {
+                cube([servo_plate_l,servo_plate_t,back_plate_w],center=false);
+                translate([0,-shim_t,0]) 
+                    cube([servo_plate_l/3.3,shim_t,back_plate_w],center=false);
+            }
+        }
+        // remove the servo interface
+        translate([0,servo_plate_t-svo_flange_d,0]) 
+            rotate([0,90,-90]) servo_body(vis=false,$fn=32);
+        
+        // remove the screw holes
+        translate ([-servo_plate_l/2-4,0,0]) rotate([90,0,0]) 
+            hole_pair (x = 0,y=claw_radius*1.7,d=hole_M3,h=100);
+        
+        translate([-38,0,0]) rotate([90,0,0]) cylinder(h=100,d=hole_M3,center=true);
+    }
+}
+*claw_servo_bracket();
+
 module final_claw(){
     // DRAW THE COMPLIANT CLAW
+    $fn=$preview ? 32 : 64; // minimum angle fragment
+
     servo_plate_t = 8;
     back_plate_w = claw_width - 4*claw_radius;
-    $fa=$preview ? 6 : 1; // minimum angle fragment
-    union () {
-        difference () {
-            union () { 
-                // interface center
-                translate ([End_pin_x,End_pin_y,0])
-                    cube([hole_qtr_inch*3,hole_qtr_inch*3,End_w],center=true);
-                // interface top
-                translate ([End_x+claw_radius,claw_height/2-servo_plate_t,-back_plate_w/2+4]) 
-                    cube([45,servo_plate_t,back_plate_w+12],center=false);
-            }
-            // remove attach pin
-            translate ([End_pin_x,End_pin_y,0])
-                cylinder(2*End_w,d=hole_qtr_inch,center=true,$fn=32);
-
-            // remove the servo interface
-            translate([claw_servo_x,claw_height/2-svo_flange_d,0]) rotate([0,90,-90]) servo_body(vis=false,$fn=32);
-                        
-        }
+    shim_t = 7;
+    difference () {
+        translate([claw_radius,-claw_height/2,0]) 
+            rotate([0,-90,-90])     
+                compliant_claw2 (len=claw_length,width=claw_width,t1=claw_t,t2=claw_height,r=claw_radius,pre_angle=15);
+        // remove attach pins (screw holes)
+        translate ([claw_radius/2,0,0])
+            hole_pair (x = 0,y=claw_height*0.7,d=hole_M3,h=100);
+        // remove the screw holes
+        translate ([2*claw_radius,0,0]) rotate([90,0,0]) 
+            hole_pair (x = 0,y=claw_radius*1.7,d=hole_M3,h=100);
+        translate([2*claw_radius-6,0,0]) rotate([90,0,0]) cylinder(h=100,d=hole_M3,center=true);
     }
-    translate([End_x,-claw_height/2,0]) rotate([0,-90,-90])     
-    compliant_claw2 (len=claw_length,width=claw_width,t1=claw_t,t2=claw_height,r=claw_radius,pre_angle=15);
+    
+    claw_servo_x = 2*claw_radius+32;
+    // Remove Servo Bracket for claw print
+    color("green") translate([claw_servo_x,claw_height/2+shim_t,0]) claw_servo_bracket();
+    
+    // Remove Servo for claw print
+    color ("red",.7) translate([claw_servo_x,svo_flange_d+shim_t,0]) 
+        rotate([0,90,-90]) servo_body();
+
+
 }
 *final_claw();
 *compliant_claw2 (len=claw_length,width=claw_width,t1=claw_t,t2=claw_height,r=claw_radius,pre_angle=15);
@@ -402,7 +429,7 @@ module shoulder_servo_lug() {
         translate([-(x_guss+t_guss/2),h_guss/2,0]) hole_pair (x = 0,y=h_guss/2,d=hole_no6_screw,h=20);
     }
 }
-shoulder_servo_lug();
+*shoulder_servo_lug();
 
 module shoulder_lug() {
     $fn=$preview ? 64 : 128; // minimum number of fragements
@@ -504,6 +531,38 @@ module shoulder_assy () {
 }
 *shoulder_assy ();
 
+module Electronics_Board () {
+    $fn=$preview ? 16 : 64; // minimum number of fragements
+    board_l = 180;
+    board_shift = 60;
+    y_w = (base_x-20)/2;
+    x_w = (board_l-20)/2;
+    difference() {
+        translate([board_shift,0,-4]) rounded_cube([board_l,base_x,4],r=10,center=true);
+        scale([1.01,1.01,1]) Power_Energy_Meter();
+        translate([50,-30,0]) rotate([0,0,90]) scale([1.01,1.01,1]) Rocker_Switch();
+        translate([90,30,-8]) rotate([0,0,90]) Current_Shunt();
+        
+        // subtract the 4 2X4 screw mounting holes
+        translate([x_w+board_shift,y_w,0]) cylinder(h=base_t*3,d=3,center=true);
+        translate([x_w+board_shift,-y_w,0]) cylinder(h=base_t*3,d=3,center=true);
+        translate([-x_w+board_shift,-y_w,0])cylinder(h=base_t*3,d=3,center=true);
+        translate([-x_w+board_shift,y_w,0]) cylinder(h=base_t*3,d=3,center=true);
+        
+        // arduino board holes (see arduino.scad)
+        translate([150,10,10]) rotate([180,0,-90]) holePlacement()
+            union() {
+                cylinder(d=4, h = 30, $fn=32);
+              };
+    }
+    //   Comment out these items when printing the electronics board
+    Power_Energy_Meter();
+    translate([50,-30,0]) rotate([0,0,90]) Rocker_Switch();
+    translate([90,30,-8]) rotate([0,0,90]) Current_Shunt();
+    translate([150,10,-8]) rotate([180,0,-90]) arduino(); //  end comment
+}
+*Electronics_Board();
+
 module base_assy() {
     $fn=$preview ? 32 : 72; // minimum angle fragment
     // location for the holes that screw the base to the wood
@@ -512,7 +571,7 @@ module base_assy() {
     
     difference() {
         union() {
-         rounded_cube(size=[base_x,base_y,base_t],r=hole_qtr_inch,center=true);
+         rounded_cube(size=[base_x,base_y,base_t],r=12,center=true);
             translate([base_x/2-15,0,-svo_flange_d/2]) 
             cube([svo_flange_l*1.2,svo_w*1.4,svo_flange_d+base_t],center=true);
         }
@@ -545,10 +604,13 @@ module base_assy() {
     
     // Representation of 2x4 wood
     l_wood = 400;
-    *color("brown") {
-        translate([-base_x/2,y_b+10,-base_t/2]) rotate([0,90,0]) cube([3.5*25.4,1.5*25.4,l_wood]);
-        translate([-base_x/2,-y_b-10-1.5*25.4,-base_t/2]) rotate([0,90,0]) cube([3.5*25.4,1.5*25.4,l_wood]);
+    color("Khaki") {
+        translate([-base_x/2,base_x/2-15,-base_t/2]) rotate([0,90,0]) cube([3.5*25.4,1.5*25.4,l_wood]);
+        translate([-base_x/2,-base_x/2+15-1.5*25.4,-base_t/2]) rotate([0,90,0]) cube([3.5*25.4,1.5*25.4,l_wood]);
     }
+    
+    // Representation of electronics board
+    translate([150,0,0]) Electronics_Board();
 }
 *base_assy();
 
@@ -590,10 +652,7 @@ module base_and_shoulder_assy(base_ang=0,A_angle=0,B_angle=0){
 
 module end_effector_assy() {
     color("SpringGreen") final_C_horn (); 
-    color("green") final_claw();
-    color ("gold",.5) 
-        translate([claw_servo_x,claw_height/2-svo_flange_d,0]) 
-            rotate([0,90,-90]) servo_body();
+    translate([claw_radius,0,0]) final_claw();
 }
 *end_effector_assy();
 
@@ -649,4 +708,4 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,base_ang=0) {
     // A joint shaft
     translate([0,0,-1]) cylinder(h=66,d=5.5,center=true);
 } 
-*draw_assy (A_angle=90,B_angle=-20,C_angle=40,base_ang=180);
+draw_assy (A_angle=90,B_angle=-20,C_angle=40,base_ang=180);

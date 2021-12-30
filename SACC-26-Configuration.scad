@@ -1,6 +1,6 @@
 // Robot Arm Configuration File
 // ALL UNITS ARE IN MM
-//  last modified October 29 2021 by SrAmo
+//  last modified December 2021 by SrAmo
 
 include <Part-Constants.scad>
 
@@ -75,15 +75,13 @@ End_x=50.8; // Horizontal distance from C joint to claw back plate, 2 inch = 50.
 End_pin_x = End_x - hole_qtr_inch*1.5; // Horizontal distance from C to pin
 End_pin_y=0; // Vertical distance from C joint to pin
 End_w = 10; // End effector interface width, mm
-// x location of servo relative to pin
-claw_servo_x=63 + End_pin_x; // 63 mm relative to claw back plate
 
 // COMPLIANT CLAW parameters
 claw_length = 150;
 claw_width = 120;
-claw_height = 38;  // (initially 1.5 inch) 1.5 inch = 38 mm
+claw_height = 25;  // (initially 1.5 inch) 1.5 inch = 38 mm
 claw_radius = 18;
-claw_t = 1.73;
+claw_t = 1.8;  // was 1.73
 
 // SPRINGS TO HELP JOINT A AND B, AND ARE OPTIONAL
 
