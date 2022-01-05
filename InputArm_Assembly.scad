@@ -1,10 +1,10 @@
 // Input Arm Assembly
 //  Design for Human Input Arm that drives Robot Arm
-//  last modified June 30 2021 by SrAmo
+//  last modified January 2022 by SrAmo
 include <InputArm-Configuration.scad>
 use <force_lib.scad>
 use <Robot_Arm_Parts_lib.scad>
-use <Pulley-GT2_2.scad>
+//use <Pulley-GT2_2.scad>
 
 // Draw the Input Arm Assembly
 display_assy = true;
@@ -14,18 +14,9 @@ display_all = true;
 clip_yz = false;
 // Section cut Assy at Z = 0?
 clip_xy = false;
-// Draw rotating platform
-display_platform = false;
-// Draw Final Base
-display_base = false;
-// Draw Final AB arm 
-display_AB_arm = false;
-// Draw Final BC arm 
-display_BC_arm = false;
-// Draw Final hand 
-display_hand= false;
-// Draw Final finger 
-display_finger= false;
+
+// number of fragments for display, ==> DISPLAY PERFORMANCE
+donut_fragments = 16; // recommend 16 for Preview,  48 for Render
 
 if (display_assy) {
     difference () {
@@ -37,12 +28,6 @@ if (display_assy) {
         }
     }
 
-if (display_AB_arm)  final_AB_arm(length=lenAB,offset=widthAB/2.1);
-if (display_BC_arm)  final_BC_arm(length=lenBC,offset=widthAB/2.1);
-if (display_platform) input_arm_base();
-if (display_base) turntable_base();
-if (display_hand)  final_hand();
-if (display_finger)  final_finger();
     
 module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
     // calculate b and c positions from angles
@@ -153,11 +138,11 @@ module single_offset_link (length=50,w=15,offset=7,d_pin=5,pot_short=false) {
                         P090S_pot(negative=true);
                 // donut holes on long end for wires
                 translate([length,0,pot_lug_t/2.5]) 
-                    rotate_extrude(convexity = 10, $fn = 48) {
+                    rotate_extrude(convexity = 10, $fn = donut_fragments) {
                         translate([widthAB/1.3, 0, 0]) 
-                            circle(d=wire_hole_dia*1.3, $fn = 48);
+                            circle(d=wire_hole_dia*1.3, $fn = donut_fragments);
                         translate([widthAB/1.8, 0, 0]) 
-                            circle(d=wire_hole_dia*1.3, $fn = 48);
+                            circle(d=wire_hole_dia*1.3, $fn = donut_fragments);
                     }
             } else { // potentiometer on long end, BC arm
                 // remove long wire hole
@@ -185,11 +170,11 @@ module single_offset_link (length=50,w=15,offset=7,d_pin=5,pot_short=false) {
                         P090S_pot(negative=true);
                 // donut holes on short end for wires
                 translate([0,-offset,pot_lug_t/2.5]) 
-                    rotate_extrude(convexity = 10, $fn = 48) {
+                    rotate_extrude(convexity = 10, $fn = donut_fragments) {
                         translate([widthAB/1.3, 0, 0]) 
-                            circle(d=wire_hole_dia*1.3, $fn = 48);
+                            circle(d=wire_hole_dia*1.3, $fn = donut_fragments);
                         translate([widthAB/1.8, 0, 0]) 
-                            circle(d=wire_hole_dia*1.3, $fn = 48);
+                            circle(d=wire_hole_dia*1.3, $fn = donut_fragments);
                     }
             }
     }
@@ -197,26 +182,26 @@ module single_offset_link (length=50,w=15,offset=7,d_pin=5,pot_short=false) {
 module final_AB_arm(length=10,offset=2){
     // Create a Link on xy plane along the X axis 
     // First joint is at [0,-offset], Second joint is at [length,0]
-    $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.01; // minimum size of fragment (default is 2)
+//    $fa=$preview ? 6 : 1; // minimum angle fragment
+//    $fs=0.01; // minimum size of fragment (default is 2)
     hook_ang=atan2(offset,length); // hook angle
     echo("AB",length=length,hook_ang=hook_ang,offset=offset);
     rotate([0,180,hook_ang]) 
         translate([0,offset,0])  
             //single_offset_link
-            single_offset_link(length=length,w=widthAB,offset=offset,d_pin=pot_shaft_dia,pot_short=true,$fn=48); 
+            single_offset_link(length=length,w=widthAB,offset=offset,d_pin=pot_shaft_dia,pot_short=true,$fn=donut_fragments); 
 }
 module final_BC_arm(length=10,offset=2){
     // Create a Link on xy plane along the X axis 
     // First joint is at [0,-offset], Second joint is at [length,0]
-    $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.01; // minimum size of fragment (default is 2)
+//    $fa=$preview ? 6 : 1; // minimum angle fragment
+//    $fs=0.01; // minimum size of fragment (default is 2)
     hook_ang=atan2(offset,length); // hook angle
     echo("BC",length=length,hook_ang=hook_ang,offset=offset);
     rotate([0,0,-hook_ang]) 
         translate([0,offset,0])  
             //single_offset_link 
-            single_offset_link(length=length,w=widthAB,offset=offset,d_pin=pot_shaft_dia,pot_short=false,$fn=48); 
+            single_offset_link(length=length,w=widthAB,offset=offset,d_pin=pot_shaft_dia,pot_short=false,$fn=donut_fragments); 
 }
 module finger_ring(length=20,height=10,inside_dia=16) {
    // Finger Ring
@@ -225,8 +210,8 @@ module finger_ring(length=20,height=10,inside_dia=16) {
 }
 module final_hand(length=14){
     // Claw that attaches to End Effector
-    $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.05; // minimum size of fragment (default is 2)
+//    $fa=$preview ? 6 : 1; // minimum angle fragment
+//    $fs=0.05; // minimum size of fragment (default is 2)
     difference () {
         union () {  
             // LUG
@@ -256,8 +241,8 @@ module final_hand(length=14){
         translate([0,0,-2*length+1])
            rotate([0,-90,0]) cylinder(h=armt,d=pot_shaft_dia,center=false); 
         // remove donut hole for wire
-        rotate([90,0,0]) rotate_extrude(convexity = 10, $fn = 48) 
-            translate([widthAB/1.8, pot_lug_t/2, 0]) circle(d=wire_hole_dia*1.8, $fn = 48);
+        rotate([90,0,0]) rotate_extrude(convexity = 10, $fn = donut_fragments) 
+            translate([widthAB/1.8, pot_lug_t/2, 0]) circle(d=wire_hole_dia*1.8, $fn = donut_fragments);
         } 
 }
 module final_finger() {
@@ -276,8 +261,8 @@ module final_finger() {
 }
 module input_arm_base () {
     // Base of the input arm
-    $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=$preview ? 0.05 : 0.03; // minimum size of fragment (default is 2)
+//    $fa=$preview ? 6 : 1; // minimum angle fragment
+//    $fs=$preview ? 0.05 : 0.03; // minimum size of fragment (default is 2)
 
     base_w = 60;
     base_l = 30;
@@ -323,8 +308,8 @@ module input_arm_base () {
 }
 module turntable_base () {
     // Base of the input arm
-    $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=$preview ? 0.05 : 0.03; // minimum size of fragment (default is 2)
+//    $fa=$preview ? 6 : 1; // minimum angle fragment
+//    $fs=$preview ? 0.05 : 0.03; // minimum size of fragment (default is 2)
 
     base_w = 60;
     base_l = 30;

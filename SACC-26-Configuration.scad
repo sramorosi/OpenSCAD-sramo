@@ -66,7 +66,9 @@ h_guss = 18; // height
 x_guss = 15; // offset from center
 
 // A-B arm width. The section is square.
-widthAB=center_t+2*wall_t+2*shoulder_svo_lug_t+4*Qtr_bearing_flange_t;   
+widthAB_old=center_t+2*wall_t+2*shoulder_svo_lug_t+4*Qtr_bearing_flange_t;   
+widthAB = 40;
+echo(widthAB=widthAB,widthAB_old=widthAB_old);
 widthBC=widthAB; // B-C arm width. The section is square.
 wAB_inside = widthAB - 2*wall_t; // AB Slot inside (calculated)
 wBC_inside = widthBC - 2*wall_t; // BC Slot inside (calculated)

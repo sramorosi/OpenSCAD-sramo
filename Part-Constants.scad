@@ -19,7 +19,7 @@ M6_bearing_t=3.15;
 //belt_d=4.826;   // 0.19 in = 4.826 mm
 
 hole_qtr_inch=6.48;   // hole for 0.25 inch joint/bolt 0.255 inch = 6.477 mm
-hole_no6_screw = 2.4; // hole start diameter for number 6 screw 0.095 inch = 2.413
+hole_no6_screw = 2.5; // hole start diameter for number 6 screw 0.095 inch = 2.413
 hole_M3=3.1; // hole for M3 (3 mm) joint/bolt
 hole_M5=5.1;  
 hole_M6=6.1;

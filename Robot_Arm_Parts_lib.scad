@@ -125,11 +125,13 @@ module simple_link (l=50,w=5,t=4,d=1,cored=2) {
         }     
         if (cored != 0) {
             translate([0,0,t/2]) rotate([0,90,0]) 
-                cylinder (h=3*l+2*w,d=cored,center=true);
+                cube([cored,cored,3*l],center=true);
+                //cylinder (h=3*l+2*w,d=cored,center=true);
         }     
     }
 }
 *simple_link();
+
 module dog_leg2 (d1=45,ang=45,d2=12.77,w=15,t=15) {
     // Create a Dog Leg part on the xy plane, along x axis
     // First length is d1, turn is ang, second length is d2
@@ -490,12 +492,18 @@ module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5,LH=t
     x_offset = OD/2 - wire_d/2;
     WD = (inverse != false) ? wire_d*1.25 :  wire_d;
     LL = (inverse != false) ? leg_len*1.25 :  leg_len;
-    translate([x_offset,turn_sign*LL/2,WD/2]) 
+    translate([x_offset,turn_sign*LL/2,0]) 
         rotate([90,0,0]) 
-            cylinder(h=LL,d=WD,center=true,$fn=16);
-    translate([x_offset,-1*turn_sign*LL/2,sp_len-WD/2]) 
+            hull() {
+                translate([0,WD/2,0]) cylinder(h=LL,d=WD,center=true,$fn=16);
+                translate([0,-WD/2,0]) cylinder(h=LL,d=WD,center=true,$fn=16);
+            }
+    translate([x_offset,-1*turn_sign*LL/2,sp_len]) 
         rotate([90,0,0]) 
-            cylinder(h=LL,d=WD,center=true,$fn=16);
+            hull() {
+                translate([0,WD/2,0]) cylinder(h=LL,d=WD,center=true,$fn=16);
+                translate([0,-WD/2,0]) cylinder(h=LL,d=WD,center=true,$fn=16);
+            }
 }
 *torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
 *translate([-30,0,0]) torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH, inverse=true);
@@ -624,14 +632,14 @@ module balance_weight(l=3,r=1,t=.5,d_pin=0.25,d_grv=0.25){
             cylinder(4*t,d=d_pin,center=true);
     }
 }
-module servo_horn (l=servo_horn_l, d1=servo_horn_d1, d2=servo_horn_d2, t=servo_horn_t){
+module servo_horn (l=servo_horn_l, d1=servo_horn_d1, d2=servo_horn_d2, t=servo_horn_t,vis=true){
     // Create servo horn on xy plane, spline center at 0,0,0
     // horn length l pointing along x axis
     // spline end dia d1, other end d2, thickness t, from z=0 up
-    // used for BOOLEAN SUBTRACTION
+    // used for BOOLEAN SUBTRACTION set vis = false
     $fn=$preview ? 24 : 48; // minimum angle fragment
-    //difference () {
-        //union () {
+    difference () {
+        union () {
             translate([0,0,t/2])
                 cylinder(t,d=d1,center=true);
             translate([l,0,t/2])
@@ -640,19 +648,22 @@ module servo_horn (l=servo_horn_l, d1=servo_horn_d1, d2=servo_horn_d2, t=servo_h
                 cube([l,d2,t],center=false);
             rotate([0,0,-90])
                 lug (r=d2/2,w=d1,h=l/2,t=t);
-        //}
+            if (!vis) {
+                translate([l*.85,0,t/2]) rotate([90,0,0]) cylinder(h=2*l,d=2.5,center=true);
+            }
+        }
         // subtract main axis cyl for visulization
-        //cylinder (h=2,d=0.18,center=true);
-    //}
+        if (vis) cylinder (h=4*t,d=2,center=true);
+    }
 }
-*servo_horn();
+servo_horn(vis=true);
 
 module servo_body (vis=true){
     // Create servo body on xy plane, spline shaft center at 0,0,0
     // long body direction along -x axis
     // body from z=0 down
-    // used for BOOLEAN SUBTRACTION
-    $fa=$preview ? 6 : 1; // minimum angle fragment
+    // used for BOOLEAN SUBTRACTION set vis = false
+    $fn=$preview ? 24 : 48; // minimum angle fragment
 
     difference () {
         union () {
@@ -893,7 +904,7 @@ module ruler(end){
                 translate([i,4,0])text(str(i),size = 2);
     }
 }
-*ruler(100);
+translate ([50,0,50]) rotate([0,90,0]) ruler(100);
 
 Vector=[for( i = [0:72*12.5]) [i*5,(cos(i*5)*31)+31+(20*100) ] ] ;  // your formula
 Poly=[for(L=[[[0,200]], Vector, [[72*12.5*5,200]]], a=L) a];  // add the end points
@@ -908,7 +919,7 @@ module Power_Energy_Meter() {
         translate([0,0,1]) cube([50,90,2],center=true);
     }
 }
-Power_Energy_Meter();
+*Power_Energy_Meter();
 
 module Rocker_Switch () {
     color ("DarkRed") {
@@ -916,7 +927,7 @@ module Rocker_Switch () {
         translate([0,0,1]) cube([13.7,30.7,2],center=true);
     }
 }
-translate([40,0,0]) Rocker_Switch();
+*translate([40,0,0]) Rocker_Switch();
 
 module Current_Shunt () {
     bolt_center = 86.55;
@@ -927,5 +938,5 @@ module Current_Shunt () {
         
     }
 }
-translate([60,0,0]) Current_Shunt();
+*translate([60,0,0]) Current_Shunt();
 
