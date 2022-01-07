@@ -12,20 +12,25 @@ include <SACC-26-Configuration.scad>
 // Draw the Robot Arm Assembly
 display_assy = true;
 // Section cut at X = 0?
-clip_yz = true;
+clip_yz = false;
 // Section cut at Z = 0?
-clip_xy = false;
+clip_xy = true;
 // Draw Final shoulder
 
-gear_space_adjustment = 1; // mm
+gear_space_adjustment = 1; // mm, used in base
+B_Horn_Zero_Angle = 30; // DEG AFT from Vertical
 
 if (display_assy) {
     difference () {
-        draw_assy(A_angle=90,B_angle=90,C_angle=0,base_ang=0);
+        // B_angle range = -40 to 160
+        draw_assy(A_angle=110,B_angle=-40,C_angle=-50,base_ang=0);
         if (clip_yz) { // x = xcp cut 
             translate ([0,-lenAB*4,-lenAB*4]) cube (lenAB*8,center=false);
         }
         if (clip_xy) // z = 0 cut 
+            // z = 38 mm is through B horn
+            // z = 10 mm is through B Spring Inside leg
+            // z = 0 mm shows how the AB and BC arms mesh
             translate ([-lenAB*4,-lenAB*4,0]) cube (lenAB*8,center=false);
     }
     if (clip_yz) { // x = xcp cut 
@@ -280,9 +285,8 @@ module B_Drive_at_B_Pulley () {
        hex (size=22.94,l=AB_pulley_t+.5);
     }
 }
-
-module B_drive_at_A_Pulley () {
-    // This pulley is on the outside of the AB arm at A
+module BA_Pulley (partA=true) {
+    // This pulley is on the outside of the AB arm at A    
     // CREATE TWO .STL PARTS BY DISABLING * PART A OR B
     $fn=$preview ? 64 : 128; // minimum angle fragment
     
@@ -290,54 +294,57 @@ module B_drive_at_A_Pulley () {
     
     difference () {
         union () {
-            // PART A
-            pulley_gt2_2(teeth=AB_pulley_teeth,pulley_t_ht=AB_pulley_t ,motor_shaft=hole_qtr_inch);
-            translate([0,0,13]) 
-                cylinder(h=6,d=pulley_OD,center=true); // big boss A side
-            
-            // PART B
-            translate([0,0,-3]) 
-                cylinder(h=6,d=pulley_OD,center=true); // big boss B side
-            translate([0,0,-AB_boss_t/2]) 
-                rotate([0,0,-10]) 
-                    rotate_extrude(angle=60,convexity = 10)
-                        translate([25, 0, 0]) 
-                            square([15,AB_boss_t],center=true);
-
+            // PART A, side with the pulley
+            if (partA) { 
+                pulley_gt2_2(teeth=AB_pulley_teeth,pulley_t_ht=AB_pulley_t ,motor_shaft=hole_qtr_inch);
+                translate([0,0,13]) {
+                    difference(){
+                        cylinder(h=6,d=pulley_OD,center=true); // big boss A side
+                        // Positive B rotation side
+                        rotate([0,0,-16]) translate([-30,-40,-10]) cube([40,40,20],center=false);
+                        // Negative B rotation side
+                        rotate([0,0,-40]) translate([-48,-11,-10]) cube([40,40,20],center=false);
+                    }
+                    translate([0,0,2]) cylinder(h=2,d=pulley_OD/1.5,center=true); // big boss A side
+                }
+            } else {
+                // PART B, side with the servo horn block
+                translate([0,0,-3]) 
+                    cylinder(h=6,d=pulley_OD,center=true); // big boss B side
+                translate([0,0,-AB_boss_t/2]) 
+                    rotate([0,0,-B_Horn_Zero_Angle]) {
+                        translate([25,0,0]) cube([15,16,20],center=true);
+                    }
+                }
             }
         // remove the servo horn shape and screw hole for holding screw
-        rotate([0,0,20]) translate([0,0,-AB_boss_t-1]) {
+        rotate([0,0,-B_Horn_Zero_Angle]) translate([0,0,-AB_boss_t-1]) {
             servo_horn(vis=false);
-            //rotate([90,0,0]) 
-            //    translate([servo_horn_l*.85,servo_horn_t/2,0]) 
-            //        cylinder(h=100,d=3,center=true);
         }
-        // remove the spring
-        translate([0,0,-3]) rotate([0,0,-90+45]) // ADJUSTMENT ANGLE
+        // remove the spring, DONT INCLUDE WITH PART A
+        if (!partA) translate([0,0,-2]) rotate([0,0,B_Horn_Zero_Angle-90]) // ADJUSTMENT ANGLE
             torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd*1.05,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH,inverse=true);
-        translate([-30,-50,10]) cube([40,40,20],center=false);
-        translate([-50,-11,10]) cube([40,40,20],center=false);
-        translate([0,0,11.5]) cube([21,21,3],center=true);
         // remove the A hole!
         cylinder(h=10*AB_boss_t,d=M6_bearing_od,center=true);
+        // remove the SPRING BORE
+        translate([0,0,4.5]) cylinder(h=9271K619_t*1.22,d=9271K619_OD,center=true);
         // remove the screw holes that hold the two parts together
-        rotate([0,0,70]) translate([16,0,-4]) Cbore_Screw_Hole(d=3,h=21,cb_d=7,cb_h=2);
-        rotate([0,0,160]) translate([16,0,-4]) Cbore_Screw_Hole(d=3,h=21,cb_d=7,cb_h=2);
-        rotate([0,0,250]) translate([16,0,-4]) Cbore_Screw_Hole(d=3,h=21,cb_d=7,cb_h=2);
-        rotate([0,0,330]) translate([16,0,-4]) Cbore_Screw_Hole(d=3,h=21,cb_d=7,cb_h=2);
-
-        // remove the outside bearing flange cylinder
-        *translate([0,0,-AB_pulley_t])
-            cylinder(h=AB_pulley_t,d=Qtr_bearing_flange_od+.5,center=false);
+        translate([0,0,-4.1]) rotate([0,0,10])
+            Rotation_Pattern(number=4,radius=16)  
+                Cbore_Screw_Hole(d=2.8,h=17,cb_d=7,cb_h=2);
     }
-    //  don't render when creating .stl files
+}
+*BA_Pulley(partA=true);
+*translate([0,0,-10]) BA_Pulley(partA=false);
+
+module B_drive_at_A_Pulley () {
+    // This pulley is on the outside of the AB arm at A
+    BA_Pulley(partA=true);
+    BA_Pulley(partA=false);
+    // Bearings
    translate([0,0,-6]) rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
    translate([0,0,AB_pulley_t+6]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
-    translate([0,0,-3]) rotate([0,0,-90+45]) {
-        color("blue") torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
-        color("red") torsion_spring_spacer();
-    }
-    // // end don't render
+    //
 }
 *B_drive_at_A_Pulley ();
 
@@ -659,7 +666,7 @@ module base_and_shoulder_assy(base_ang=0,A_angle=0,B_angle=0){
             color ("red",.5) rotate([-90,-90,0])
                 translate([0,0,shoulder_y_A+shoulder_svo_lug_t/2]) {
                     servo_body();
-                    rotate([0,0,B_angle-120])
+                    rotate([0,0,-B_angle+90-B_Horn_Zero_Angle])
                         servo_horn(vis=true);
                 }
             // A Servo  (was B)
@@ -688,7 +695,7 @@ module base_and_shoulder_assy(base_ang=0,A_angle=0,B_angle=0){
 
 module end_effector_assy() {
     color("SpringGreen") final_C_horn (); 
-    translate([claw_radius,0,0]) final_claw();
+    rotate([180,0,0]) translate([claw_radius,0,0]) final_claw();
 }
 *end_effector_assy();
 
@@ -734,8 +741,12 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,base_ang=0) {
             
             // Draw the B drive pulley at A
             color("navy",0.5)  
-                rotate([0,0,(B_angle-45)]) 
+                rotate([0,0,(B_angle)]) 
                     translate([0,0,16]) rotate([180,0,0]) B_drive_at_A_Pulley ();
+            translate([0,0,5]) rotate([0,0,180])
+        color("blue") torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
+        color("red") torsion_spring_spacer();
+
                     
             // B drive belt (displayed with shoulder assembly)
             belt_z = 11;

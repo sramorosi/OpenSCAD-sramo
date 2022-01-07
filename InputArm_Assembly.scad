@@ -7,9 +7,7 @@ use <Robot_Arm_Parts_lib.scad>
 //use <Pulley-GT2_2.scad>
 
 // Draw the Input Arm Assembly
-display_assy = true;
-// Draw the extra?? stuff
-display_all = true;
+display_assy = false;
 // Section cut Assy at X = 0?
 clip_yz = false;
 // Section cut Assy at Z = 0?
@@ -20,54 +18,14 @@ donut_fragments = 16; // recommend 16 for Preview,  48 for Render
 
 if (display_assy) {
     difference () {
-        draw_assy(120,60,0,full=display_all);
+        draw_assy(120,60,0,full=true);
         if (clip_yz) // x = xcp cut 
             translate ([-200,-100,-100]) cube (200,center=false);
         if (clip_xy) // z = 0 cut 
             translate ([-100,-100,-200]) cube (200,center=false);
         }
     }
-
     
-module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
-    // calculate b and c positions from angles
-    b=[lenAB*cos(A_angle),lenAB*sin(A_angle),0];  // B location
-    c = [(cos(A_angle)*lenAB+cos(B_angle)*lenBC),(sin(A_angle)*lenAB+sin(B_angle)*lenBC),-pot_lug_t-2];
-    // lower arm vector
-    vecAB=[b[0]/lenAB,b[1]/lenAB,b[2]/lenAB];
-    
-    link_offset=widthAB/2.1;
-    // draw the upper and lower arms
-    rotate([0,0,A_angle]) {
-        // Draw the AB link
-        color("plum",1) 
-            translate ([lenAB,0,0])
-                final_AB_arm(length=lenAB,offset=widthAB/2.1);
-        // Draw the BC link
-        
-            translate([lenAB,0,0]) 
-                rotate([0,0,B_angle-A_angle]) {
-                    color("lightblue",1) final_BC_arm(length=lenBC,offset=widthAB/2.1);
-                    translate([0,0,-widthAB/2-1])
-                        rotate([0,0,52])
-                            color("red",1) P090S_pot(negative=false);
-
-                }
-    }
-    // Draw the end effector
-    translate([c[0],c[1],c[2]]) 
-        rotate ([0,0,C_angle]) end_effector_assy();
-
-    // BASE    
-    color("green") translate([0,0,-pot_lug_t/2]) 
-        rotate([-90,180,0]) input_arm_base();
-    color("blue") translate([0,0,16]) 
-        rotate([-90,180,0]) turntable_base();
-    translate([0,0,-widthAB/2-1])
-        rotate([0,0,180])
-            color("red",1) P090S_pot(negative=false);
-
-} 
 module end_effector_assy() {
     translate([0,0,armt/2]) rotate([-90,0,90]) final_hand();
     translate([39,-4,10]) 
@@ -268,7 +226,7 @@ module input_arm_base () {
     base_l = 30;
     base_t = 3;
     base_z_top = 20;
-    base_x_shift = 14;
+    base_x_shift = 14; // was 14
     base_lug_y_shift = 4;
     
     // parameters for the 4 attach bolts
@@ -306,17 +264,28 @@ module input_arm_base () {
                 cylinder(h=base_t*3,d=4,center=true);
     }
 }
+*input_arm_base ();
+
+module knob () {
+    $fn=$preview ? 16 : 96; // minimum angle fragment
+    difference () {
+        translate([0,0,12]) cylinder(h=6,d=20);
+        translate([0,0,3]) P090S_pot(negative=true);
+    }
+}
+
 module turntable_base () {
     // Base of the input arm
-//    $fa=$preview ? 6 : 1; // minimum angle fragment
-//    $fs=$preview ? 0.05 : 0.03; // minimum size of fragment (default is 2)
+    $fn=$preview ? 16 : 48; // minimum angle fragment
 
-    base_w = 60;
+    base_w = 40;
     base_l = 30;
     base_t = 3;
-    base_z_top = 20;
-    base_x_shift = 14;
+    base_z_top = 15;
+    base_x_shift = 0;
     base_lug_y_shift = 4;
+    
+    blob_h = 18;
     
     // parameters for the 4 attach bolts
     x_b = base_w/2-5;
@@ -324,20 +293,21 @@ module turntable_base () {
 
     difference () {
         union () {
-            translate([base_x_shift,0,-base_z_top- base_t/2])
+            rotate([90,0,0]) translate([base_x_shift,0,-base_z_top- base_t/2])
                 rounded_cube(size=[base_w,base_l,base_t],r=2,center=true);
-            translate([0,0,-9]) cylinder(h=widthAB*1.5,d=widthAB,center=true);
-            translate([0,widthAB/2,-10]) // lug support
-                cube([widthAB,widthAB,24],center=true);
+            cylinder(h=blob_h,d=widthAB,center=true);
+            translate([0,widthAB/2,0]) // lug support
+                cube([widthAB,widthAB,blob_h],center=true);
         }
         // clevis remove
-        translate([0,0,-5])
+        *translate([0,0,-5])
             cube([1.4*widthAB,1.3*widthAB,pot_lug_t+clevis_gap],center=true); 
         // remove the potentiometer interfaces
-        cylinder(h=widthAB*3,d=pot_shaft_dia,center=true); 
-        translate([0,0,-15]) 
-            rotate([0,0,0]) P090S_pot(negative=true);
+        //cylinder(h=widthAB*3,d=pot_shaft_dia,center=true); 
+        translate([0,0,3]) P090S_pot(negative=true);
+        
         // subtract the 4 base mounting bolt holes
+        rotate([90,0,0]) {
         translate([x_b+base_x_shift,y_b,-base_z_top])
                 cylinder(h=base_t*3,d=4,center=true);
         translate([x_b+base_x_shift,-y_b,-base_z_top])
@@ -346,5 +316,48 @@ module turntable_base () {
                 cylinder(h=base_t*3,d=4,center=true);
         translate([-x_b+base_x_shift,y_b,-base_z_top])
                 cylinder(h=base_t*3,d=4,center=true);
+        }
     }
 }
+turntable_base();
+color("red",1) translate([0,0,3]) P090S_pot(negative=false);
+color("blue") knob();
+
+module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
+    // calculate b and c positions from angles
+    b=[lenAB*cos(A_angle),lenAB*sin(A_angle),0];  // B location
+    c = [(cos(A_angle)*lenAB+cos(B_angle)*lenBC),(sin(A_angle)*lenAB+sin(B_angle)*lenBC),-pot_lug_t-2];
+    // lower arm vector
+    vecAB=[b[0]/lenAB,b[1]/lenAB,b[2]/lenAB];
+    
+    link_offset=widthAB/2.1;
+    // draw the upper and lower arms
+    rotate([0,0,A_angle]) {
+        // Draw the AB link
+        color("plum",1) 
+            translate ([lenAB,0,0])
+                final_AB_arm(length=lenAB,offset=widthAB/2.1);
+        // Draw the BC link
+        
+            translate([lenAB,0,0]) 
+                rotate([0,0,B_angle-A_angle]) {
+                    color("lightblue",1) final_BC_arm(length=lenBC,offset=widthAB/2.1);
+                    translate([0,0,-widthAB/2-1])
+                        rotate([0,0,52])
+                            color("red",1) P090S_pot(negative=false);
+
+                }
+    }
+    // Draw the end effector
+    translate([c[0],c[1],c[2]]) 
+        rotate ([0,0,C_angle]) end_effector_assy();
+
+    // BASE    
+    color("green") translate([0,0,-pot_lug_t/2]) 
+        rotate([-90,180,0]) input_arm_base();
+    color("blue") translate([0,0,16]) 
+        rotate([-90,180,0]) turntable_base();
+    translate([0,0,-widthAB/2-1])
+        rotate([0,0,180])
+            color("red",1) P090S_pot(negative=false);
+} 

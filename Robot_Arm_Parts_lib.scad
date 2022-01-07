@@ -24,10 +24,12 @@ module hole_pair (x = 50,y=10,d=hole_M3,h=100) {
 }
 module Cbore_Screw_Hole(d=3,h=21,cb_d=7,cb_h=2) {
     // Hole for a screw with counter bore, to hid the head
-    $fn=$preview ? 8 : 16; // minimum angle fragment
-    translate([0,0,20/2])cylinder(h=h,d=d,center=true);
-    translate([0,0,-1.1]) cylinder(h=cb_h,d=cb_d,center=true);
+    $fn=$preview ? 16 : 32; // minimum angle fragment
+    translate([0,0,h/2-0.1])cylinder(h=h,d=d,center=true);
+    translate([0,0,-cb_h/2]) cylinder(h=cb_h,d=cb_d,center=true);
 }
+Cbore_Screw_Hole(d=3,h=16,cb_d=7,cb_h=2);
+
 module filled_donut(t=10,d=50, r = 2) {
     // t = donut thickness,   d = donut diameter, r = fillet radius
     // Fillet radius must be less than d/4.
@@ -495,14 +497,14 @@ module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5,LH=t
     translate([x_offset,turn_sign*LL/2,0]) 
         rotate([90,0,0]) 
             hull() {
-                translate([0,WD/2,0]) cylinder(h=LL,d=WD,center=true,$fn=16);
-                translate([0,-WD/2,0]) cylinder(h=LL,d=WD,center=true,$fn=16);
+                if (inverse) translate([0,WD/2,0]) cylinder(h=LL,d=WD,center=true,$fn=16);
+                cylinder(h=LL,d=WD,center=true,$fn=16);
             }
     translate([x_offset,-1*turn_sign*LL/2,sp_len]) 
         rotate([90,0,0]) 
             hull() {
-                translate([0,WD/2,0]) cylinder(h=LL,d=WD,center=true,$fn=16);
-                translate([0,-WD/2,0]) cylinder(h=LL,d=WD,center=true,$fn=16);
+                cylinder(h=LL,d=WD,center=true,$fn=16);
+                if(inverse) translate([0,-WD/2,0]) cylinder(h=LL,d=WD,center=true,$fn=16);
             }
 }
 *torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
@@ -649,14 +651,14 @@ module servo_horn (l=servo_horn_l, d1=servo_horn_d1, d2=servo_horn_d2, t=servo_h
             rotate([0,0,-90])
                 lug (r=d2/2,w=d1,h=l/2,t=t);
             if (!vis) {
-                translate([l*.85,0,t/2]) rotate([90,0,0]) cylinder(h=2*l,d=2.5,center=true);
+                translate([l*.9,0,t/2]) rotate([90,0,0]) cylinder(h=2*l,d=2.5,center=true);
             }
         }
         // subtract main axis cyl for visulization
         if (vis) cylinder (h=4*t,d=2,center=true);
     }
 }
-servo_horn(vis=true);
+*servo_horn(vis=false);
 
 module servo_body (vis=true){
     // Create servo body on xy plane, spline shaft center at 0,0,0
@@ -940,3 +942,14 @@ module Current_Shunt () {
 }
 *translate([60,0,0]) Current_Shunt();
 
+//This is used for rotational patterns
+//child elements will be centered on 
+module Rotation_Pattern(number=3,radius=20,total_angle=360) {
+  ang_inc = total_angle/number;
+  echo(ang_inc=ang_inc);
+  for(i = [0 : number-1 ] ) {
+    rotate([0,0,i*ang_inc]) translate([radius,0,0])
+      children(0);
+  }
+}
+Rotation_Pattern(6,30) cylinder(h=10,d=3,center=true);

@@ -12,7 +12,7 @@ Arm lengths are the center to center distance.
 An 8" ctc is about 9.5" total length. This fits in x bed of Prusa i3.
 An 9" ctc is about 10.5" total length. This fits rotated 40 deg on bed of Prusa i3.
 */
-lenAB=240; // length of A-B arm, color = plum, mm
+lenAB=200; // length of A-B arm, color = plum, mm
 lenBC=240; // length of B-C arm, color = blue, mm
 wall_t=4;  // Arm wall thickness throughout
 pinSize = hole_M6; // Joint/Pin size throughout
