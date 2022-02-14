@@ -28,7 +28,7 @@ module Cbore_Screw_Hole(d=3,h=21,cb_d=7,cb_h=2) {
     translate([0,0,h/2-0.1])cylinder(h=h,d=d,center=true);
     translate([0,0,-cb_h/2]) cylinder(h=cb_h,d=cb_d,center=true);
 }
-Cbore_Screw_Hole(d=3,h=16,cb_d=7,cb_h=2);
+*Cbore_Screw_Hole(d=3,h=16,cb_d=7,cb_h=2);
 
 module filled_donut(t=10,d=50, r = 2) {
     // t = donut thickness,   d = donut diameter, r = fillet radius
@@ -427,10 +427,10 @@ module pulley_groove(r=2,d_grv=0.25,round=true){
             }
         }
 }
-module spacer(d=20,t=2,d_pin=10){
-    // Create spacer (washer) on xy plane at 0,0,0 of radius r
+module washer(d=20,t=2,d_pin=10){
+    // model washer on xy plane at 0,0,0 of radius r
     // t is thickness (centered about z=0)
-    $fa=$preview ? 6 : 1; // minimum angle fragment
+    //$fa=$preview ? 6 : 1; // minimum angle fragment
 
     difference(){
         cylinder(t,d=d,center=true);  // outside
@@ -439,6 +439,8 @@ module spacer(d=20,t=2,d_pin=10){
         cylinder(2*t,d=d_pin,center=true);
         };
 }
+washer($fn=50);
+
 module tension_spring(from=[10,0,0],to=[20,30,20],wire_dia=0.5,od=2,coils=10,ends=true){
     // Create a tenstion spring
     // LINEAR EXTRUDE DOES NOT PRODUCE TRUE COIL
@@ -770,38 +772,41 @@ module hex (size=0.5,l=1) {
     linear_extrude(height=l,convexity=10) 
         polygon( points=[[x,y1],[0,y2],[-x,y1],[-x,-y1],[0,-y2],[x,-y1],[x,y1]] );
 }
-module P090S_pot (L=20,negative=false) {
+module P090S_pot (L=13.1,negative=false) {
     // units are in metric
     // negative means this will be used as a difference
+    // L = length of the shaft above the body
     
     // body
-    if (!negative) cube([10,12,5.1],center=true);
+    zbody = 5.1;
+    zb = zbody+10;
+    if (!negative) translate([0,0,-zbody/2]) cube([10,12,zbody],center=true);
     if (negative) {
-        translate([0,0,-5]) cube([10,17,15.1],center=true);
-        cylinder(h=7,d=7.2,center=true,$fn=48); // ring around the shaft
+        translate([0,0,-zb/2]) cube([10,17,zb],center=true);
+        cylinder(h=2,d=7.2,center=true,$fn=48); // ring around the shaft
         
         // two bumps around the shaft
-        translate([2.7,-3.8,0]) cylinder(h=7,d=2.5,center=true,$fn=24);
-        translate([-2.7,3.8,0]) cylinder(h=7,d=2.5,center=true,$fn=24);
+        translate([2.7,-3.8,0]) cylinder(h=2,d=2.5,center=true,$fn=24);
+        translate([-2.7,3.8,0]) cylinder(h=2,d=2.5,center=true,$fn=24);
         
         // barb slots for wire connector
-        translate([1.6,8.4,-5-7.9]) cube([1.22,1,15.1],center=false);
-        translate([1.6,8.4,-8]) cube([1.5,1,10],center=false);
-        translate([-1.22-1.6,8.4,-5-7.9]) cube([1.22,1,15.1],center=false);
-        translate([-1.22-1.9,8.4,-8]) cube([1.5,1,10],center=false);
+        translate([1.6,8.4,-zb]) cube([1.22,1,zb],center=false);
+        translate([1.6,8.4,-10]) cube([1.5,1,10],center=false);
+        translate([-1.22-1.6,8.4,-zb]) cube([1.22,1,zb],center=false);
+        translate([-1.22-1.9,8.4,-10]) cube([1.5,1,10],center=false);
 
     }
     // shaft F-Type
-    translate([0,0,L/2-4.3]) difference () {
-        cylinder(h=L,d=6.2,center=true,$fn=48);
-        translate ([-5,1.45,3]) cube(10); // key
-        // note: the T term should be a function of L
+    difference () {
+        translate([0,0,L/2]) cylinder(h=L,d=6.2,center=true,$fn=48);
+        translate ([-5,1.45,5]) cube(L,center=false); // key
     }
     // pins (3)
-    lenPin=3+1.7+2.55;
-    translate([0,7,-lenPin]) elect_pin();
-    translate([-2.5,7,-lenPin]) elect_pin();
-    translate([2.5,7,-lenPin]) elect_pin();
+    lenPin=7;
+    zpin = -4-lenPin;
+    translate([0,7,zpin]) elect_pin();
+    translate([-2.5,7,zpin]) elect_pin();
+    translate([2.5,7,zpin]) elect_pin();
     // clip
     clip();
     mirror([1,0,0]) clip();
@@ -809,16 +814,16 @@ module P090S_pot (L=20,negative=false) {
     module elect_pin() {
         // 1 mm diamater electric pin
         cylinder(h=lenPin,r=.5,$fn=8);
-        translate([0,0,7]) rotate([90,0,0]) cylinder(h=7,r=.5,$fn=8);
+        translate([0,0,lenPin]) rotate([90,0,0]) cylinder(h=lenPin,r=.5,$fn=8);
     }
     module clip() {
-        translate([4.9,0,2.5]) rotate([90,90,0])
+        translate([4.9,0,0]) rotate([90,90,0])
         linear_extrude(3,center=true)
-            polygon([[0,0],[8.5,0],[9.5,.8],[10.5,0],[13,0],[13,-1],[0,-1],[0,0]]);
+            polygon([[0,0],[8.5,0],[9.5,1],[10.5,0],[13,0],[13,-1],[0,-1],[0,0]]);
     }
 }
-*P090S_pot(L=20,negative=true);
-*translate([20,0,0]) P090S_pot(L=20,negative=false);
+P090S_pot(negative=true);
+translate([20,0,0]) P090S_pot(negative=false);
 
 module tube_barb (ID=4.763, OD=6.35) {
     // barb to connect two ends of tube into a loop
@@ -906,7 +911,7 @@ module ruler(end){
                 translate([i,4,0])text(str(i),size = 2);
     }
 }
-translate ([50,0,50]) rotate([0,90,0]) ruler(100);
+*translate ([50,0,50]) rotate([0,90,0]) ruler(100);
 
 Vector=[for( i = [0:72*12.5]) [i*5,(cos(i*5)*31)+31+(20*100) ] ] ;  // your formula
 Poly=[for(L=[[[0,200]], Vector, [[72*12.5*5,200]]], a=L) a];  // add the end points
@@ -952,4 +957,17 @@ module Rotation_Pattern(number=3,radius=20,total_angle=360) {
       children(0);
   }
 }
-Rotation_Pattern(6,30) cylinder(h=10,d=3,center=true);
+*Rotation_Pattern(6,30) cylinder(h=10,d=3,center=true);
+
+module 2d_test() {
+    // RENDER F6 and export to .svg, then import to Easel
+    // OpenSCAD exports in mm
+    // Easel imports mm (use switch), then you can switch back to inch
+    
+    // Test pattern = 4 2 inch dia circles on a 4 inch diameter circle
+    
+    //hull()  // hull outlines the pattern (optional)
+        Rotation_Pattern(number=4,radius=2/mm_inch,total_angle=360)
+            circle(1/mm_inch,$fn=40);
+}
+*2d_test();

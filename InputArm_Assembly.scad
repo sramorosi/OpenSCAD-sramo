@@ -217,6 +217,35 @@ module final_finger() {
             finger_ring(length=2*y_offset,height=10,inside_dia=20);
     }
 }
+module pot_joint(pot=true) {
+    // If pot = true then model the side that holds the pot
+    dbody = 26;
+    zbody = 13;
+    dlug = 18;
+    difference () {
+       // lug
+        union() {
+            if (pot) {
+                translate([0,0,-zbody/2+1]) washer(d=dbody,t=zbody+2,d_pin=2,$fn=fascets);
+                translate([0,0,2.4]) washer(d=dbody-10,t=5,d_pin=1,$fn=fascets);
+                translate([0,0,5+4+8]) washer(d=dbody,t=8,d_pin=1,$fn=fascets);
+            } else {
+                translate([0,0,5+4]) washer(d=dlug,t=8,d_pin=1,$fn=fascets);
+            }
+        }
+        // remove potentiometer interfaces
+        P090S_pot(negative=true);
+    }
+}
+*pot_joint();
+*translate([30,0,0]) {
+    pot_joint(pot=false);
+    color("red",1) P090S_pot(negative=false);
+}
+fascets = 140;
+base_t = 6;
+A_joint_z_shift = 11;
+
 module input_arm_base () {
     // Base of the input arm
 //    $fa=$preview ? 6 : 1; // minimum angle fragment
@@ -224,50 +253,43 @@ module input_arm_base () {
 
     base_w = 60;
     base_l = 30;
-    base_t = 3;
-    base_z_top = 20;
+    base_z_top = 10;
     base_x_shift = 14; // was 14
     base_lug_y_shift = 4;
     
     // parameters for the 4 attach bolts
     x_b = base_w/2-5;
     y_b = base_l/2-5;
+    translate([-5,0,A_joint_z_shift+base_t/2]) rotate([0,90,0]) pot_joint();
 
-    difference () {
-        union () {
-            //translate([base_x_shift,0,-base_z_top- base_t/2])
-            //    rounded_cube(size=[base_w,base_l,base_t],r=2,center=true);
-            rotate([90,0,0]) cylinder(h=widthAB*2,d=widthAB,center=true);
-            //translate([0,0,-base_z_top/2]) // lug support
-            //    cube([widthAB,widthAB*2,base_z_top],center=true);
-            translate([widthAB/2.2,widthAB/2.5,-4]) // over rotation stop
-                rotate([0,30,0])
-                cube([widthAB/1.6,widthAB*1.2,base_z_top/1.5],center=true);
-            // new lug
-           translate([0,10,-10])
-                lug(r=widthAB/2,w=widthAB,h=10,t=pot_lug_t,d=pot_shaft_dia);
-        }
-        // clevis remove
-        translate([0,base_lug_y_shift,0])
-            cube([1.4*widthAB,pot_lug_t+clevis_gap,1.7*widthAB],center=true); 
-        // remove the potentiometer interfaces
-        rotate([90,0,0]) cylinder(h=widthAB*3,d=pot_shaft_dia,center=true); 
-        translate([0,-widthAB/2+base_lug_y_shift-1,0]) rotate([-90,0,0]) P090S_pot(negative=true);
-        // subtract the 4 base mounting bolt holes
-        translate([x_b+base_x_shift,y_b,-base_z_top])
-                cylinder(h=base_t*3,d=4,center=true);
-        translate([x_b+base_x_shift,-y_b,-base_z_top])
-                cylinder(h=base_t*3,d=4,center=true);
-        translate([-x_b+base_x_shift,-y_b,-base_z_top])
-                cylinder(h=base_t*3,d=4,center=true);
-        translate([-x_b+base_x_shift,y_b,-base_z_top])
-                cylinder(h=base_t*3,d=4,center=true);
+    //translate([base_x_shift,0,-base_z_top- base_t/2])
+    //    rounded_cube(size=[base_w,base_l,base_t],r=2,center=true);
+    difference() {
+        cylinder(h=base_t,d=base_w,center=true,$fn=fascets);
+        // remove potentiometer interfaces
+        translate([0,0,-7]) P090S_pot(negative=true);
+        
+        rotate([0,0,90]) Rotation_Pattern(number=2,radius=base_w/4,total_angle=360)
+                cylinder(h=base_t*3,d=12,center=true,$fn=fascets);
     }
 }
+ss = 0.98;
 *input_arm_base ();
+*pot_joint(pot=false);
+
+difference () {
+    union() {
+        input_arm_base ();
+        translate([-4.8,0,A_joint_z_shift+base_t/2]) rotate([0,90,0]) scale([ss,ss,ss]) color("blue") pot_joint(pot=false);
+        translate([-5,0,A_joint_z_shift+base_t/2]) rotate([0,90,0]) scale([ss,ss,ss]) color("red",1) P090S_pot(negative=false);
+        translate([0,0,-9]) rotate([0,0,0]) scale([ss,ss,ss]) color("yellow",1) P090S_pot(negative=false);
+    }
+    translate([-50,0,-50]) cube([100,100,100],center=false);
+}
+*translate([0,1,40]) rotate([0,90,90]) ruler(100);
 
 module knob () {
-    $fn=$preview ? 16 : 96; // minimum angle fragment
+    $fn=$preview ? 16 : fascets; // minimum angle fragment
     difference () {
         translate([0,0,12]) cylinder(h=6,d=20);
         translate([0,0,3]) P090S_pot(negative=true);
@@ -276,7 +298,7 @@ module knob () {
 
 module turntable_base () {
     // Base of the input arm
-    $fn=$preview ? 16 : 48; // minimum angle fragment
+    $fn=$preview ? 16 : fascets; // minimum angle fragment
 
     base_w = 40;
     base_l = 30;
@@ -319,9 +341,9 @@ module turntable_base () {
         }
     }
 }
-turntable_base();
-color("red",1) translate([0,0,3]) P090S_pot(negative=false);
-color("blue") knob();
+*turntable_base();
+*color("red",1) translate([0,0,3]) P090S_pot(negative=false);
+*color("blue") knob();
 
 module draw_assy (A_angle=0,B_angle=0,C_angle=0,full=true) {
     // calculate b and c positions from angles
