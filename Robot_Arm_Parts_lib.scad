@@ -511,12 +511,10 @@ module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5,LH=t
 }
 *torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
 *translate([-30,0,0]) torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH, inverse=true);
-module pt_pt_cylinder (from=[1,1,0],to=[-1,0,-1], d = 0.1){
+module pt_pt_cylinder (from=[10,10,0],to=[-10,0,-10], d = 2){
     // Create a cylinder from point to point
-    $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.1; // minimum size of fragment (default is 2)
     
-    vec=to - from;
+    vec=from-to;
     length=norm(vec);
     dx = -vec[0];
     dy = -vec[1];
@@ -537,6 +535,8 @@ module pt_pt_cylinder (from=[1,1,0],to=[-1,0,-1], d = 0.1){
         echo("MODULE PT_PT_CYLINDER; small length =",length);
     }
 }
+pt_pt_cylinder(to=[100,0,100],from=[0,0,100],d=10);
+
 module pt_pt_belt (from=[10,10,10],to=[-10,0,10], d = 1,r_pulley=30,round=true){
     // Create belts from point to point
     $fa=$preview ? 6 : 1; // minimum ange fragment
@@ -774,42 +774,51 @@ module hex (size=0.5,l=1) {
 }
 module P090S_pot (L=13.1,negative=false) {
     // units are in metric
-    // negative means this will be used as a difference
+    // nagative false = model a potentiometer for display
+    // negative true = model to be used with a difference() in another model
     // L = length of the shaft above the body
     
-    // body
+    ss = negative ? 1.0: 0.97;  // if negative false then scale down
+    // constants
     zbody = 5.1;
     zb = zbody+10;
-    if (!negative) translate([0,0,-zbody/2]) cube([10,12,zbody],center=true);
-    if (negative) {
-        translate([0,0,-zb/2]) cube([10,17,zb],center=true);
+    lenPin=7;
+    zpin = -4-lenPin;
+
+    scale([ss,ss,ss]){ // scale down the model for display
+        color("green") if (!negative) { // potentiometer for display
+            translate([0,0,-zbody/2]) cube([10,12,zbody],center=true);
+        } else {         // potentiometer for difference()
+            translate([0,0,-zb/2]) cube([10,17,zb],center=true);
+            // barb slots for wire connector
+            translate([1.6,8.4,-zb]) cube([1.22,1,zb],center=false);
+            translate([1.6,8.4,-10]) cube([1.5,1,10],center=false);
+            translate([-1.22-1.6,8.4,-zb]) cube([1.22,1,zb],center=false);
+            translate([-1.22-1.9,8.4,-10]) cube([1.5,1,10],center=false);
+        }
+        
         cylinder(h=2,d=7.2,center=true,$fn=48); // ring around the shaft
         
         // two bumps around the shaft
         translate([2.7,-3.8,0]) cylinder(h=2,d=2.5,center=true,$fn=24);
         translate([-2.7,3.8,0]) cylinder(h=2,d=2.5,center=true,$fn=24);
         
-        // barb slots for wire connector
-        translate([1.6,8.4,-zb]) cube([1.22,1,zb],center=false);
-        translate([1.6,8.4,-10]) cube([1.5,1,10],center=false);
-        translate([-1.22-1.6,8.4,-zb]) cube([1.22,1,zb],center=false);
-        translate([-1.22-1.9,8.4,-10]) cube([1.5,1,10],center=false);
-
+    
+        // shaft F-Type
+        color("darkslategrey") difference () {
+            translate([0,0,L/2]) cylinder(h=L,d=6.2,center=true,$fn=48);
+            translate ([-5,1.45,5]) cube(L,center=false); // key
+        }
+        // pins (3)
+        translate([0,7,zpin]) elect_pin();
+        translate([-2.5,7,zpin]) elect_pin();
+        translate([2.5,7,zpin]) elect_pin();
+        // clip
+        clip();
+        mirror([1,0,0]) clip();
+        // wire connector
+        color("ivory") translate([0,6,-10]) cube([8,4,8],center=true);
     }
-    // shaft F-Type
-    difference () {
-        translate([0,0,L/2]) cylinder(h=L,d=6.2,center=true,$fn=48);
-        translate ([-5,1.45,5]) cube(L,center=false); // key
-    }
-    // pins (3)
-    lenPin=7;
-    zpin = -4-lenPin;
-    translate([0,7,zpin]) elect_pin();
-    translate([-2.5,7,zpin]) elect_pin();
-    translate([2.5,7,zpin]) elect_pin();
-    // clip
-    clip();
-    mirror([1,0,0]) clip();
      
     module elect_pin() {
         // 1 mm diamater electric pin
@@ -819,7 +828,7 @@ module P090S_pot (L=13.1,negative=false) {
     module clip() {
         translate([4.9,0,0]) rotate([90,90,0])
         linear_extrude(3,center=true)
-            polygon([[0,0],[8.5,0],[9.5,1],[10.5,0],[13,0],[13,-1],[0,-1],[0,0]]);
+            polygon([[0,0],[8.5,0],[9.5,1],[10.5,0],[12,0],[12,-1],[0,-1],[0,0]]);
     }
 }
 P090S_pot(negative=true);
@@ -951,7 +960,7 @@ module Current_Shunt () {
 //child elements will be centered on 
 module Rotation_Pattern(number=3,radius=20,total_angle=360) {
   ang_inc = total_angle/number;
-  echo(ang_inc=ang_inc);
+  //echo(ang_inc=ang_inc);
   for(i = [0 : number-1 ] ) {
     rotate([0,0,i*ang_inc]) translate([radius,0,0])
       children(0);

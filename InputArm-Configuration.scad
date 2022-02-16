@@ -1,5 +1,5 @@
 // Robot INPUT Arm Configuration File
-//  last modified June 18 2021 by SrAmo
+//  last modified Feb 2022 by SrAmo
 
 include <Part-Constants.scad>
 
@@ -17,10 +17,6 @@ widthAB = 15; // mm, 14.5 is min for good print with potentiometer tabs
 pot_lug_t = 8; // thickness of the lug over potentiometer shaft
 clevis_gap = 0.1; // mm, space between lug and clevis, total
 armt = 20;  // thickness of the clevis with potentiometer
-
-//lug_hook_ang = 55; // angle of the lugs on the link
-
-//widthBC = 10; // not used
 
 pot_shaft_dia = 6.2; // mm, potentiometer shaft dia
 
@@ -44,17 +40,6 @@ end_weight=10;  // g
 Spring_at_A = false;
 // True if there is a sprint helping joint B
 Spring_at_B = false;
-/* A spring free length (NO SPRING IN SOME CONFIGURATIONS)
-A_spr_free_len = 114.3; // mm
-// A spring rate K (force/distance)
-A_spr_k = 25; // g/mm
-A_spr_pt_gnd = [0,spr_dist_ground,0];   // spring attach point on ground
-
-// B spring free length
-B_spr_free_len = 25.4; // mm
-// B spring rate K (force/distance)
-B_spr_k = 90; // g/mm
-*/
 
 // DEFINITION OF ARM ANGLES
 // When looking at the arm in the XY view (Top), Pos X to the right
