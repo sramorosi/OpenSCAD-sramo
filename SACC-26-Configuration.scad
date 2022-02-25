@@ -1,6 +1,6 @@
 // Robot Arm Configuration File
 // ALL UNITS ARE IN MM
-//  last modified December 2021 by SrAmo
+//  last modified February 2022 by SrAmo
 
 include <Part-Constants.scad>
 
@@ -12,9 +12,16 @@ Arm lengths are the center to center distance.
 An 8" ctc is about 9.5" total length. This fits in x bed of Prusa i3.
 An 9" ctc is about 10.5" total length. This fits rotated 40 deg on bed of Prusa i3.
 */
-lenAB=200; // length of A-B arm, color = plum, mm
-lenBC=240; // length of B-C arm, color = blue, mm
+lenAB=195; // length of A-B arm, mm
+lenBC=240; // length of B-C arm, mm
+
 wall_t=4;  // Arm wall thickness throughout
+
+// A-B arm width. The section is square.
+widthAB = 40;
+widthBC=widthAB; // B-C arm width. The section is square.
+wAB_inside = widthAB - 2*wall_t; // AB Slot inside (calculated)
+wBC_inside = widthBC - 2*wall_t; // BC Slot inside (calculated)
 pinSize = hole_M6; // Joint/Pin size throughout
 
 AB_pulley_teeth = 80; // Number of teeth in AB ARM pulleys
@@ -65,13 +72,6 @@ t_guss = 7.5;
 h_guss = 18; // height
 x_guss = 15; // offset from center
 
-// A-B arm width. The section is square.
-widthAB_old=center_t+2*wall_t+2*shoulder_svo_lug_t+4*Qtr_bearing_flange_t;   
-widthAB = 40;
-echo(widthAB=widthAB,widthAB_old=widthAB_old);
-widthBC=widthAB; // B-C arm width. The section is square.
-wAB_inside = widthAB - 2*wall_t; // AB Slot inside (calculated)
-wBC_inside = widthBC - 2*wall_t; // BC Slot inside (calculated)
 
 End_x=50.8; // Horizontal distance from C joint to claw back plate, 2 inch = 50.8 mm
 End_pin_x = End_x - hole_qtr_inch*1.5; // Horizontal distance from C to pin

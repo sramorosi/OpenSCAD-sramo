@@ -1,6 +1,7 @@
-// Robot Arm Assembly
+// SACC Robot Arm Assembly
+// SACC = Servo Actuated (robot arm with) Compliant Claw
 //  Started on 3/24/2020 by SrAmo
-//  last modified December 2021 by SrAmo
+//  last modified February 2022 by SrAmo
 
 use <force_lib.scad>
 use <Robot_Arm_Parts_lib.scad>
@@ -15,33 +16,31 @@ display_assy = true;
 clip_yz = false;
 // Section cut at Z = 0?
 clip_xy = true;
-// Draw Final shoulder
 
 gear_space_adjustment = 1; // mm, used in base
 B_Horn_Zero_Angle = 30; // DEG AFT from Vertical
 
 if (display_assy) {
     difference () {
-        // B_angle range = -40 to 160
+        // Draw the SACC robot arm assembly
         draw_assy(A_angle=110,B_angle=-40,C_angle=-50,base_ang=0);
-        if (clip_yz) { // x = xcp cut 
+        if (clip_yz) { // x plane cut 
             translate ([0,-lenAB*4,-lenAB*4]) cube (lenAB*8,center=false);
         }
-        if (clip_xy) // z = 0 cut 
+        if (clip_xy) // z plane cut 
             // z = 38 mm is through B horn
             // z = 10 mm is through B Spring Inside leg
             // z = 0 mm shows how the AB and BC arms mesh
-            translate ([-lenAB*4,-lenAB*4,0]) cube (lenAB*8,center=false);
+            translate ([-lenAB*4,-lenAB*4,-20]) cube (lenAB*8,center=false);
     }
-    if (clip_yz) { // x = xcp cut 
+    if (clip_yz) { // Add rules for x plane cuts
         translate ([1,-shoulder_z_top,shoulder_y_shift]) rotate([0,90,0]) ruler(100);
         translate ([1,0,shoulder_y_shift]) rotate([0,90,0]) ruler(100);
     }
-
 }   
 module torsion_spring_spacer() {
     translate([0,0,9271K619_t/2]) 
-        spacer(d=9271K619_ID*0.9,t=9271K619_t,d_pin=hole_M6*1.03);
+        washer(d=9271K619_ID*0.9,t=9271K619_t,d_pin=hole_M6*1.03);
 }
 *torsion_spring_spacer();
 
@@ -58,7 +57,7 @@ module AB_offset_link (length=50,w=15,offset=7,d_pin=5) {
     L1 = law_sines_length (C=length,c_ang=c_ang,b_ang=b_ang);
     a_ang = (offset > 0) ? a_angle : -a_angle;
     c_angle = (offset > 0) ? c_ang : -c_ang;
-    echo("AB",offset=offset,a_ang=a_ang,b_ang=b_ang,L1=L1);
+    //echo("AB",offset=offset,a_ang=a_ang,b_ang=b_ang,L1=L1);
     rotate([0,0,a_ang]) {
         
         // collection of operations for the first leg
@@ -74,14 +73,12 @@ module AB_offset_link (length=50,w=15,offset=7,d_pin=5) {
     *translate([lenAB/2,0,w/2]) cube([lenAB*2,25.5,25.5],center=true);
             // remove the servo horn shape
             translate([0,0,widthAB-a_svo_boss/2-1]) servo_horn (vis=false);
-            // remove a screw hole for the horn
-            translate([servo_horn_l*0.85,0,widthAB-3]) rotate([90,0,0]) cylinder(h=100,d=3,center=true);
             
             // remove screw holes, used to hold two halfs together
-            translate([0,0,w]) hole_pair (x = length*.14,y=w*0.8,d=hole_M3,h=w);
+            translate([0,0,w]) hole_pair (x = length*.13,y=w*0.8,d=hole_M3,h=w);
             translate([0,0,w]) hole_pair (x = length*.34,y=w*0.8,d=hole_M3,h=w);
             translate([0,0,w]) hole_pair (x = length*.6,y=w*0.8,d=hole_M3,h=w);
-            translate([0,0,w]) hole_pair (x = length*.82,y=w*0.8,d=hole_M3,h=w);
+            translate([0,0,w]) hole_pair (x = length*.8,y=w*0.8,d=hole_M3,h=w);
         }
         // collection of operations for the second leg
         translate([L1,0,0]) rotate([0,0,c_angle-180]) 
@@ -89,92 +86,50 @@ module AB_offset_link (length=50,w=15,offset=7,d_pin=5) {
     }
 }
 
-module final_AB_arm () {
-    // CREATE TWO .STL PARTS BY DISABLING * BIG CUBES
+module final_AB_arm (Assy=true,Part1=true) {
+    // TWO PART arm, assembled with screws
     $fn=$preview ? 64 : 128; // minimum angle fragment
-    // Adds operations to the link/arm
 
     color("plum",1) difference () {
         AB_offset_link (length=lenAB,w=widthAB,offset=-widthAB/2.25,d_pin=pinSize,$fn=48);
             
-        // remove the A hole and donut
-        cylinder(h=4*widthAB,d=M6_bearing_od,center=true);
-        
+        // remove joint A bore and donut
+        cylinder(h=5*widthAB,d=M6_bearing_od,center=true);
         translate([0,0,widthAB/2])
-            filled_donut(t=widthAB*.55,d=widthAB*1.4,r=widthAB*.1);
+            filled_donut(t=widthAB*.55,d=widthAB*1.2,r=widthAB*.1);
         
         // remove the spring leg hole
         translate([0,0,22]) rotate([0,180,90-A_Tspr_rot])
             torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH,inverse=true);
         
-        // remove the B hole and end donut
+        // remove joint B bore and end donut
         translate([lenAB,0,widthAB/2]) {
             cylinder(h=4*widthAB,d=pinSize,center=true);
-            filled_donut(t=widthAB*.75,d=widthAB*1.8,r=widthAB*.1);
+            filled_donut(t=widthAB*.75,d=widthAB*1.7,r=widthAB*.1);
         }
-        //  BIG CUBES TO MAKE TWO PARTS, FOR PRINTING
+        //  BIG CUBES TO MAKE TWO PARTS
         split_offset=10.9;
         // USE ONE OR THE OTHER
-        *translate([0,0,widthAB+split_offset]) cube([lenAB*4,lenAB*2,widthAB],center=true);
-        *translate([0,0,split_offset+.2]) cube([lenAB*4,lenAB*2,widthAB],center=true);
-   }
-    //  DON'T RENDER WHEN MAKING .STL FILES
-    rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
-   
-    translate([0,0,wAB_inside]) rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
-   
-    // torsion spring at A
-    translate([0,0,22]) rotate([0,180,90-A_Tspr_rot]){
-        torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
-        torsion_spring_spacer();
-    }
-    // // END DON'T RENDER
-}
-*final_AB_arm();
-
-module final_7462_arm () {
-    // Arm version for FTC 7462 Robotics that can hold a 1" x 1" tube
-    $fn=$preview ? 64 : 128; // minimum angle fragment
-    // Adds operations to the link/arm
-
-    color("blue",1) difference () {
-        AB_offset_link (length=lenAB,w=widthAB,offset=widthAB/2.25,d_pin=pinSize,$fn=48);
-            
-        // remove the A hole and donut
-        cylinder(h=4*widthAB,d=M6_bearing_od,center=true);
-        
-        translate([0,0,widthAB/2])
-            filled_donut(t=widthAB*.64,d=widthAB*1.4,r=widthAB*.2);
-        
-        // remove the spring leg hole
-        translate([0,0,22]) rotate([0,180,90-A_Tspr_rot])
-            torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH,inverse=true);
-        
-        // remove the B hole and end donut
-        *translate([lenAB,0,widthAB/2]) {
-            cylinder(h=4*widthAB,d=pinSize,center=true);
-            filled_donut(t=widthAB*.75,d=widthAB*1.8,r=widthAB*.1);
+        if (Part1) {
+            translate([0,0,widthAB+split_offset]) cube([lenAB*4,lenAB*2,widthAB],center=true);
+        } else {
+            translate([0,0,split_offset+.2]) cube([lenAB*4,lenAB*2,widthAB],center=true);
         }
-        
-        translate([lenAB,0,widthAB/2]) cube([lenAB,lenAB*2,widthAB*2],center=true);
-
-        //  BIG CUBES TO MAKE TWO PARTS, FOR PRINTING
-        split_offset=11;
-        // USE ONE OR THE OTHER
-        *translate([0,0,widthAB+split_offset]) cube([lenAB*4,lenAB*2,widthAB],center=true);
-        *translate([0,0,split_offset]) cube([lenAB*4,lenAB*2,widthAB],center=true);
    }
-    *rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
-   
-    *translate([0,0,wAB_inside]) rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
-   
-    // torsion spring at A
-    *translate([0,0,22]) rotate([0,180,90-A_Tspr_rot]){
-        torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
-        torsion_spring_spacer();
+   if (Assy) {
+        rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+        
+        translate([0,0,wAB_inside]) rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+        
+        // torsion spring at A
+        translate([0,0,22]) rotate([0,180,90-A_Tspr_rot]){
+            torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
+            torsion_spring_spacer();
+           }
     }
 }
-*final_7462_arm();
+final_AB_arm(Assy=false,Part1=true);
+final_AB_arm(Assy=false,Part1=false);
 
 module BC_offset_link (length=50,w=15,offset=7,d_pin=5) {
     // Create a Link on xy plane along the X axis 
@@ -189,7 +144,7 @@ module BC_offset_link (length=50,w=15,offset=7,d_pin=5) {
     L1 = law_sines_length (C=length,c_ang=c_ang,b_ang=b_ang);
     a_ang = (offset > 0) ? -a_angle : a_angle;
     c_angle = (offset > 0) ? c_ang : -c_ang;
-    echo("BC",offset=offset,a_ang=a_ang,b_ang=b_ang,L1=L1);
+    //echo("BC",offset=offset,a_ang=a_ang,b_ang=b_ang,L1=L1);
        
     // collection of operations for the first leg
     difference () {
@@ -229,8 +184,8 @@ module BC_offset_link (length=50,w=15,offset=7,d_pin=5) {
 }
 *BC_offset_link (length=lenBC,w=widthAB,offset=-widthAB/2.25,d_pin=pinSize,$fn=48);
 
-module final_BC_arm () {
-    // CREATE TWO .STL PARTS BY DISABLING * BIG CUBES
+module final_BC_arm (Assy=false,Part1=false) {
+    // TWO PART arm, assembled with screws
     $fn=$preview ? 64 : 128; // minimum angle fragment
     
     hex_h = AB_pulley_t;  // height offset for hex
@@ -247,11 +202,11 @@ module final_BC_arm () {
         // c-bore for B bearing
         cylinder(h=3*widthBC,d=M6_bearing_od,center=true);
         
-        // remove donut at C
+        // remove donut at joint C
         translate([0,0,widthAB/2])
             filled_donut(t=widthAB*.8,d=widthAB*2,r=widthAB*.05);
         
-        // remove the B hole and end donut
+        // remove joint B bore and end donut
         translate([lenBC,0,widthAB/2]) {
             cylinder(h=4*widthAB,d=hole_qtr_inch,center=true);
             filled_donut(t=widthAB*.8,d=widthAB*1.4,r=widthAB*.1);
@@ -264,19 +219,22 @@ module final_BC_arm () {
 
         //  BIG CUBES TO MAKE TWO PARTS, FOR PRINTING
         split_offset=-16.1;
-        // USE ONE OR THE OTHER BIG CUBE WHEN CREATING .STL FILES
-        *translate([0,0,widthAB+split_offset]) cube([lenAB*4,lenAB*2,widthAB],center=true);
-        *translate([0,0,split_offset+.2]) cube([lenAB*4,lenAB*2,widthAB],center=true);
+        if (Part1) {
+            translate([0,0,widthAB+split_offset]) cube([lenAB*4,lenAB*2,widthAB],center=true);
+        } else {
+            translate([0,0,split_offset+.2]) cube([lenAB*4,lenAB*2,widthAB],center=true);
+        }
     } 
- //  DON'T RENDER WHEN MAKING .STL FILES
-   translate([0,0,wall_t]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
-   translate([0,0,-AB_pulley_t+Qtr_bearing_flange_t]) rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
-   translate([0,0,wBC_inside+2*wall_t]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
-    
-    rotate ([180,0,0]) B_Drive_at_B_Pulley ();
-// // END DON'T RENDER
+    if (Assy) {
+       translate([0,0,wall_t]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+       translate([0,0,-AB_pulley_t+Qtr_bearing_flange_t]) rotate([180,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+       translate([0,0,wBC_inside+2*wall_t]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
+        
+        rotate ([180,0,0]) B_Drive_at_B_Pulley ();
+    }
 }
-*final_BC_arm ();
+*final_BC_arm (Assy=false,Part1=true);
+*final_BC_arm (Assy=false,Part1=false);
 
 module B_Drive_at_B_Pulley () {
     color ("green") difference () {
@@ -574,7 +532,7 @@ module shoulder_assy () {
 }
 *shoulder_assy ();
 
-module Electronics_Board () {
+module Electronics_Board (Assy=true) {
     $fn=$preview ? 16 : 64; // minimum number of fragements
     board_l = 180;
     board_shift = 60;
@@ -598,13 +556,14 @@ module Electronics_Board () {
                 cylinder(d=4, h = 30, $fn=32);
               };
     }
-    //   Comment out these items when printing the electronics board
-    Power_Energy_Meter();
-    translate([50,-30,0]) rotate([0,0,90]) Rocker_Switch();
-    translate([90,30,-8]) rotate([0,0,90]) Current_Shunt();
-    translate([150,10,-8]) rotate([180,0,-90]) arduino(); //  end comment
+    if (Assy) {
+        Power_Energy_Meter();
+        translate([50,-30,0]) rotate([0,0,90]) Rocker_Switch();
+        translate([90,30,-8]) rotate([0,0,90]) Current_Shunt();
+        translate([150,10,-8]) rotate([180,0,-90]) arduino(); 
+    }
 }
-*Electronics_Board();
+*Electronics_Board(Assy=false);
 
 module base_assy() {
     $fn=$preview ? 32 : 72; // minimum angle fragment
@@ -701,7 +660,8 @@ module end_effector_assy() {
 
 module BC_arm_and_End (C_angle=0) {
     
-    final_BC_arm ();
+    final_BC_arm (Assy=true,Part1=true);
+    final_BC_arm (Assy=false,Part1=false);
     
     // Draw the end effector
     translate([lenBC,0,0]) {
@@ -728,8 +688,10 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,base_ang=0) {
             // draw the upper and lower arms
             rotate([0,0,A_angle]) {
                 // Draw the AB link
-                translate ([0,0,-1]) rotate([180,0,0]) final_AB_arm ();
-                
+                translate ([0,0,-1]) rotate([180,0,0]) {
+                    final_AB_arm (Assy=true,Part1=true);
+                    final_AB_arm (Assy=false,Part1=false);
+                }
                 // Draw the BC link and End
                 translate([lenAB,0,5]) {
                     rotate([0,0,B_angle-A_angle]) rotate([180,0,0]) BC_arm_and_End(C_angle);
@@ -755,7 +717,6 @@ module draw_assy (A_angle=0,B_angle=0,C_angle=0,base_ang=0) {
         }
     }
     // Draw Base and Shoulder assembly adjust z translation as required
-    //rotate([0,0,0]) 
     base_and_shoulder_assy(base_ang=base_ang,A_angle=A_angle,B_angle=B_angle);
     
     // A joint 6 MM shaft,  LENGTH = 65 MM

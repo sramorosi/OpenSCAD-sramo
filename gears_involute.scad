@@ -55,11 +55,11 @@ module bevel_gear_pair (
         (outside_pitch_radius2 * cos (axis_angle) + outside_pitch_radius1) / tan (axis_angle);
     cone_distance = sqrt (pow (pitch_apex1, 2) + pow (outside_pitch_radius1, 2));
     pitch_apex2 = sqrt (pow (cone_distance, 2) - pow (outside_pitch_radius2, 2));
-    echo ("cone_distance", cone_distance);
+    //echo ("cone_distance", cone_distance);
     pitch_angle1 = asin (outside_pitch_radius1 / cone_distance);
     pitch_angle2 = asin (outside_pitch_radius2 / cone_distance);
-    echo ("pitch_angle1, pitch_angle2", pitch_angle1, pitch_angle2);
-    echo ("pitch_angle1 + pitch_angle2", pitch_angle1 + pitch_angle2);
+    //echo ("pitch_angle1, pitch_angle2", pitch_angle1, pitch_angle2);
+    //echo ("pitch_angle1 + pitch_angle2", pitch_angle1 + pitch_angle2);
 
     rotate([0,0,90])
     translate ([0,0,pitch_apex1+20])
@@ -117,7 +117,7 @@ module bevel_gear (
     pitch_apex = sqrt (pow (cone_distance, 2) - pow (outside_pitch_radius, 2));
     pitch_angle = asin (outside_pitch_radius/cone_distance);
 
-    echo ("Num Teeth:", number_of_teeth, " Pitch Angle:", pitch_angle);
+    //echo ("Num Teeth:", number_of_teeth, " Pitch Angle:", pitch_angle);
 
     finish = (finish != -1) ? finish : (pitch_angle < 45) ? bevel_gear_flat : bevel_gear_back_cone;
 
@@ -332,7 +332,7 @@ module gear (
     // Pitch diameter: Diameter of pitch circle.
     pitch_diameter  =  number_of_teeth * circular_pitch / pi;
     pitch_radius = pitch_diameter/2;
-    echo (str("Teeth: ", number_of_teeth, ", Pitch Radius: ", pitch_radius, ", Clearance: ", clearance));
+    //echo (str("Teeth: ", number_of_teeth, ", Pitch Radius: ", pitch_radius, ", Clearance: ", clearance));
 
     // Base Circle
     base_radius = pitch_radius*cos(pressure_angle);
@@ -388,7 +388,7 @@ module gear (
         0.70*circle_orbit_curcumference/circles, 
         (rim_radius+hub_diameter/2)*0.9);
     circle_diameter=(circle_diameter != undef)? circle_diameter : circle_default_diameter;
-    echo(str("cir_orb_dia: ", circle_orbit_diameter, ", cir_orb_circumf: ", circle_orbit_curcumference, ", default cir dia: ",circle_default_diameter, ", cir_dia:",circle_diameter));
+    //echo(str("cir_orb_dia: ", circle_orbit_diameter, ", cir_orb_circumf: ", circle_orbit_curcumference, ", default cir dia: ",circle_default_diameter, ", cir_dia:",circle_diameter));
     difference()
     {
         union ()

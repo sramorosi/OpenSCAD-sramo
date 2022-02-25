@@ -14,6 +14,22 @@ function law_sines_angle (C=30,a=10,c_ang=120) =
 function law_sines_length (C=30,c_ang=120,b_ang=30) =
    C * (sin(b_ang)/sin(c_ang));
 
+function inverse_arm_kinematics (c=[0,10,0],lenAB=100,lenBC=120) = 
+    // calculate the angles given pt C ***Inverse Kinematics***
+    //  ASSUMES THAT c is on the YZ plane (x is ignored)
+    //  ASSUMES that A is at [0,0,0]
+    // returns an array with [A_angle,B_angle] where B_angle is ABC (not BC to horizontal)
+    let (vt = norm(c))  // vector length from A to C
+    let (sub_angle1 = atan2(c[2],c[1]))  // atan2 (Y,X)!
+    let (sub_angle2 = acos((vt*vt+lenAB*lenAB-(lenBC*lenBC))/(2*vt*lenAB)) )
+    //echo(vt=vt,sub_angle1=sub_angle1,sub_angle2=sub_angle2)
+    [sub_angle1 + sub_angle2,acos((lenBC*lenBC+lenAB*lenAB-vt*vt)/(2*lenBC*lenAB))] ;
+    
+module draw_dummy_arm(a=[0,0,0],b=[0,0,100],c=[100,0,100],d=[100,0,0]) {
+    color("silver") pt_pt_cylinder (from=a,to=b, d = 2,$fn=12);
+    color("grey") pt_pt_cylinder (from=b,to=c, d = 2,$fn=12);
+    color("black") pt_pt_cylinder (from=c,to=d, d = 2,$fn=12);
+}
 module hole_pair (x = 50,y=10,d=hole_M3,h=100) {
     // make a pair of holes that are y appart, 
     // at x location. holes are parallel to the Z axis
@@ -358,39 +374,7 @@ module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15) {
 }
 *compliant_claw2(len=150,width=120,t1=2,t2=25,r=18,pre_angle=15);
 *translate ([0,0,40]) compliant_claw2 (len=claw_length,width=claw_width,t1=claw_t,t2=claw_height,r=claw_radius,pre_angle=15);
-/*
-module compliant_claw(l=5,w=4.6,t1=0.075,t2=1) {
-    // original version. U shaped.
 
-    $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.1; // minimum size of fragment (default is 2)
-    union () {
-        difference () {
-            difference () {
-                translate ([-w/2,0,0])
-                    rounded_cube([w,l+2,t2],r=0.7,center=false);
-                
-                translate ([-w/2+t1,t1,-t2/2])
-                    rounded_cube([w-2*t1,l+2,2*t2],r=(0.7-t1),center=false);
-        }
-        translate ([-w,l,-t2])
-            cube([2*w,4,3*t2],center=false);
-        rotate ([90,0,0])
-            translate ([.3,t2/2,0])
-                cylinder (h=1,d=hole_M3,center=true);
-        rotate ([90,0,0])
-            translate ([-.3,t2/2,0])
-                cylinder (h=1,d=hole_M3,center=true);
-    }
-    rotate ([0,0,90])
-        translate ([1.8,-w/2,t2/2-0.17/2])
-            lug (r=0.25,w=1,h=0.5,t=0.17,d=hole_M3);
-    rotate ([0,0,-90])
-        translate ([-1.8,-w/2,t2/2-0.17/2])
-            lug (r=0.25,w=1,h=0.5,t=0.17,d=hole_M3);
-    }
-}
-*/
 module pulley(r=2,t=.5,d_pin=0.25,d_grv=0.25,round=true){
     // Create pulley on xy plane at 0,0,0 of radius r
     // t is thickness (centered about z=0)
@@ -430,16 +414,15 @@ module pulley_groove(r=2,d_grv=0.25,round=true){
 module washer(d=20,t=2,d_pin=10){
     // model washer on xy plane at 0,0,0 of radius r
     // t is thickness (centered about z=0)
-    //$fa=$preview ? 6 : 1; // minimum angle fragment
 
     difference(){
         cylinder(t,d=d,center=true);  // outside
         
         // subtract bore
         cylinder(2*t,d=d_pin,center=true);
-        };
+    };
 }
-washer($fn=50);
+*washer($fn=50);
 
 module tension_spring(from=[10,0,0],to=[20,30,20],wire_dia=0.5,od=2,coils=10,ends=true){
     // Create a tenstion spring
@@ -535,7 +518,7 @@ module pt_pt_cylinder (from=[10,10,0],to=[-10,0,-10], d = 2){
         echo("MODULE PT_PT_CYLINDER; small length =",length);
     }
 }
-pt_pt_cylinder(to=[100,0,100],from=[0,0,100],d=10);
+*pt_pt_cylinder(to=[100,0,100],from=[0,0,100],d=10);
 
 module pt_pt_belt (from=[10,10,10],to=[-10,0,10], d = 1,r_pulley=30,round=true){
     // Create belts from point to point
@@ -653,14 +636,15 @@ module servo_horn (l=servo_horn_l, d1=servo_horn_d1, d2=servo_horn_d2, t=servo_h
             rotate([0,0,-90])
                 lug (r=d2/2,w=d1,h=l/2,t=t);
             if (!vis) {
-                translate([l*.9,0,t/2]) rotate([90,0,0]) cylinder(h=2*l,d=2.5,center=true);
+                // SCREW HOLE FOR SECURING HORN
+                translate([l*.85,0,t/3]) rotate([90,0,0]) cylinder(h=2*l,d=2.8,center=true);
             }
         }
         // subtract main axis cyl for visulization
         if (vis) cylinder (h=4*t,d=2,center=true);
     }
 }
-*servo_horn(vis=false);
+servo_horn(vis=false);
 
 module servo_body (vis=true){
     // Create servo body on xy plane, spline shaft center at 0,0,0
@@ -791,10 +775,10 @@ module P090S_pot (L=13.1,negative=false) {
         } else {         // potentiometer for difference()
             translate([0,0,-zb/2]) cube([10,17,zb],center=true);
             // barb slots for wire connector
-            translate([1.6,8.4,-zb]) cube([1.22,1,zb],center=false);
-            translate([1.6,8.4,-10]) cube([1.5,1,10],center=false);
-            translate([-1.22-1.6,8.4,-zb]) cube([1.22,1,zb],center=false);
-            translate([-1.22-1.9,8.4,-10]) cube([1.5,1,10],center=false);
+            *translate([1.6,8.4,-zb]) cube([1.22,1,zb],center=false);
+            translate([1.6,8.4,-zb]) cube([1.5,1,zb],center=false);
+            *translate([-1.22-1.6,8.4,-zb]) cube([1.22,1,zb],center=false);
+            translate([-1.22-1.9,8.4,-zb]) cube([1.5,1,zb],center=false);
         }
         
         cylinder(h=2,d=7.2,center=true,$fn=48); // ring around the shaft
@@ -832,7 +816,7 @@ module P090S_pot (L=13.1,negative=false) {
     }
 }
 P090S_pot(negative=true);
-translate([20,0,0]) P090S_pot(negative=false);
+*translate([20,0,0]) P090S_pot(negative=false);
 
 module tube_barb (ID=4.763, OD=6.35) {
     // barb to connect two ends of tube into a loop
@@ -961,12 +945,16 @@ module Current_Shunt () {
 module Rotation_Pattern(number=3,radius=20,total_angle=360) {
   ang_inc = total_angle/number;
   //echo(ang_inc=ang_inc);
-  for(i = [0 : number-1 ] ) {
-    rotate([0,0,i*ang_inc]) translate([radius,0,0])
-      children(0);
+  if (number>1 && radius > 0) {
+      for(i = [0 : number-1 ] ) {
+        rotate([0,0,i*ang_inc]) translate([radius,0,0])
+          children(0);
+          }
+    } else {
+      echo("INVALID ARGUMENTS IN Rotation_Pattern module");
   }
 }
-*Rotation_Pattern(6,30) cylinder(h=10,d=3,center=true);
+Rotation_Pattern(5,30) cylinder(h=10,d=3,center=true);
 
 module 2d_test() {
     // RENDER F6 and export to .svg, then import to Easel
@@ -980,3 +968,12 @@ module 2d_test() {
             circle(1/mm_inch,$fn=40);
 }
 *2d_test();
+
+module U_section(Lbase=20,Lleg=15,Tbase=2,Tleg=1) {
+    // Create a U section polygon (2D)
+    // the origin in the lower left
+    if(Lbase>0 && Lleg>0 && Tbase>0 && Tleg>0) {
+        polygon([[0,0],[Lbase,0],[Lbase,Lleg],[Lbase-Tleg,Lleg],[Lbase-Tleg,Tbase],[Tleg,Tbase],[Tleg,Lleg],[0,Lleg],[0,0]]);
+    }
+}
+U_section();

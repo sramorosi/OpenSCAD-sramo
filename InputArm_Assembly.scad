@@ -1,246 +1,52 @@
 // Input Arm Assembly
-//  Design for Human Input Arm that drives Robot Arm
-//  last modified January 2022 by SrAmo
-include <InputArm-Configuration.scad>
-use <force_lib.scad>
+//  Design for Human Hand to drive a Robot Arm
+//  last modified February 2022 by SrAmo
+//use <force_lib.scad>
 use <Robot_Arm_Parts_lib.scad>
-//use <Pulley-GT2_2.scad>
+include <Part-Constants.scad>
 
 AA = 5; // [0:130.0]
 BB = 0; // [-145:1:130.0]
+TT = 0; // [-60:60]
+// use 140 for printing, 40 for display
+fascets = 140; // [40,140]
 
-fascets = 40; // use 140 for printing
-
-// Draw the Input Arm Assembly
-display_assy = false;
+// Draw the Input Arm Assembly?
+display_assy = true;
 // Section cut Assy at X = 0?
 clip_yz = false;
 // Section cut Assy at Z = 0?
 clip_xy = false;
 
-// number of fragments for display, ==> DISPLAY PERFORMANCE
-donut_fragments = 16; // recommend 16 for Preview,  48 for Render
+// length of A-B arm, color = plum
+lenAB=50;     // mm
+// length of B-C arm, color = blue
+lenBC=60;      // mm
+widthAB = 15; // mm
+
+// A joint shift in Z direction
+A_Z_shift = 13; // mm
+A_joint_z_shift = A_Z_shift-2;
+base_t = 6;
+base_w = 60;
+
+// CLAW LENGTH on Real arm, for dummy model
+cdLen = 20;  
 
 if (display_assy) {
     difference () {
-        draw_assy(120,60,0,full=true);
+        draw_assy(AA,BB,TT);
         if (clip_yz) // x = xcp cut 
-            translate ([-200,-100,-100]) cube (200,center=false);
+            translate ([-201,-100,-100]) cube (200,center=false);
         if (clip_xy) // z = 0 cut 
             translate ([-100,-100,-200]) cube (200,center=false);
         }
     }
-    
-module end_effector_assy() {
-    translate([0,0,armt/2]) rotate([-90,0,90]) final_hand();
-    translate([39,-4,10]) 
-        rotate([90,90,180]) final_finger();
-    }
-module wire_path(length=30){
-    cylinder(h=length*2,d=wire_hole_dia,center=true);
-    translate([0,wire_hole_dia/1.9,0])
-        cube([wire_dia,wire_hole_dia,length*2.2],center=true);
-}
-module single_offset_link (length=50,w=15,offset=7,d_pin=5,pot_short=false) {
-    // Create a Link on xy plane along the X axis 
-    // First joint is at [0,-offset], Second joint is at [length,0]
-    // link width is w (y dimension), constant along length of part
-    // offset is the distance down from the x axis
-    bend_ang = 45; // the angle of the bend
-    long_leg = length-offset;
-    short_leg = sqrt(2*offset*offset);
-    echo(long_leg=long_leg,short_leg=short_leg);
-    wire_hole_offset = offset+wire_hole_dia; // wire  hole offset
-    difference () {
-        union () {
-            // Draw the main link
-            dog_leg2 (d1=long_leg,ang=bend_ang,d2=short_leg,w=w,t=w);
-            // pot bracket
-            if(pot_short) { // short = AB arm
-                translate([0,-offset,0]) 
-                    rotate([0,0,bend_ang]) 
-                        translate([w/3,0,w/1.2]) 
-                            cube([w,w,w/1.2],center=true);
-                } else { // BC arm
-                    translate([length-w/3,0,w/1.2]) cube([w,w,w/1.2],center=true);
-                }
-            };
-            // remove wire holes (same for both)
-            //   diagonal hole 1
-            translate([length/4,widthAB-wire_hole_offset,1]) 
-                rotate ([0,30,0]) 
-                    translate([0,0,length/4]) 
-                        wire_path(length/4.2);
-            //   diagonal hole 1
-            translate([length/1.3,widthAB-wire_hole_offset,1]) 
-                rotate ([0,-60,0]) 
-                    translate([0,0,length/3.5]) 
-                        wire_path(length/4.5);
-            if(pot_short) {  // potentiometer on short end, AB arm
-                // remove long wire hole
-                translate([length/3.3,widthAB-wire_hole_offset,1.5]) 
-                    rotate ([0,87,0]) 
-                        wire_path(length/2);
-                // remove either side of lug on long end
-                translate([length-w*0.7,-w/1.1,pot_lug_t/2])
-                    cube([1.4*w,2.2*w,w],center=false); 
-                translate([length-w*0.7,-w/1.1,-w-pot_lug_t/2])
-                    cube([1.4*w,2.2*w,w],center=false); 
-                // remove clevis on short end
-                translate([0,-offset,0]) {
-                    rotate([0,0,bend_ang]) 
-                        cube([1.4*w,2.2*w,pot_lug_t+clevis_gap],center=true);
-                   cylinder(h=2*w,d=d_pin,center=true);
-                }
-                // remove the potentiometer interfaces
-                translate([0,-offset,widthAB/2+1]) 
-                    rotate([180,0,180-45]) 
-                           P090S_pot(negative=true);
-                translate([length,0,widthAB/2]) 
-                    rotate([180,0,90]) 
-                        P090S_pot(negative=true);
-                // donut holes on long end for wires
-                translate([length,0,pot_lug_t/2.5]) 
-                    rotate_extrude(convexity = 10, $fn = donut_fragments) {
-                        translate([widthAB/1.3, 0, 0]) 
-                            circle(d=wire_hole_dia*1.3, $fn = donut_fragments);
-                        translate([widthAB/1.8, 0, 0]) 
-                            circle(d=wire_hole_dia*1.3, $fn = donut_fragments);
-                    }
-            } else { // potentiometer on long end, BC arm
-                // remove long wire hole
-                translate([length/3.3,widthAB-wire_hole_offset,1.5]) 
-                    rotate ([0,90,0]) 
-                        wire_path(length/2);
-                // remove either side of lug on short end
-                translate([0,-offset,0]) rotate([0,0,bend_ang]) {
-                translate([-w*0.7,-w/1.1,pot_lug_t/2])
-                    cube([1.4*w,2.2*w,w],center=false); 
-                translate([-w*0.7,-w/1.1,-w-pot_lug_t/2])
-                    cube([1.4*w,2.2*w,w],center=false); 
-                }
-                // remove clevis on short end
-                translate([length,0,0]) {
-                        cube([1.4*w,2.2*w,pot_lug_t+clevis_gap],center=true);
-                   cylinder(h=2*w,d=d_pin,center=true);
-                }
-                // remove the potentiometer interfaces
-                translate([0,-offset,-widthAB/2]) 
-                    rotate([0,0,135]) 
-                           P090S_pot(negative=true);
-                translate([length,0,widthAB/2+1]) 
-                    rotate([180,0,-90]) 
-                        P090S_pot(negative=true);
-                // donut holes on short end for wires
-                translate([0,-offset,pot_lug_t/2.5]) 
-                    rotate_extrude(convexity = 10, $fn = donut_fragments) {
-                        translate([widthAB/1.3, 0, 0]) 
-                            circle(d=wire_hole_dia*1.3, $fn = donut_fragments);
-                        translate([widthAB/1.8, 0, 0]) 
-                            circle(d=wire_hole_dia*1.3, $fn = donut_fragments);
-                    }
-            }
-    }
-}
-module AB_arm_assy(B_angle = 0){
-    // Create a Link on xy plane along the X axis 
-    // First joint is at [0,-offset], Second joint is at [length,0]
-    offset = widthAB/2.1;
-    hook_ang=atan2(offset,lenAB); // hook angle
-//    echo("AB",length=length,hook_ang=hook_ang,offset=offset);
-    translate ([lenAB,0,0])
-    rotate([0,180,hook_ang]) 
-        translate([0,offset,0]) { 
-            //single_offset_link
-            color("plum",1) 
-single_offset_link(length=lenAB,w=widthAB,offset=offset,d_pin=pot_shaft_dia,pot_short=true,$fn=donut_fragments); 
-//P090S_pot(negative=false);
-        }
-// DRAW THE BC ARM 
-translate([lenAB,0,0]) 
-rotate([0,0,B_angle]) {
-    color("lightblue",1) BC_arm_assy(length=lenBC,offset=widthAB/2.1);
-    translate([0,0,-widthAB/2-1])
-        rotate([0,0,52])
-            P090S_pot(negative=false);
-        }
-
-}
-*AB_arm_assy();
-
-module BC_arm_assy(length=10,offset=2){
-    // Create a Link on xy plane along the X axis 
-    // First joint is at [0,-offset], Second joint is at [length,0]
-//    $fa=$preview ? 6 : 1; // minimum angle fragment
-//    $fs=0.01; // minimum size of fragment (default is 2)
-    hook_ang=atan2(offset,length); // hook angle
-    echo("BC",length=length,hook_ang=hook_ang,offset=offset);
-    rotate([0,0,-hook_ang]) 
-        translate([0,offset,0])  
-            //single_offset_link 
-            single_offset_link(length=length,w=widthAB,offset=offset,d_pin=pot_shaft_dia,pot_short=false,$fn=donut_fragments); 
-}
-module finger_ring(length=20,height=10,inside_dia=16) {
-   // Finger Ring
-   finger_width =6;
-   lug (r=(inside_dia+4)/2,w=height,h=length,t=finger_width,d=inside_dia);
-}
-module final_hand(length=14){
-    // Claw that attaches to End Effector
-//    $fa=$preview ? 6 : 1; // minimum angle fragment
-//    $fs=0.05; // minimum size of fragment (default is 2)
-    difference () {
-        union () {  
-            // LUG
-            translate ([0,pot_lug_t/2,-length]) rotate([90,0,0]) 
-                lug (r=widthAB/2,w=armt,h=length,t=pot_lug_t,d=.1);
-            
-            // CLEVIS
-             translate ([armt/2,0,-length+1]) rotate([-90,0,90]) 
-                lug (r=widthAB/2,w=widthAB,h=length,t=armt,d=.1);
-            // pot bracket
-            translate([length,0,-length*1.6]) cube([10,widthAB,widthAB],center=true); 
-            // ADD the finger loop
-            translate([-armt/2,5,-length]) 
-                rotate([-55,0,0])
-                rotate([0,90,0]) finger_ring(30,height=10,inside_dia=20);
-            };
-        // clevis remove slot
-        translate([0,0,-length*2]) 
-           cube([pot_lug_t+clevis_gap,length*2,length+4],center=true); 
-        // remove lug end Potentiometer
-        translate([0,-pot_lug_t,0]) 
-               rotate([90,0,180]) P090S_pot(negative=true);
-        // remove clevis end Potentiometer
-        translate([armt/2,0,-length*2+1]) 
-            rotate([90,0,-90]) P090S_pot(negative=true);
-        // pin remove 
-        translate([0,0,-2*length+1])
-           rotate([0,-90,0]) cylinder(h=armt,d=pot_shaft_dia,center=false); 
-        // remove donut hole for wire
-        rotate([90,0,0]) rotate_extrude(convexity = 10, $fn = donut_fragments) 
-            translate([widthAB/1.8, pot_lug_t/2, 0]) circle(d=wire_hole_dia*1.8, $fn = donut_fragments);
-        } 
-}
-module final_finger() {
-    y_offset = 10;
-    union() {
-        difference() {
-            lug (r=widthAB/2,w=10,h=y_offset,t=pot_lug_t,d=.1);
-            // remove lug end Potentiometer
-            translate([0,y_offset,pot_lug_t*1.5]) 
-                rotate([0,180,0]) 
-                    P090S_pot(negative=true);
-        }
-        translate([0,0,0])rotate([0,0,180]) 
-            finger_ring(length=2*y_offset,height=10,inside_dia=20);
-    }
-}
 module pot_joint(pot=true,lug_two = true) {
     // If pot = true then model the side that holds the pot
     // Else model the lug that goes on the shaft
     dbody = 26;
-    zbody = 13;
+    zbody = A_Z_shift;
     dlug = 18;
     difference () {
        // lug
@@ -252,27 +58,93 @@ module pot_joint(pot=true,lug_two = true) {
                 // lug opposite pot.  Large hole for access
                 if (lug_two) translate([0,0,5+4+8]) washer(d=dbody,t=8,d_pin=7,$fn=fascets); 
             } else { // lug for shaft
-                translate([0,0,5+4]) washer(d=dlug,t=8,d_pin=1,$fn=fascets);
+                translate([0,0,5+3.8]) washer(d=dlug,t=8.4,d_pin=1,$fn=fascets);
             }
         }
         // remove potentiometer interfaces
-        P090S_pot(negative=true);
+        translate([0,0,0.01]) rotate([0,0,-90]) P090S_pot(negative=true);
+        // screw holes
+        rotate([0,0,90]) Rotation_Pattern(number=2,radius=dbody/2.5,total_angle=360)
+                cylinder(h=27,d=2.5,center=true,$fn=fascets);
+
     }
 }
 *pot_joint();
 *translate([30,0,0]) {
     pot_joint(pot=false);
-    color("red",1) P090S_pot(negative=false);
+    P090S_pot(negative=false);
 }
-base_t = 6;
-base_w = 60;
-A_joint_z_shift = 11;
+module Pot_Cover_model() {
+    dbody = 26;
+    difference() {
+        washer(d=dbody,t=3,d_pin=1,$fn=fascets);
+        // screw holes
+        rotate([0,0,90]) Rotation_Pattern(number=2,radius=dbody/2.5,total_angle=360)
+                cylinder(h=6,d=3,center=true,$fn=fascets);
+    }
+    translate([18,0,0]) cube([16,16,3],center=true);
+    translate([27,0,8.5]) cube([3,16,20],center=true);
+
+}
+*Pot_Cover_model();
+
+module C_End_Knob_model() {
+    pot_joint(pot=false);
+    translate([12,0,9]) cube([15,8,8],center=true);
+}
+*C_End_Knob_model();
+
+module Input_Arm_model(len=100,width=10) {
+    difference() {
+        union() {
+            // Preview F5 display problems, but Render F6 works
+            rotate([0,0,90]) translate([-width/2,-len+10,-26])  
+                linear_extrude(height=26) 
+                    U_section(Lbase=width,Lleg=15,Tbase=3,Tleg=3);   
+            translate([0,0,-5]) pot_joint(pot=false);
+            translate([len,0,-13]) pot_joint(pot=true,lug_two = true);
+        }
+        // remove channel for wire
+        translate([len-10,0,-25]) cube([10,6,6],center=true);
+        // remove notch for mating arm
+        translate([len,0,-4]) rotate([0,0,45]) 
+        translate([0,4,0]) cube([60,8,8],center=true);
+        
+    }
+    // Cube that connects the two ends
+    translate([5,width/2,8]) rotate([-90,0,-90]) 
+        cube([width,8,len-10],center=false);
+}
+*Input_Arm_model(len=lenAB,width=widthAB);
+
+module Input_Arm_Assembly(B_angle = 0,C_angle=0){
+    // Display the Input Arm Assembly from the AB arm and on
+    // A joint is at [0,0], Second joint is at [length,0]
+    
+    // DRAW THE AB ARM
+    color("plum",1) Input_Arm_model(len=lenAB,width=widthAB);
+    color("plum",.5) translate([lenAB,0,-28]) rotate([0,0,180]) Pot_Cover_model();
+    
+    // DRAW THE BC ARM 
+    translate([lenAB,0,-8]) rotate([0,0,B_angle]) {
+        color("lightblue",1) Input_Arm_model(len=lenBC,width=widthAB);
+        color("lightblue",.5) translate([lenBC,0,-28]) rotate([0,0,180]) Pot_Cover_model();
+        translate([0,0,-5]) P090S_pot(negative=false);
+        
+        // DRAW THE C END
+        translate([lenBC,0,-13]) rotate([0,0,C_angle]) {
+            color("blue",1) C_End_Knob_model();
+            P090S_pot(negative=false);
+            }
+        }
+}
+*Input_Arm_Assembly();
 
 module base_turntable_model () {
     // Model of turntable Base, for the input arm
 
     // Potentiometer support for Joint A
-    translate([-5,0,A_joint_z_shift+base_t/2]) rotate([0,90,0]) pot_joint();
+    translate([-5,0,A_joint_z_shift+base_t/2]) rotate([0,-90,180]) pot_joint();
 
     difference() {
         cylinder(h=base_t,d=base_w,center=true,$fn=fascets); // turntable
@@ -285,6 +157,8 @@ module base_turntable_model () {
                 cylinder(h=base_t*3,d=12,center=true,$fn=fascets);
     }
 }
+*base_turntable_model();
+
 module base_model (part_one = true) {
     // Model of Base, for the input arm (THE FIXED PART)
     // TWO PART MODEL. 1 = MAIN BASE,  2 = SCREW ON TOP
@@ -309,7 +183,7 @@ module base_model (part_one = true) {
                 washer(d=base_w+add_d,t=base_t+0.4,d_pin=base_w*1.01,$fn=fascets); 
             } // END UNION
             
-            screw_holes(); // subtract top cap screw holes
+            screw_holes(dia=2.5,height=10); // subtract top cap screw holes
             // subtract a big hole for the wires
             translate([0,-30,-8]) rotate([90,0,0]) cylinder(h=46,r=14,center=true,$fn=60);
         // bottom attach screw holes
@@ -318,20 +192,23 @@ module base_model (part_one = true) {
             }
             
     } else { // PART TWO = top layer
-        difference() { 
+        difference() {  // top cover
             translate([0,0,top_h/2+base_t/2+0.2])
-                washer(d=base_w+add_d,t=top_h,d_pin=base_w-10,$fn=fascets); // top cover
-            screw_holes();
+                washer(d=base_w+add_d,t=top_h,d_pin=base_w-10,$fn=fascets); 
+            screw_holes(dia=3,height=top_h*4);
+            translate([0,0,top_h*2]) screw_holes(dia=5.8,height=top_h);
         }
     }
 
-    module screw_holes () {
+    module screw_holes (dia=2.5,height=4) {
         // top cover screw holes
         rotate([0,0,90]) Rotation_Pattern(number=5,radius=base_w/1.8,total_angle=360)
-                cylinder(h=base_t*3,d=2.5,center=true,$fn=12);
+                cylinder(h=height,d=dia,center=true,$fn=12);
     }
         
 }
+*base_model(part_one=true);
+*base_model(part_one=false);
 
 *difference () { // DIFFERENCE FOR VIEWING SECTION CUT
     base_assy(T_angle = 0,draw_arm=true);
@@ -349,25 +226,11 @@ module base_assy(T_angle=0) {
     rotate([0,0,T_angle]) {
         base_turntable_model ();
         translate([-5,0,A_joint_z_shift+base_t/2]) 
-            rotate([0,90,0]) P090S_pot(negative=false);
+            rotate([-90,0,-90]) P090S_pot(negative=false);
     }
 }
-module draw_dummy_arm(a=[0,0,0],b=[0,0,100],c=[100,0,100],d=[100,0,0]) {
-    color("silver") pt_pt_cylinder (from=a,to=b, d = 2,$fn=12);
-    color("grey") pt_pt_cylinder (from=b,to=c, d = 2,$fn=12);
-    color("black") pt_pt_cylinder (from=c,to=d, d = 2,$fn=12);
-}
-function inverse_arm_kinematics (c=[0,10,0]) = 
-    // calculate the angles from pt C ***Inverse Kinematics***
-    //  ASSUMES THAT c is on the YZ plane (x is ignored)
-    // returns an array with [A_angle,B_angle]
-    let (vt = norm(c))  // vector length from A to C
-    let (sub_angle1 = atan2(c[2],c[1]))  // atan2 (Y,X)!
-    let (sub_angle2 = acos((vt*vt+lenAB*lenAB-(lenBC*lenBC))/(2*vt*lenAB)) )
-    echo(vt=vt,sub_angle1=sub_angle1,sub_angle2=sub_angle2)
-    [sub_angle1 + sub_angle2,acos((lenBC*lenBC+lenAB*lenAB-vt*vt)/(2*lenBC*lenAB))] ;
 
-module draw_assy (A_angle=0,B_angle=0,D_angle=0,T_angle = 0) {
+module draw_assy (A_angle=0,B_angle=0,T_angle = 0) {
     // Display the input arm assembly.
     //  This module is not for printing.
     // Input parameters are the angle from the input arm
@@ -381,7 +244,7 @@ module draw_assy (A_angle=0,B_angle=0,D_angle=0,T_angle = 0) {
     Crob = (Brob > 45) ? Brob - 135 : -90; // limit the claw from contacting the arm
     echo(Brob=Brob,Crob=Crob);
     
-    a=[20,0,13]; // location of A
+    a=[20,0,A_Z_shift]; // location of A
 
     // calculate b and c positions from angles
     br=[0,lenAB*cos(Arob),lenAB*sin(Arob)];  // B relative location
@@ -389,27 +252,28 @@ module draw_assy (A_angle=0,B_angle=0,D_angle=0,T_angle = 0) {
     cr = [0,cos(Brob)*lenBC,sin(Brob)*lenBC];
     c=b+cr;  // C absolute
     
-    angles = (c[2] > 0) ? [Arob,Brob] : inverse_arm_kinematics([0,c[1],0]); 
+    // IF C IS TOO LOW, MODIFY KINEMATICS TO PREVENT ARM FROM RUNNING INTO THE GROUND
+    angles = (c[2] > A_Z_shift) ? [Arob,Brob] : inverse_arm_kinematics([0,c[1],0],lenAB=lenAB,lenBC=lenBC); 
 
     base_assy(T_angle = T_angle);
     
-    translate([0,0,13]) // translate to base joint location
+    translate([0,0,A_Z_shift]) // translate to base joint location
         rotate([A_angle,0,T_angle]) // A rotation
             rotate([90,0,90]) 
                 // Draw the AB arm assembly
-                AB_arm_assy(B_angle);
+                Input_Arm_Assembly(B_angle,C_angle=Crob);
                 
     // calculate NEW b and c positions from angles
     br2=[0,lenAB*cos(angles[0]),lenAB*sin(angles[0])];  // B relative location
     b2=a+br2; // B absolute
-    cr2 = [0,cos(angles[1])*lenBC,sin(angles[1])*lenBC];
+    ba2 = (c[2]>A_Z_shift) ? Brob : -(180-angles[0]-angles[1]);  // Angle of BC arm relative to horizontal
+    cr2 = [0,cos(ba2)*lenBC,sin(ba2)*lenBC];
     c2=b2+cr2;  // C absolute
-    cdLen = 20;  // TEMPORARY DEFINE CLAW LENGTH
     dr=[0,cos(Crob)*cdLen,sin(Crob)*cdLen];
     d=c2+dr; // D absolute
    
     rotate([0,0,T_angle]) draw_dummy_arm(a,b2,c2,d);
 }
-draw_assy(A_angle=AA,B_angle=BB,T_angle=0);
+*draw_assy(A_angle=AA,B_angle=BB,T_angle=TT);
     
-*translate([30,0,40]) rotate([0,90,0]) ruler(100);
+*translate([30,0,0]) rotate([0,90,90]) ruler(100);

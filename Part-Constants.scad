@@ -54,3 +54,5 @@ servo_horn_t=7.4;
 //GT2pulleyd = 12;
 //GT2pulleyt = 8.5;
 
+pot_shaft_dia = 6.2; // mm, potentiometer shaft dia
+pot_lug_t = 8; // thickness of the lug over potentiometer shaft
