@@ -85,6 +85,21 @@ echo (end_weight=end_weight,payload=payload,combined_weight=combined_weight,C_mo
 // SPRINGS TO HELP JOINT A AND B ARE OPTIONAL
 
 echo (lenAB=lenAB,lenBC=lenBC); // echo main link lengths
+// DEFINITION OF ARM ANGLES
+// When looking at the arm in the XY view (Top), Pos X to the right
+// When the AB arm is horizontal pointing right from A, is 0 deg (pos CCW)
+// When the BC arm is horizontal pointing right from A, is 0 deg (pos CCW)
+// angle limits at the B joint. Angle is 0 when BC in line with AB
+// ANGLE ranges are defined in the configuration file
+
+// angle range (degrees) of A servo
+A_range = 160;  // [0:1:180]
+// angle range (degrees) of B servo
+B_range = 170; // [0:1:260]
+// middle of A range used for rigging
+A_rigging = 70; // [0:1:180]
+// middle of B range used for rigging
+B_rigging = 45; // [0:1:90]
 
 // values used in the reach path calculations
 min_A=A_rigging-(A_range/2);

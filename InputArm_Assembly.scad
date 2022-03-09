@@ -5,8 +5,11 @@
 use <Robot_Arm_Parts_lib.scad>
 include <Part-Constants.scad>
 
+// Joint A angle
 AA = 5; // [0:130.0]
-BB = 0; // [-145:1:130.0]
+// Joint B angle
+BB = -10; // [-145:1:0.0]
+// Turntable angle
 TT = 0; // [-60:60]
 // use 140 for printing, 40 for display
 fascets = 140; // [40,140]
@@ -42,7 +45,7 @@ if (display_assy) {
             translate ([-100,-100,-200]) cube (200,center=false);
         }
     }
-module pot_joint(pot=true,lug_two = true) {
+module pot_joint(pot=true,lug_two = true,tlug = 8) {
     // If pot = true then model the side that holds the pot
     // Else model the lug that goes on the shaft
     dbody = 26;
@@ -56,9 +59,9 @@ module pot_joint(pot=true,lug_two = true) {
                 translate([0,0,2.4]) washer(d=dbody-10,t=5,d_pin=1,$fn=fascets);
                 
                 // lug opposite pot.  Large hole for access
-                if (lug_two) translate([0,0,5+4+8]) washer(d=dbody,t=8,d_pin=7,$fn=fascets); 
+                if (lug_two) translate([0,0,5+4+tlug]) washer(d=dbody,t=8,d_pin=7,$fn=fascets); 
             } else { // lug for shaft
-                translate([0,0,5+3.8]) washer(d=dlug,t=8.4,d_pin=1,$fn=fascets);
+                translate([0,0,5+3.8]) washer(d=dlug,t=tlug+0.4,d_pin=1,$fn=fascets);
             }
         }
         // remove potentiometer interfaces
@@ -89,12 +92,13 @@ module Pot_Cover_model() {
 *Pot_Cover_model();
 
 module C_End_Knob_model() {
-    pot_joint(pot=false);
-    translate([12,0,9]) cube([15,8,8],center=true);
+    pot_joint(pot=false,lug_two=false,tlug=7,$fn=fascets);
+    // finger point rounded_cube(size=[x,y,z],r=rad,center=true)
+    translate([12,0,9]) rounded_cube([19,6,7],r=2.9,center=true,$fn=fascets);
 }
 *C_End_Knob_model();
 
-module Input_Arm_model(len=100,width=10) {
+module Input_Arm_model(len=100,width=10,overtravel=false) {
     difference() {
         union() {
             // Preview F5 display problems, but Render F6 works
@@ -112,10 +116,14 @@ module Input_Arm_model(len=100,width=10) {
         
     }
     // Cube that connects the two ends
-    translate([5,width/2,8]) rotate([-90,0,-90]) 
-        cube([width,8,len-10],center=false);
+    translate([5,-width/2,0]) cube([len-10,width,8],center=false);
+    // overtravel stop
+    if (overtravel) {
+        translate([-15,width/2,0]) cube([30,width/2,8],center=false);
+    }
 }
-*Input_Arm_model(len=lenAB,width=widthAB);
+*Input_Arm_model(len=lenAB,width=widthAB,overtravel=false);
+*Input_Arm_model(len=lenBC,width=widthAB,overtravel=true);
 
 module Input_Arm_Assembly(B_angle = 0,C_angle=0){
     // Display the Input Arm Assembly from the AB arm and on
@@ -127,7 +135,7 @@ module Input_Arm_Assembly(B_angle = 0,C_angle=0){
     
     // DRAW THE BC ARM 
     translate([lenAB,0,-8]) rotate([0,0,B_angle]) {
-        color("lightblue",1) Input_Arm_model(len=lenBC,width=widthAB);
+        color("lightblue",1) Input_Arm_model(len=lenBC,width=widthAB,overtravel=true);
         color("lightblue",.5) translate([lenBC,0,-28]) rotate([0,0,180]) Pot_Cover_model();
         translate([0,0,-5]) P090S_pot(negative=false);
         
@@ -240,7 +248,7 @@ module draw_assy (A_angle=0,B_angle=0,T_angle = 0) {
     //  T is the turntable angle
     // A larger wireframe robot arm is drawn with the computed angles
     Arob = A_angle;  // A robot arm = A input arm
-    Brob = Arob+B_angle; // B robot arm = A + B input arm
+    Brob = (Arob+B_angle < -45) ? -45 : Arob+B_angle; // B robot arm = A + B input arm
     Crob = (Brob > 45) ? Brob - 135 : -90; // limit the claw from contacting the arm
     echo(Brob=Brob,Crob=Crob);
     

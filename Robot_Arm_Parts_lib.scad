@@ -3,15 +3,14 @@
 //  last modified December 2021 by SrAmo
 use <force_lib.scad>
 use <Pulley-GT2_2.scad>
-
-
 include <Part-Constants.scad>
-include <SACC-26-Configuration.scad>
 
 function law_sines_angle (C=30,a=10,c_ang=120) = 
+    // law of sines, given length C, a, and C Angle, return A angle
    asin((a/C)*sin(c_ang));
 
 function law_sines_length (C=30,c_ang=120,b_ang=30) =
+    // law of sines, given length C, c angle and b angle, return B length
    C * (sin(b_ang)/sin(c_ang));
 
 function inverse_arm_kinematics (c=[0,10,0],lenAB=100,lenBC=120) = 
@@ -365,6 +364,7 @@ module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15) {
     back_height = t2; // match claw interface
     translate([-x9/2,r-3*t1,0]) cube([x9,6*t1,back_height],center=false);
     
+    End_w = 10; // End effector interface width, mm
     // Add a cube to connect the back plate
     translate([-End_w/2,-r,0]) cube([End_w,2*r,t2],center=false);
     
@@ -644,7 +644,7 @@ module servo_horn (l=servo_horn_l, d1=servo_horn_d1, d2=servo_horn_d2, t=servo_h
         if (vis) cylinder (h=4*t,d=2,center=true);
     }
 }
-servo_horn(vis=false);
+*servo_horn(vis=false);
 
 module servo_body (vis=true){
     // Create servo body on xy plane, spline shaft center at 0,0,0
@@ -775,9 +775,7 @@ module P090S_pot (L=13.1,negative=false) {
         } else {         // potentiometer for difference()
             translate([0,0,-zb/2]) cube([10,17,zb],center=true);
             // barb slots for wire connector
-            *translate([1.6,8.4,-zb]) cube([1.22,1,zb],center=false);
             translate([1.6,8.4,-zb]) cube([1.5,1,zb],center=false);
-            *translate([-1.22-1.6,8.4,-zb]) cube([1.22,1,zb],center=false);
             translate([-1.22-1.9,8.4,-zb]) cube([1.5,1,zb],center=false);
         }
         
@@ -815,9 +813,102 @@ module P090S_pot (L=13.1,negative=false) {
             polygon([[0,0],[8.5,0],[9.5,1],[10.5,0],[12,0],[12,-1],[0,-1],[0,0]]);
     }
 }
-P090S_pot(negative=true);
+*P090S_pot(negative=true);
 *translate([20,0,0]) P090S_pot(negative=false);
 
+module RV112FF_pot (L=19,negative=false) {
+    // units are in metric
+    // nagative false = model a potentiometer for display
+    // negative true = model to be used with a difference() in another model
+    // L = length of the shaft above the body
+    
+    ss = negative ? 1.0: 0.97;  // if negative is false then scale down
+    // constants
+    zbody = 5.1;
+    zb = zbody+10;
+    lenPin=7;
+    zpin = -4-lenPin;
+
+    scale([ss,ss,ss]){ // scale down the model for display
+        color("green") if (!negative) { // potentiometer for display
+            translate([0,0,-zbody/2]) cube([12,16,zbody],center=true);
+        } else {         // potentiometer for difference()
+            translate([0,0,-zb/2]) cube([12,22,zb],center=true);
+            // barb slots for wire connector
+            translate([3.5,11,-zb/2]) cube([2,2,zb],center=true);
+            translate([-3.5,11,-zb/2]) cube([2,2,zb],center=true);
+        }
+        
+        cylinder(h=10,d=9,center=true,$fn=48); // ring around the shaft
+        
+        // two bumps around the shaft
+        translate([4,-5,0]) cylinder(h=2,d=2.5,center=true,$fn=24);
+        translate([-4,5,0]) cylinder(h=2,d=2.5,center=true,$fn=24);
+        
+    
+        // shaft F-Type
+        color("darkslategrey") difference () {
+            translate([0,0,L/2]) cylinder(h=L,d=6.2,center=true,$fn=48);
+            translate ([-5,1.45,5]) cube(L,center=false); // key
+        }
+        // pins (4)
+        translate([-3.75,10,zpin]) elect_pin();
+        translate([-1.25,10,zpin]) elect_pin();
+        translate([1.25,10,zpin]) elect_pin();
+        translate([3.75,10,zpin]) elect_pin();
+        // clip
+        clip();
+        mirror([1,0,0]) clip();
+        // wire connector
+        if (!negative) color("ivory") translate([0,10,-10]) cube([11,4,8],center=true);
+    }
+     
+    module elect_pin() {
+        // 1 mm diamater electric pin
+        cylinder(h=lenPin,r=.5,$fn=8);
+        translate([0,0,lenPin]) rotate([90,0,0]) cylinder(h=lenPin,r=.5,$fn=8);
+    }
+    module clip() {
+        translate([6,0,0]) rotate([90,90,0])
+        linear_extrude(3,center=true)
+            polygon([[0,0],[8.5,0],[9.5,1],[10.5,0],[12,0],[12,-1],[0,-1],[0,0]]);
+    }
+}
+*RV112FF_pot(negative=true);
+*translate([20,0,0]) RV112FF_pot(negative=false);
+
+module pot_joint(pot=true,lug_two = true,tlug = 8) {
+    // If pot = true then model the side that holds the pot
+    // Else model the lug that goes on the shaft
+    dbody = 30;
+    zbody = 16;
+    dlug = 20;
+    fascets = 120;
+    difference () {
+       // lug
+        union() {
+            if (pot) {
+                translate([0,0,-zbody/2+1]) washer(d=dbody,t=zbody,d_pin=1,$fn=fascets);
+                //translate([0,0,2.4]) washer(d=dbody-10,t=5,d_pin=1,$fn=fascets);
+                translate([0,dbody/2-2,-zbody/2+1]) rotate([90,0,0]) cube([60,zbody,4],center=true);
+                
+                // lug opposite pot.  Large hole for access
+                if (lug_two) translate([0,0,5+4+tlug]) washer(d=dbody,t=8,d_pin=7,$fn=fascets); 
+            } else { // lug for shaft
+                translate([0,0,5+3.8]) washer(d=dlug,t=tlug+0.4,d_pin=1,$fn=fascets);
+                translate([0,0,16]) washer(d=9,t=20,d_pin=1,$fn=fascets);
+            }
+        }
+        // remove potentiometer interfaces
+        translate([0,0,-2]) rotate([0,0,-90]) RV112FF_pot(negative=true);
+
+    }
+}
+pot_joint(lug_two=false);
+*rotate([0,0,-90]) {
+    translate([0,0,5]) pot_joint(pot=false);
+    *RV112FF_pot(negative=false);
+}
 module tube_barb (ID=4.763, OD=6.35) {
     // barb to connect two ends of tube into a loop
     // UNITS ARE METRIC
@@ -916,7 +1007,8 @@ module Power_Energy_Meter() {
     // model of bayite DC 6.5-100V 0-100A LCD Digital Current Voltage Power Energy Meter
     color("DarkGray") {
         translate([0,0,-11.15]) cube([45,87,22.3],center=true);
-        translate([0,0,1]) cube([50,90,2],center=true);
+        translate([0,0,1]) cube([50,91,2],center=true);
+        translate([0,0,-7]) cube([45,89,10],center=true); // for removal to make lip
     }
 }
 *Power_Energy_Meter();
@@ -932,10 +1024,11 @@ module Rocker_Switch () {
 module Current_Shunt () {
     bolt_center = 86.55;
     color ("DarkCyan") {
-        cube([15,105,2],center=true);
-        translate([0,bolt_center/2,0]) cylinder(h=20,d=5,center=true);
-        translate([0,-bolt_center/2,0]) cylinder(h=20,d=5,center=true);
-        
+        difference() {
+            cube([15,105,2],center=true);
+            translate([0,bolt_center/2,0]) cylinder(h=20,d=5,center=true);
+            translate([0,-bolt_center/2,0]) cylinder(h=20,d=5,center=true);
+        }
     }
 }
 *translate([60,0,0]) Current_Shunt();
@@ -954,7 +1047,7 @@ module Rotation_Pattern(number=3,radius=20,total_angle=360) {
       echo("INVALID ARGUMENTS IN Rotation_Pattern module");
   }
 }
-Rotation_Pattern(5,30) cylinder(h=10,d=3,center=true);
+*Rotation_Pattern(5,30) cylinder(h=10,d=3,center=true);
 
 module 2d_test() {
     // RENDER F6 and export to .svg, then import to Easel
@@ -976,4 +1069,12 @@ module U_section(Lbase=20,Lleg=15,Tbase=2,Tleg=1) {
         polygon([[0,0],[Lbase,0],[Lbase,Lleg],[Lbase-Tleg,Lleg],[Lbase-Tleg,Tbase],[Tleg,Tbase],[Tleg,Lleg],[0,Lleg],[0,0]]);
     }
 }
-U_section();
+*U_section();
+
+module GoPro_model() { 
+    color("grey") {
+    translate([0,0,0]) 
+    translate([0,(62-29),25]) rounded_cube([32,29,9],r=4,center=false);        
+    }
+}
+*GoPro_model();
