@@ -21,7 +21,7 @@ M6_bearing_t=3.15;
 hole_qtr_inch=6.48;   // hole for 0.25 inch joint/bolt 0.255 inch = 6.477 mm
 hole_no6_screw = 2.5; // hole start diameter for number 6 screw 0.095 inch = 2.413
 hole_M3=3.1; // hole for M3 (3 mm) joint/bolt
-hole_M5=5.1;  
+//hole_M5=5.1;  
 hole_M6=6.1;
 hole_servo_bushing=3.81; // hole for servo bushing 0.15 inch = 3.81 mm
 

@@ -20,9 +20,7 @@ display_belt = true;
 perform_section_cut = false;
 
 // tuneable constants
-//retainer = 1;		// Belt retainer above teeth, 0 = No, 1 = Yes
 retainer_ht = 1.;	// height of retainer flange, part of pulley_t_ht
-//idler = 1;			// Belt retainer below teeth, 0 = No, 1 = Yes
 idler_ht = 1.;		// height of idler flange, part of pulley_t_ht
 
 //	********************************
@@ -30,8 +28,7 @@ idler_ht = 1.;		// height of idler flange, part of pulley_t_ht
 //	********************************
 /*	To improve fit of belt to pulley, set the following constant. Decrease or increase by 0.1mm at a time. We are modelling the *BELT* tooth here, not the tooth on the pulley. Increasing the number will *decrease* the pulley tooth size. Increasing the tooth width will also scale proportionately the tooth depth, to maintain the shape of the tooth, and increase how far into the pulley the tooth is indented. Can be negative */
 
-//difference () {
-    
+  
 if (display_pulley) {
     difference () {
         pulley_gt2_2 ( teeth = display_teeth , pulley_t_ht = 10 ,motor_shaft=10 );
@@ -51,9 +48,6 @@ if (display_belt) {
     }
 
 // Functions
-
-function tooth_spaceing_curvefit (teeth,b,c,d)
-	= ((c * pow(teeth,d)) / (b + pow(teeth,d))) * teeth ;
 
 function tooth_spacing(teeth,tooth_pitch,pitch_line_offset)
 	= (2*((teeth*tooth_pitch)/(3.14159265*2)-pitch_line_offset)) ;
@@ -103,8 +97,7 @@ module belt_circle ( teeth=100, ht=5, thk = 1,tooth_depth=0.764 ,tooth_width=1.4
 }
 // Main Module
 
-module pulley_gt2_2( teeth = 40 , pulley_t_ht = 10, motor_shaft = 5.2, tooth_depth=0.764 , tooth_width=1.494 ,retainer=1,idler=1)
-	{
+module pulley_gt2_2( teeth = 40 , pulley_t_ht = 10, motor_shaft = 5.2, tooth_depth=0.764 , tooth_width=1.494 ,retainer=1,idler=1) 	{
 
     // for pulley 0.2, for belt -0.2 mm
     additional_tooth_width = 0.1; //mm
@@ -122,13 +115,10 @@ module pulley_gt2_2( teeth = 40 , pulley_t_ht = 10, motor_shaft = 5.2, tooth_dep
 	tooth_width_scale = (tooth_width + additional_tooth_width ) / tooth_width;
 	tooth_depth_scale = ((tooth_depth + additional_tooth_depth ) / tooth_depth) ;
 
-	difference()
-	 {	 
-		union()
-		{
+	difference() {	 
+		union()	{
 			linear_extrude(pulley_t_ht)
-            difference()
-			{
+            difference()		{
 			//shaft - diameter is outside diameter of pulley
 			
 			translate([0,0,0]) 
@@ -160,14 +150,10 @@ module pulley_gt2_2( teeth = 40 , pulley_t_ht = 10, motor_shaft = 5.2, tooth_dep
 		//hole for motor shaft
 		translate([0,0,-1])
             cylinder(r=motor_shaft/2,h= pulley_t_ht + retainer_ht + 2,$fa=1,$fs=1);
-				
 	 }
-	   
-	}
-
+}
 
 // Tooth profile modules
-
 module GT2_2mm(pulley_t_ht=6)
 	{
 	/*linear_extrude(height=pulley_t_ht+2) */ polygon([[0.747183,-0.5],[0.747183,0],[0.647876,0.037218],[0.598311,0.130528],[0.578556,0.238423],[0.547158,0.343077],[0.504649,0.443762],[0.451556,0.53975],[0.358229,0.636924],[0.2484,0.707276],[0.127259,0.750044],[0,0.76447],[-0.127259,0.750044],[-0.2484,0.707276],[-0.358229,0.636924],[-0.451556,0.53975],[-0.504797,0.443762],[-0.547291,0.343077],[-0.578605,0.238423],[-0.598311,0.130528],[-0.648009,0.037218],[-0.747183,0],[-0.747183,-0.5]]);

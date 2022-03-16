@@ -1,9 +1,12 @@
 // Input Arm Assembly
 //  Design for Human Hand to drive a Robot Arm
-//  last modified February 2022 by SrAmo
-//use <force_lib.scad>
-use <Robot_Arm_Parts_lib.scad>
-include <Part-Constants.scad>
+//  last modified March 2022 by SrAmo
+//
+//  To make printable models find "FOR_PRINT" and remove * suffix, 
+//     then F6 & Export .stl
+
+//use <Robot_Arm_Parts_lib.scad>
+//include <Part-Constants.scad>
 
 // Joint A angle
 AA = 5; // [0:130.0]
@@ -35,16 +38,162 @@ base_w = 60;
 
 // CLAW LENGTH on Real arm, for dummy model
 cdLen = 20;  
+//#########################################################
+function inverse_arm_kinematics (c=[0,10,0],lenAB=100,lenBC=120) = 
+    // calculate the angles given pt C ***Inverse Kinematics***
+    //  ASSUMES THAT c is on the YZ plane (x is ignored)
+    //  ASSUMES that A is at [0,0,0]
+    // returns an array with [A_angle,B_angle] where B_angle is ABC (not BC to horizontal)
+    let (vt = norm(c))  // vector length from A to C
+    let (sub_angle1 = atan2(c[2],c[1]))  // atan2 (Y,X)!
+    let (sub_angle2 = acos((vt*vt+lenAB*lenAB-(lenBC*lenBC))/(2*vt*lenAB)) )
+    //echo(vt=vt,sub_angle1=sub_angle1,sub_angle2=sub_angle2)
+    [sub_angle1 + sub_angle2,acos((lenBC*lenBC+lenAB*lenAB-vt*vt)/(2*lenBC*lenAB))] ;
+    
+module washer(d=20,t=2,d_pin=10){
+// model washer on xy plane at 0,0,0 of radius r
+// t is thickness (centered about z=0)
 
-if (display_assy) {
-    difference () {
-        draw_assy(AA,BB,TT);
-        if (clip_yz) // x = xcp cut 
-            translate ([-201,-100,-100]) cube (200,center=false);
-        if (clip_xy) // z = 0 cut 
-            translate ([-100,-100,-200]) cube (200,center=false);
+difference(){
+    cylinder(t,d=d,center=true);  // outside
+    
+    // subtract bore
+    cylinder(2*t,d=d_pin,center=true);
+};
+}
+module P090S_pot (L=13.1,negative=false) {
+    // units are in metric
+    // nagative false = model a potentiometer for display
+    // negative true = model to be used with a difference() in another model
+    // L = length of the shaft above the body
+    
+    ss = negative ? 1.0: 0.97;  // if negative false then scale down
+    // constants
+    zbody = 5.1;
+    zb = zbody+10;
+    lenPin=7;
+    zpin = -4-lenPin;
+
+    scale([ss,ss,ss]){ // scale down the model for display
+        color("green") if (!negative) { // potentiometer for display
+            translate([0,0,-zbody/2]) cube([10,12,zbody],center=true);
+        } else {         // potentiometer for difference()
+            translate([0,0,-zb/2]) cube([10,17,zb],center=true);
+            // barb slots for wire connector
+            translate([1.6,8.4,-zb]) cube([1.5,1,zb],center=false);
+            translate([-1.22-1.9,8.4,-zb]) cube([1.5,1,zb],center=false);
         }
+        
+        cylinder(h=2,d=7.2,center=true,$fn=48); // ring around the shaft
+        
+        // two bumps around the shaft
+        translate([2.7,-3.8,0]) cylinder(h=2,d=2.5,center=true,$fn=24);
+        translate([-2.7,3.8,0]) cylinder(h=2,d=2.5,center=true,$fn=24);
+        
+    
+        // shaft F-Type
+        color("darkslategrey") difference () {
+            translate([0,0,L/2]) cylinder(h=L,d=6.2,center=true,$fn=48);
+            translate ([-5,1.45,5]) cube(L,center=false); // key
+        }
+        // pins (3)
+        translate([0,7,zpin]) elect_pin();
+        translate([-2.5,7,zpin]) elect_pin();
+        translate([2.5,7,zpin]) elect_pin();
+        // clip
+        clip();
+        mirror([1,0,0]) clip();
+        // wire connector
+        color("ivory") translate([0,6,-10]) cube([8,4,8],center=true);
     }
+     
+    module elect_pin() {
+        // 1 mm diamater electric pin
+        cylinder(h=lenPin,r=.5,$fn=8);
+        translate([0,0,lenPin]) rotate([90,0,0]) cylinder(h=lenPin,r=.5,$fn=8);
+    }
+    module clip() {
+        translate([4.9,0,0]) rotate([90,90,0])
+        linear_extrude(3,center=true)
+            polygon([[0,0],[8.5,0],[9.5,1],[10.5,0],[12,0],[12,-1],[0,-1],[0,0]]);
+    }
+}
+//This is used for rotational patterns
+//child elements will be centered on 
+module Rotation_Pattern(number=3,radius=20,total_angle=360) {
+  ang_inc = total_angle/number;
+  //echo(ang_inc=ang_inc);
+  if (number>1 && radius > 0) {
+      for(i = [0 : number-1 ] ) {
+        rotate([0,0,i*ang_inc]) translate([radius,0,0])
+          children(0);
+          }
+    } else {
+      echo("INVALID ARGUMENTS IN Rotation_Pattern module");
+  }
+}
+module U_section(Lbase=20,Lleg=15,Tbase=2,Tleg=1) {
+    // Create a U section polygon (2D)
+    // the origin in the lower left
+    if(Lbase>0 && Lleg>0 && Tbase>0 && Tleg>0) {
+        polygon([[0,0],[Lbase,0],[Lbase,Lleg],[Lbase-Tleg,Lleg],[Lbase-Tleg,Tbase],[Tleg,Tbase],[Tleg,Lleg],[0,Lleg],[0,0]]);
+    }
+}
+module rounded_cube(size=[10,20,10],r=1,center=true) {
+    // Create a rounded cube in the xy plane, flat on the Z ends
+    // Creates 4 cylinders and then uses hull
+    $fa=$preview ? 2 : 1; // minimum angle fragment
+    $fs=0.1; // minimum size of fragment (default is 2)
+    
+    xp=center ? size[0]/2-r : size[0]-r;
+    yp=center ? size[1]/2-r : size[1]-r;
+    xn=center ? -xp : r;
+    yn=center ? -yp : r;
+    z=center ? 0 : size[2]/2;
+
+    hull () {
+        translate([xp,yp,z])
+            cylinder(h=size[2],r=r,center=true);
+        translate([xp,yn,z])
+            cylinder(h=size[2],r=r,center=true);
+        translate([xn,yp,z])
+            cylinder(h=size[2],r=r,center=true);
+        translate([xn,yn,z])
+            cylinder(h=size[2],r=r,center=true);       
+    }  
+}
+module pt_pt_cylinder (from=[10,10,0],to=[-10,0,-10], d = 2){
+    // Create a cylinder from point to point
+    
+    vec=from-to;
+    length=norm(vec);
+    dx = -vec[0];
+    dy = -vec[1];
+    dz = -vec[2];
+
+    if (length>0.01) {  // check for non zero vector
+        
+        // "cylinder" is centered around z axis
+        // These are the angles needed to rotate to correct direction
+        ay = 90 - atan2(dz, sqrt(dx*dx + dy*dy));
+        az = atan2(dy, dx);
+        angles = [0, ay, az];
+        
+        translate (from) 
+        rotate (angles) 
+        cylinder(length,d = d,false);  
+    }else {
+        echo("MODULE PT_PT_CYLINDER; small length =",length);
+    }
+}
+
+module draw_dummy_arm(a=[0,0,0],b=[0,0,100],c=[100,0,100],d=[100,0,0]) {
+    color("silver") pt_pt_cylinder (from=a,to=b, d = 2,$fn=12);
+    color("grey") pt_pt_cylinder (from=b,to=c, d = 2,$fn=12);
+    color("black") pt_pt_cylinder (from=c,to=d, d = 2,$fn=12);
+}
+
+//########################################################
 module pot_joint(pot=true,lug_two = true,tlug = 8) {
     // If pot = true then model the side that holds the pot
     // Else model the lug that goes on the shaft
@@ -72,11 +221,16 @@ module pot_joint(pot=true,lug_two = true,tlug = 8) {
 
     }
 }
-*pot_joint();
-*translate([30,0,0]) {
-    pot_joint(pot=false);
-    P090S_pot(negative=false);
+*pot_joint(); // not for print
+
+module C_knob_base (pot=true,lug_two = true,tlug = 8) {
+    dbody = 26; // values repeated from above
+    zbody = A_Z_shift;
+    rotate([0,0,90]) pot_joint(pot=true,lug_two = false,tlug = 8);
+    translate([0,dbody/2,-zbody/2+1]) rotate([90,0,0]) cube([60,zbody+2,4],center=true);
 }
+*C_knob_base(); // FOR_PRINT
+
 module Pot_Cover_model() {
     dbody = 26;
     difference() {
@@ -89,14 +243,14 @@ module Pot_Cover_model() {
     translate([27,0,8.5]) cube([3,16,20],center=true);
 
 }
-*Pot_Cover_model();
+*Pot_Cover_model(); // FOR_PRINT
 
 module C_End_Knob_model() {
     pot_joint(pot=false,lug_two=false,tlug=7,$fn=fascets);
     // finger point rounded_cube(size=[x,y,z],r=rad,center=true)
     translate([12,0,9]) rounded_cube([19,6,7],r=2.9,center=true,$fn=fascets);
 }
-*C_End_Knob_model();
+*C_End_Knob_model();  // FOR_PRINT
 
 module Input_Arm_model(len=100,width=10,overtravel=false) {
     difference() {
@@ -122,8 +276,11 @@ module Input_Arm_model(len=100,width=10,overtravel=false) {
         translate([-15,width/2,0]) cube([30,width/2,8],center=false);
     }
 }
-*Input_Arm_model(len=lenAB,width=widthAB,overtravel=false);
-*Input_Arm_model(len=lenBC,width=widthAB,overtravel=true);
+// AB_model
+*Input_Arm_model(len=lenAB,width=widthAB,overtravel=false);  // FOR_PRINT
+
+// BC_model
+*Input_Arm_model(len=lenBC,width=widthAB,overtravel=true);  // FOR_PRINT
 
 module Input_Arm_Assembly(B_angle = 0,C_angle=0){
     // Display the Input Arm Assembly from the AB arm and on
@@ -146,7 +303,7 @@ module Input_Arm_Assembly(B_angle = 0,C_angle=0){
             }
         }
 }
-*Input_Arm_Assembly();
+*Input_Arm_Assembly();  // do not print
 
 module base_turntable_model () {
     // Model of turntable Base, for the input arm
@@ -165,7 +322,7 @@ module base_turntable_model () {
                 cylinder(h=base_t*3,d=12,center=true,$fn=fascets);
     }
 }
-*base_turntable_model();
+*base_turntable_model(); // FOR_PRINT
 
 module base_model (part_one = true) {
     // Model of Base, for the input arm (THE FIXED PART)
@@ -215,8 +372,10 @@ module base_model (part_one = true) {
     }
         
 }
-*base_model(part_one=true);
-*base_model(part_one=false);
+// bottom
+*base_model(part_one=true);  // FOR_PRINT
+// top
+*base_model(part_one=false); // FOR_PRINT
 
 *difference () { // DIFFERENCE FOR VIEWING SECTION CUT
     base_assy(T_angle = 0,draw_arm=true);
@@ -282,6 +441,21 @@ module draw_assy (A_angle=0,B_angle=0,T_angle = 0) {
    
     rotate([0,0,T_angle]) draw_dummy_arm(a,b2,c2,d);
 }
+
 *draw_assy(A_angle=AA,B_angle=BB,T_angle=TT);
-    
+
+if (display_assy) {
+    difference () {
+        draw_assy(AA,BB,TT);
+        if (clip_yz) // x = xcp cut 
+            translate ([-201,-100,-100]) cube (200,center=false);
+        if (clip_xy) // z = 0 cut 
+            translate ([-100,-100,-200]) cube (200,center=false);
+    }
+    translate([0,-100,0]) rotate([-90,0,90]) {
+        C_End_Knob_model();
+        C_knob_base();
+        P090S_pot(negative=false);
+    }
+}    
 *translate([30,0,0]) rotate([0,90,90]) ruler(100);

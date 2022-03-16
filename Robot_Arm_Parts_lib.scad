@@ -48,7 +48,7 @@ module Cbore_Screw_Hole(d=3,h=21,cb_d=7,cb_h=2) {
 module filled_donut(t=10,d=50, r = 2) {
     // t = donut thickness,   d = donut diameter, r = fillet radius
     // Fillet radius must be less than d/4.
-    $fn=$preview ? 20 : 72; // minimum angle fragment
+    $fn=$preview ? 20 : 72; 
     if (r < d/4) {
         hull() {
         translate([0,0,t/2-r]) 
@@ -83,8 +83,6 @@ module zip_tie_holes (arm_l = 10,arm_w=1,zip_hole_d = hole_M3) {
 module rounded_cube(size=[10,20,10],r=1,center=true) {
     // Create a rounded cube in the xy plane, flat on the Z ends
     // Creates 4 cylinders and then uses hull
-    $fa=$preview ? 2 : 1; // minimum angle fragment
-    $fs=0.1; // minimum size of fragment (default is 2)
     
     xp=center ? size[0]/2-r : size[0]-r;
     yp=center ? size[1]/2-r : size[1]-r;
@@ -107,8 +105,6 @@ module lug (r=1,w=3,h=2,t=.2,d=0) {
     // Create a lug part on the xy plane, thickness t from z=0
     //   base is on y=0 and has width w
     //   center of lug is at [0,h] with radius r
-    $fa=$preview ? 6 : 1; // minimum angle fragment
-    $fs=0.1; // minimum size of fragment (default is 2)
     opp=(w-2*r)/2;
     ang=atan2(opp,h);
     y=h+r*sin(ang);
@@ -460,8 +456,6 @@ module tension_spring(from=[10,0,0],to=[20,30,20],wire_dia=0.5,od=2,coils=10,end
 module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5,LH=true,inverse=false) {
     // deflection_angle is not implimented
     
-    //$fs=wire_d/2; // minimum size of fragment (default is 2)
-    
     if (deflection_angle != 180) echo("ONLY 180 DEG TORSION SPRINGS IMPLEMENTED");
         
     turn_sign = LH ? 1 : -1 ;  // used for LH or RH springs
@@ -473,7 +467,6 @@ module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5,LH=t
         if (inverse == false) translate([0,0,-sp_len*0.05]) 
             cylinder(h=sp_len*1.1,d=ID);
     }
-    //tension_spring(from=[0,0,0],to=[0,0,sp_len-wire_d],wire_dia=wire_d,od=OD-wire_d,coils=coils,ends=false);
     
     // straight legs on each end
     x_offset = OD/2 - wire_d/2;
@@ -522,7 +515,6 @@ module pt_pt_cylinder (from=[10,10,0],to=[-10,0,-10], d = 2){
 
 module pt_pt_belt (from=[10,10,10],to=[-10,0,10], d = 1,r_pulley=30,round=true){
     // Create belts from point to point
-    $fa=$preview ? 6 : 1; // minimum ange fragment
     
     // default is round belt
     // if round = false, then draw a GT2-6 belt
@@ -714,9 +706,7 @@ module Bearing (t=4,od=30,id=25) {
 *Bearing();
 module Bearing_Flanged (t=2,flange_t=1,od=3,id=1,flange_od=4) {
     $fn=64; 
-    
     color ("SlateGrey") 
-    
     difference () {
         union() {
             translate ([0,0,-t])
