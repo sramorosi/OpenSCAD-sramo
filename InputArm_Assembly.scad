@@ -1,12 +1,11 @@
 // Input Arm Assembly
 //  Design for Human Hand to drive a Robot Arm
-//  last modified March 2022 by SrAmo
+//  last modified April 2022 by SrAmo
 //
 //  To make printable models find "FOR_PRINT" and remove * suffix, 
 //     then F6 & Export .stl
 
-//use <Robot_Arm_Parts_lib.scad>
-//include <Part-Constants.scad>
+use <Robot_Arm_Parts_lib.scad>
 
 // Joint A angle
 AA = 5; // [0:130.0]
@@ -38,7 +37,7 @@ base_w = 60;
 
 // CLAW LENGTH on Real arm, for dummy model
 cdLen = 20;  
-//#########################################################
+/*################### PART LIB FUNCTIONS AND MODULES COPY, FOR THINGIVERSE MAKE 2
 function inverse_arm_kinematics (c=[0,10,0],lenAB=100,lenBC=120) = 
     // calculate the angles given pt C ***Inverse Kinematics***
     //  ASSUMES THAT c is on the YZ plane (x is ignored)
@@ -193,7 +192,7 @@ module draw_dummy_arm(a=[0,0,0],b=[0,0,100],c=[100,0,100],d=[100,0,0]) {
     color("black") pt_pt_cylinder (from=c,to=d, d = 2,$fn=12);
 }
 
-//########################################################
+//######################################################## */
 module pot_joint(pot=true,lug_two = true,tlug = 8) {
     // If pot = true then model the side that holds the pot
     // Else model the lug that goes on the shaft
@@ -227,7 +226,14 @@ module C_knob_base (pot=true,lug_two = true,tlug = 8) {
     dbody = 26; // values repeated from above
     zbody = A_Z_shift;
     rotate([0,0,90]) pot_joint(pot=true,lug_two = false,tlug = 8);
-    translate([0,dbody/2,-zbody/2+1]) rotate([90,0,0]) cube([60,zbody+2,4],center=true);
+    translate([0,dbody/2,-zbody/2+1]) rotate([90,0,0]) {
+        difference() {
+            cube([50,zbody+2,4],center=true);
+            // screw holes
+            Rotation_Pattern(number=2,radius=20,total_angle=360)
+                    cylinder(h=10,d=3,center=true,$fn=fascets);
+        }
+    }
 }
 *C_knob_base(); // FOR_PRINT
 
@@ -336,7 +342,7 @@ module base_model (part_one = true) {
         difference() { 
             union () { // PART 1
                 // Potentiometer support for Joint T
-                translate([0,0,-9]) rotate([0,0,0]) pot_joint(pot=true,lug_two = false);
+                translate([0,0,-9]) pot_joint(pot=true,lug_two = false);
             
                 translate([0,0,-bottom_h/2-base_t/2])
                     washer(d=base_w+add_d,t=bottom_h,d_pin=base_w-10,$fn=fascets); // bottom layer

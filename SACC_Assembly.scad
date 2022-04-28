@@ -7,14 +7,14 @@
 //     then F6 & Export .stl
 
 // Note: Thingiverse only wants one .scad file per publication
-//use <Robot_Arm_Parts_lib.scad>
+use <Robot_Arm_Parts_lib.scad>
 //use <Pulley-GT2_2.scad>
-//use <gears_involute.scad>  // off for thingiverse, purchased part
-//use <arduino.scad>         // off for thingiverse, purchased part
-//include <Part-Constants.scad>
+use <gears_involute.scad>  // off for thingiverse, purchased part
+use <arduino.scad>         // off for thingiverse, purchased part
+include <Part-Constants.scad>
 
 // Draw the Robot Arm Assembly
-display_assy = true;
+display_assy = false;
 // Section cut at X = 0?
 clip_yz = false;
 // Section cut at Z = 0?
@@ -125,12 +125,10 @@ module pulley_gt2_2( teeth = 40 , pulley_t_ht = 10, motor_shaft = 5.2, tooth_dep
 		//belt retainer / idler
 		if ( retainer > 0 ) {translate ([0,0, pulley_t_ht-retainer_ht ]) 
 		rotate_extrude($fa=2)  
-		//polygon([[0,0],[pulley_OD/2,0],[pulley_OD/2 + retainer_ht , retainer_ht],[0 , retainer_ht],[0,0]]);}
 		polygon([[0,-retainer_ht],[pulley_OD/2-retainer_ht,-retainer_ht],[pulley_OD/2 + retainer_ht , retainer_ht],[0 , retainer_ht],[0,-retainer_ht]]);}		
         
 		if ( idler > 0 ) {translate ([0,0, 0 ]) 
 		rotate_extrude($fa=2)  
-		//polygon([[0,0],[pulley_OD/2 + idler_ht,0],[pulley_OD/2 , idler_ht],[0 , idler_ht],[0,0]]);}
         polygon([[0,0],[pulley_OD/2 + idler_ht,0],[pulley_OD/2-idler_ht , 2*idler_ht],[0 , 2*idler_ht],[0,0]]);}
 		}
 	   
@@ -146,7 +144,7 @@ module GT2_2mm(pulley_t_ht=6){
 
 //################### END variables, modules and functions from use <Pulley-GT2_2.scad>
 
-//################### variables, modules and functions from use <Robot_Arm_Parts_lib.scad>
+/*################### variables, modules and functions from use <Robot_Arm_Parts_lib.scad>
 function law_sines_angle (C=30,a=10,c_ang=120) = 
     // law of sines, given length C, a, and C Angle, return A angle
    asin((a/C)*sin(c_ang));
@@ -571,9 +569,9 @@ module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15) {
     mirror([1,0,0]) half_claw (link_adjust=9); 
 }
 
-//############### END variables, modules and functions from use <Robot_Arm_Parts_lib.scad>
+//############### END variables, modules and functions from use <Robot_Arm_Parts_lib.scad> */
 
-//############### variables from include <Part-Constants.scad>
+/*############### variables from include <Part-Constants.scad>
 hole_M3=3.1; // hole for M3 (3 mm) joint/bolt
 hole_M6=6.1;
 hole_no6_screw = 2.5; // hole start diameter for number 6 screw 0.095 inch = 2.413
@@ -615,7 +613,7 @@ hole_servo_bushing=3.81; // hole for servo bushing 0.15 inch = 3.81 mm
 9271K619_t = (9271K619_coils+1)*9271K619_wd; // thickness of the spring
 9271K619_ID = 9271K619_OD-2*9271K619_wd;  // ID of the coil
 
-//############### END variables from include <Part-Constants.scad>
+//############### END variables from include <Part-Constants.scad> */
 
 module torsion_spring_spacer() {
     $fn=$preview ? 64 : 128; // minimum angle fragment
@@ -1294,14 +1292,14 @@ module base_and_shoulder_assy(base_ang=0,A_angle=0,B_angle=0){
         }
     // sholder big gear  64 tooth
     // off for thingiverse, purchased part
-    *translate([0,-1.42*shoulder_z_top,0]) rotate([90,0,0]) 64T_32P_Actobotics();
+    translate([0,-1.42*shoulder_z_top,0]) rotate([90,0,0]) 64T_32P_Actobotics();
     // the distance between gears is the teeth*pitch/pi
     color ("red",.5) 
         translate([-(64+32)/2*(2.54/3.14159)+gear_space_adjustment,base_z_top-2,0])
             rotate([-90,0,0]) {
                 servo_body();  // shoulder servo
                 // off for thingiverse, purchased part
-                *32T_32P_Actobotics();   // servo gear 32 tooth
+                32T_32P_Actobotics();   // servo gear 32 tooth
     }
         
     // Base

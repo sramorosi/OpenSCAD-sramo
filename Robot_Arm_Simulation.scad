@@ -38,12 +38,12 @@
      Max-calculated-Torque is that found throughout the reach path
 */
 //###### USE ONE CONFIGURATION FILE AT A TIME #######//
-include <SACC-26-Configuration.scad>
+//include <SACC-26-Configuration.scad>
 //include <InputArm-Configuration.scad>
 
 //###### USE ONE ASSEMBLY FILE AT A TIME #######//
 // Assembly files contain module draw_assy()
-use <SACC_Assembly.scad>
+include <SACC_Assembly.scad>
 //use <InputArm_Assembly.scad>
 //use <BasicArm_Assembly.scad>
 
@@ -51,7 +51,7 @@ use <force_lib.scad> // contains forces, springs, MS modules and functions
 use <Robot_Arm_Parts_lib.scad>
 
 // Check to calculate forces
-calc_forces = false;
+calc_forces = true;
 // Check to display assembly
 display_assembly = true;
 // Check to display reach path 
@@ -136,16 +136,16 @@ max_range = (x_range > y_range) ? x_range : y_range;
 force_scale = max_range/(10*combined_weight); // arbitrary formula, but works
 
 // torsion spring constants for B joint
-// move these to the configuration file
-B_K = 600; // g-mm/deg,   this is for spring 9271K619   589
+B_K = 600; // g-mm/deg,   600 is for spring 9271K619   ~589
 B_theta_zero = 140; // degrees, 90 is straight up
 
 // torsion spring constants for A joint
-// move these to the configuration file
-A_K = -500; // g-mm/deg,   this is for spring 9271K619   589
+A_K = -600; // g-mm/deg,   600 is for spring 9271K619   ~589
+             // 1000 is for spring 9271K145
 A_theta_zero = 110; // degrees, 90 is straight up
 
 if (calc_forces) {
+    // This should be a module, and put inside of the arm.scad
     // USE LIST COMPREHENSIONS TO FILL ARRAYS
     C_mom = [ for (a = [0 : steps-1]) combined_weight*c_to_d*cos(angles[a][2]) ];
         
@@ -225,15 +225,7 @@ C_angle = alphas[2];
 
 
 if (display_assembly) {
-        draw_assy (A_angle,B_angle,C_angle); 
-    //difference () { // move section cuts to seperate file
-        // x = 0 cut 
-        //translate ([-20,-10,-10])
-        //cube (20,center=false);
-        // z = 0 cut 
-        //translate ([-12,-20,.1])
-        //cube (40,center=false);
-    //}
+        rotate([90,0,0]) draw_assy (A_angle,B_angle,C_angle); 
 }
 
 //if (calc_forces) internal_loads (A_angle,B_angle,C_angle);

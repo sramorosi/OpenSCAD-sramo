@@ -6,23 +6,71 @@ use <Pulley-GT2_2.scad>
 include <Part-Constants.scad>
 
 function law_sines_angle (C=30,a=10,c_ang=120) = 
-    // law of sines, given length C, a, and C Angle, return A angle
-   asin((a/C)*sin(c_ang));
+// law of sines, given length C, a, and C Angle, return A angle
+asin((a/C)*sin(c_ang));
 
 function law_sines_length (C=30,c_ang=120,b_ang=30) =
-    // law of sines, given length C, c angle and b angle, return B length
-   C * (sin(b_ang)/sin(c_ang));
+// law of sines, given length C, c angle and b angle, return B length
+C * (sin(b_ang)/sin(c_ang));
+
+function law_cosines (a=10,b=10,c=10) = 
+// law of cosines, find angle between sides a and b given three side lengths
+acos((a*a+b*b-c*c)/(2*a*b));
+
+function rot_x (x,y,a) = x*cos(a)-y*sin(a);
+
+function rot_y (x,y,a) = x*sin(a)+y*cos(a);
+
+function rot_pt_y (pt=[10,10,10],yang=45) =
+// Rotate pt about the Y-axis by yang
+[rot_x(pt[0],pt[2],yang),pt[1],rot_y(pt[0],pt[2],yang)];
+
+//ypoint = rot_pt_y();
+//echo(ypoint=ypoint);
+
+function rot_pt_z (pt=[10,10,10],zang=45) =
+// Rotate pt about the Z-axis by zang
+[rot_x(pt[0],pt[1],zang),rot_y(pt[0],pt[1],zang),pt[2]];
+
+//zpoint = rot_pt_z();
+//echo(zpoint=zpoint);
+
+function pt_from_angles(A_angle=90,B_angle=0,C_angle=0,T_angle=0,lAB=1,lBC=1,lCD=1) =
+// returns an array of two points [C,D]
+let (pD1=[lCD,0,0])
+let (pC1=[lBC,0,0])
+let (pB1=[lAB,0,0])
+let (pD2=rot_pt_y(pD1,C_angle))
+let (pD3=pD2+pC1)
+let (pD4=rot_pt_y(pD3,B_angle))
+let (pC2=rot_pt_y(pC1,B_angle))
+let (pD5=pD4+pB1)
+let (pC3=pC2+pB1)
+let (pD6=rot_pt_y(pD5,A_angle))
+let (pC4=rot_pt_y(pC3,A_angle))
+[rot_pt_z(pC4,T_angle),rot_pt_z(pD6,T_angle)];
 
 function inverse_arm_kinematics (c=[0,10,0],lenAB=100,lenBC=120) = 
-    // calculate the angles given pt C ***Inverse Kinematics***
-    //  ASSUMES THAT c is on the YZ plane (x is ignored)
-    //  ASSUMES that A is at [0,0,0]
-    // returns an array with [A_angle,B_angle] where B_angle is ABC (not BC to horizontal)
-    let (vt = norm(c))  // vector length from A to C
-    let (sub_angle1 = atan2(c[2],c[1]))  // atan2 (Y,X)!
-    let (sub_angle2 = acos((vt*vt+lenAB*lenAB-(lenBC*lenBC))/(2*vt*lenAB)) )
-    //echo(vt=vt,sub_angle1=sub_angle1,sub_angle2=sub_angle2)
-    [sub_angle1 + sub_angle2,acos((lenBC*lenBC+lenAB*lenAB-vt*vt)/(2*lenBC*lenAB))] ;
+// Given a three body system Ground-AB-BC, where A is [0,0,0]
+// Lengths LenAB and LenBC are specified
+// The location of c is specified
+// The joints A,B are on a table with rotation T_angle parallel to Z through A
+// With T_angle = 0, then joints A & B are parallel to the Y axis
+// calculate the angles given pt C ***Inverse Kinematics***
+// returns an array with [A_angle,B_angle,T_angle] 
+//    where B_angle is ABC (not BC to horizontal)
+let (vxy = norm([c[0],c[1],0]))  // vector length on the xy plane
+let (T_angle = vxy > 0 ? atan2(c[1],c[0]) : 0) // T angle (check for zero)
+let (crot = rot_pt_z(c,-T_angle)) // rotate to the XZ plane
+let (vt = norm(crot))  // vector length from A to C
+let (sub_angle1 = atan2(crot[2],crot[0]))  // atan2 (Y,X)!
+let (sub_angle2 = law_cosines(vt,lenAB,lenBC) )
+//echo(vt=vt,sub_angle1=sub_angle1,sub_angle2=sub_angle2)
+[sub_angle1 + sub_angle2,law_cosines(lenBC,lenAB,vt)-180,T_angle] ;
+    
+//invAngles = inverse_arm_kinematics([7.071,7.071,10],10,10);
+invAngles = inverse_arm_kinematics([346.41, 200, 200],200,400);
+echo(invAngles=invAngles);
     
 module draw_dummy_arm(a=[0,0,0],b=[0,0,100],c=[100,0,100],d=[100,0,0]) {
     color("silver") pt_pt_cylinder (from=a,to=b, d = 2,$fn=12);
@@ -530,7 +578,7 @@ module pt_pt_belt (from=[10,10,10],to=[-10,0,10], d = 1,r_pulley=30,round=true){
     from_down = [from[0]-(dy/length)*r_pulley,from[1]+(dx/length)*r_pulley,from[2]];
 
     if (length>0.01) {  // check for non zero vector
-        
+        echo("MODULE PT_PT_BELT; length =",length*2+2*r_pulley*PI);
         // "cylinder" is centered around z axis
         // Angles to rotate to correct direction
         ay = 90 - atan2(dz, sqrt(dx*dx + dy*dy));
@@ -894,7 +942,7 @@ module pot_joint(pot=true,lug_two = true,tlug = 8) {
 
     }
 }
-pot_joint(lug_two=false);
+*pot_joint(lug_two=false);
 *rotate([0,0,-90]) {
     translate([0,0,5]) pot_joint(pot=false);
     *RV112FF_pot(negative=false);
