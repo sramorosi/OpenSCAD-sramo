@@ -15,7 +15,7 @@ C_angle = 0; // [-145:1:145]
 // Turntable angle
 T_angle = 30; // [-90:90]
 // Number of position steps, for arrays
-steps = 20;  // [1:1:100]
+steps = 40;  // [1:1:100]
 
 
 pts=pt_from_angles(A_angle,B_angle,C_angle,T_angle,lenAB,lenBC,lenCD);

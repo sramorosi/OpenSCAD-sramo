@@ -18,7 +18,7 @@ display_assy = false;
 // Section cut at X = 0?
 clip_yz = false;
 // Section cut at Z = 0?
-clip_xy = false;
+clip_xy = true;
 // Joint A angle
 AA = 110; // [0:1:180]
 // Joint B angle
@@ -72,8 +72,7 @@ x_guss = 15;
 
 // rotation of joint A torsion spring in installation (deg)
 A_Tspr_rot = 6;  
-// Turntable Gear Space Adjustment, mm
-gear_space_adjustment = 1; 
+
 // B Servo Horn angle adjustment from Vertical in installation (deg)
 B_Horn_Zero_Angle = 30; 
 
@@ -1208,12 +1207,41 @@ module Electronics_Board (Assy=true) {
 }
 *Electronics_Board(Assy=false);//FOR_PRINT
 
-module base_assy() {
-    $fn=$preview ? 64 : 72; // minimum angle fragment
-    // Base plate size
-    base_x = 130;  // base width
-    base_y = 150;  // base length
-    base_t = 10;
+// Base plate size
+base_x = 130;  // base width
+base_y = 150;  // base length
+base_t = 10;
+
+// the distance between gears is the teeth*pitch/pi
+gear_center_dist = (64+32)/2*(2.54/3.14159) - 1;
+
+// servo mount hole constants
+sm_x = 28;
+sm_y_1 = 7;
+sm_y_2 = 23;
+slot_l = 6;
+
+module base_servo_mount() {
+    $fn=$preview ? 64 : 120; // minimum fragment
+    difference() {
+        translate([10,0,-7]) 
+        rounded_cube([svo_flange_l*1.2,svo_w*3.4,base_t],r=6,center=true);
+            
+        rotate([0,0,180]) servo_body(vis=false);  // shoulder servo
+        
+        // slots
+        rotate([0,0,90]) {
+            hull() translate([0,-sm_y_1,0]) hole_pair  (x = sm_x,y=slot_l,d=3.5,h=100);
+            translate([0,-sm_y_2,0]) hull() hole_pair (x = sm_x,y=slot_l,d=3.5,h=100);
+            hull() translate([0,-sm_y_1,0]) hole_pair (x = -sm_x,y=slot_l,d=3.5,h=100);
+            translate([0,-sm_y_2,0]) hull() hole_pair (x = -sm_x,y=slot_l,d=3.5,h=100);
+        }
+    }
+}
+*base_servo_mount(); //FOR_PRINT
+
+module base_plate() {
+    $fn=$preview ? 64 : 120; // minimum fragment
     // location for the holes that screw the base to the wood
     x_w = (base_x-20)/2;
     y_w = (base_y-20)/2;
@@ -1221,24 +1249,19 @@ module base_assy() {
     base_bearing_hole_space = 77;
     x_bb = base_bearing_hole_space/2;
     y_bb = base_bearing_hole_space/2;
-    
     difference() {
-        union() {
          rounded_cube(size=[base_x,base_y,base_t],r=12,center=true);
-            translate([base_x/2-15,0,-svo_flange_d/2]) 
-            cube([svo_flange_l*1.2,svo_w*1.4,svo_flange_d+base_t],center=true);
-        }
+
         // big middle hole
         cylinder(h=shoulder_t*2.,d=94,center=true); 
         
         // hole for small gear on servo
-        translate([(64+32)/2*(2.54/3.14159)-gear_space_adjustment,0,1]) 
-            cylinder(h=shoulder_t*2.1,d=30,center=true);
+        translate([gear_center_dist,0,1]) 
+            cylinder(h=shoulder_t*2.1,d=30,center=true);        
         
-        // the distance between gears is the teeth*pitch/pi
-        translate([(64+32)/2*(2.54/3.14159)-gear_space_adjustment,0,-3]) 
-            rotate([0,0,180]) 
-            servo_body(vis=false);  // shoulder servo
+        // space for servo
+        translate([gear_center_dist,0,-8]) 
+            cube([svo_flange_l*1.2,svo_w*1.1,base_t],center=true);
         
         // subtract the 4 bearing mounting screw holes
         translate([x_bb,y_bb,0]) cylinder(h=base_t*3,d=2.5,center=true);
@@ -1251,7 +1274,23 @@ module base_assy() {
         translate([x_w,-y_w,0]) cylinder(h=base_t*3,d=4,center=true);
         translate([-x_w,-y_w,0])cylinder(h=base_t*3,d=4,center=true);
         translate([-x_w,y_w,0]) cylinder(h=base_t*3,d=4,center=true);
+
+        // subtract the 4 servo screw mounting holes
+        translate([gear_center_dist-1,0,0]) {
+            translate([sm_y_1,sm_x,0]) cylinder(h=base_t*3,d=3,center=true);
+            translate([sm_y_2,sm_x,0]) cylinder(h=base_t*3,d=3,center=true);
+            translate([sm_y_1,-sm_x,0])cylinder(h=base_t*3,d=3,center=true);
+            translate([sm_y_2,-sm_x,0]) cylinder(h=base_t*3,d=3,center=true);
+        }
     }
+}
+*base_plate(); //FOR_PRINT
+
+module base_assy() {
+    base_plate();
+    translate([gear_center_dist,0,-3]) 
+    base_servo_mount();
+        
     // Representation of bearing
     // 4 inch Lazy Susan Heavy Duty Aluminium Alloy Rotating Bearing
     translate([0,0,9+base_t/2]) Bearing(t=9,od=120,id=70); 
@@ -1262,7 +1301,6 @@ module base_assy() {
         translate([-base_x/2,base_x/2-10,-base_t/2]) rotate([0,90,0]) cube([3.5*25.4,1.5*25.4,l_wood]);
         translate([-base_x/2,-base_x/2+10-1.5*25.4,-base_t/2]) rotate([0,90,0]) cube([3.5*25.4,1.5*25.4,l_wood]);
     }
-    
     // Representation of electronics board
     translate([280,0,0]) rotate([0,0,180])Electronics_Board();
 }
@@ -1295,7 +1333,7 @@ module base_and_shoulder_assy(base_ang=0,A_angle=0,B_angle=0){
     translate([0,-1.42*shoulder_z_top,0]) rotate([90,0,0]) 64T_32P_Actobotics();
     // the distance between gears is the teeth*pitch/pi
     color ("red",.5) 
-        translate([-(64+32)/2*(2.54/3.14159)+gear_space_adjustment,base_z_top-2,0])
+        translate([-gear_center_dist,base_z_top-2,0])
             rotate([-90,0,0]) {
                 servo_body();  // shoulder servo
                 // off for thingiverse, purchased part
@@ -1389,7 +1427,7 @@ if (display_assy) {
             // z = 38 mm is through B horn
             // z = 10 mm is through B Spring Inside leg
             // z = 0 mm shows how the AB and BC arms mesh
-            translate ([-lenAB*4,-lenAB*4,-20]) cube (lenAB*8,center=false);
+            translate ([-lenAB*4,-lenAB*4,-0]) cube (lenAB*8,center=false);
     }
     rotate([90,0,0]) if (clip_yz) { // Display rulers on the x plane cut
         translate ([1,-shoulder_z_top,shoulder_y_shift]) rotate([0,90,0]) ruler(100);

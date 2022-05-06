@@ -706,19 +706,19 @@ module servo_body (vis=true){
         
         // cylinders for screw starts
         translate([svo_screw_l/2-svo_shaft,svo_screw_w/2,-svo_flange_d])
-            cylinder(h=2*svo_shaft,d=hole_no6_screw,center=true);
+            cylinder(h=2*svo_shaft,d=3,center=true);
         translate([svo_screw_l/2-svo_shaft,-svo_screw_w/2,-svo_flange_d])
-            cylinder(h=2*svo_shaft,d=hole_no6_screw,center=true);
+            cylinder(h=2*svo_shaft,d=3,center=true);
         translate([-svo_screw_l/2-svo_shaft,-svo_screw_w/2,-svo_flange_d])
-            cylinder(h=2*svo_shaft,d=hole_no6_screw,center=true);
+            cylinder(h=2*svo_shaft,d=3,center=true);
         translate([-svo_screw_l/2-svo_shaft,svo_screw_w/2,-svo_flange_d])
-            cylinder(h=2*svo_shaft,d=hole_no6_screw,center=true);
+            cylinder(h=2*svo_shaft,d=3,center=true);
         }
         // subtract main axis cyl for visulization
         if (vis) cylinder (h=4*svo_d,d=4,center=true);
     }
 }
-*servo_body(vis=false);
+servo_body(vis=false);
 
 module servo_shim (l=61,w=25.4,t=2.54) {
     $fa=$preview ? 6 : 1; // minimum angle fragment
