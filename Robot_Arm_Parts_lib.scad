@@ -71,7 +71,25 @@ let (sub_angle2 = law_cosines(vt,lenAB,lenBC) )
 //invAngles = inverse_arm_kinematics([7.071,7.071,10],10,10);
 invAngles = inverse_arm_kinematics([346.41, 200, 200],200,400);
 echo(invAngles=invAngles);
-    
+
+function inverse_arm_k2 (c=[0,10,0],lenAB=100,lenBC=120) = 
+// Given a three body system Ground-AB-BC, where A is [0,0,0]
+// Lengths LenAB and LenBC are specified
+// The location of c is specified
+// The joints A,B are on a table with rotation T_angle parallel to Z through A
+// With T_angle = 0, then joints A & B are parallel to the Y axis
+// calculate the angles given pt C ***Inverse Kinematics***
+// returns an array with [A_angle,B_angle,T_angle] 
+//    where B_angle is ABC (not BC to horizontal)
+let (vxy = norm([c[0],c[1],0]))  // vector length on the xy plane
+let (T_angle = vxy > 0 ? atan2(c[1],c[0]) : 0) // T angle (check for zero)
+let (crot = rot_pt_z(c,-T_angle)) // rotate to the XZ plane
+let (vt = norm(crot))  // vector length from A to C
+let (sub_angle1 = atan2(crot[2],crot[0]))  // atan2 (Y,X)!
+let (sub_angle2 = law_cosines(vt,lenAB,lenBC) )
+//echo(vt=vt,sub_angle1=sub_angle1,sub_angle2=sub_angle2)
+[sub_angle1 + sub_angle2,law_cosines(lenBC,lenAB,vt)-180,T_angle] ;
+
 module draw_dummy_arm(a=[0,0,0],b=[0,0,100],c=[100,0,100],d=[100,0,0]) {
     color("silver") pt_pt_cylinder (from=a,to=b, d = 2,$fn=12);
     color("grey") pt_pt_cylinder (from=b,to=c, d = 2,$fn=12);
@@ -81,10 +99,20 @@ module hole_pair (x = 50,y=10,d=hole_M3,h=100) {
     // make a pair of holes that are y appart, 
     // at x location. holes are parallel to the Z axis
     // Created for zip tie holes
-    $fn=$preview ? 8 : 16; // minimum angle fragment
+    $fn=$preview ? 16 : 32; // minimum angle fragment
     translate ([x,-y/2,0]) cylinder(h=h,d=d,center=true);
     translate ([x,y/2,0]) cylinder(h=h,d=d,center=true);
 }
+module hole_pair_2D (x = 50,y=10,d=hole_M3) {
+    // 2D version of hole pair
+    // make a pair of holes that are y appart, 
+    // at x location. holes are parallel to the Z axis
+    // Created for zip tie holes
+    $fn=$preview ? 16 : 32; // minimum angle fragment
+    translate ([x,-y/2,0]) circle(d=d);
+    translate ([x,y/2,0]) circle(d=d);
+}
+
 module Cbore_Screw_Hole(d=3,h=21,cb_d=7,cb_h=2) {
     // Hole for a screw with counter bore, to hid the head
     $fn=$preview ? 16 : 32; // minimum angle fragment
@@ -559,7 +587,34 @@ module pt_pt_cylinder (from=[10,10,0],to=[-10,0,-10], d = 2){
         echo("MODULE PT_PT_CYLINDER; small length =",length);
     }
 }
+
 *pt_pt_cylinder(to=[100,0,100],from=[0,0,100],d=10);
+
+module pt_pt_bar (from=[10,10,0],to=[-10,0,-10], d = 2){
+    // Create a cylinder from point to point
+    
+    vec=from-to;
+    length=norm(vec);
+    dx = -vec[0];
+    dy = -vec[1];
+    dz = -vec[2];
+
+    if (length>0.01) {  // check for non zero vector
+        
+        // "cylinder" is centered around z axis
+        // These are the angles needed to rotate to correct direction
+        ay = 90 - atan2(dz, sqrt(dx*dx + dy*dy));
+        az = atan2(dy, dx);
+        angles = [0, ay, az];
+        
+        translate (from) 
+        rotate (angles) 
+        linear_extrude(length) square(d,center=true);
+    }else {
+        echo("MODULE PT_PT_CYLINDER; small length =",length);
+    }
+}
+pt_pt_bar(to=[100,0,100],from=[0,50,100],d=2.54);
 
 module pt_pt_belt (from=[10,10,10],to=[-10,0,10], d = 1,r_pulley=30,round=true){
     // Create belts from point to point
@@ -718,7 +773,7 @@ module servo_body (vis=true){
         if (vis) cylinder (h=4*svo_d,d=4,center=true);
     }
 }
-servo_body(vis=false);
+*servo_body(vis=false);
 
 module servo_shim (l=61,w=25.4,t=2.54) {
     $fa=$preview ? 6 : 1; // minimum angle fragment
@@ -994,10 +1049,10 @@ module cubeOnThreePoints(p) {
         cube(size);
 // just to illustration
   color("blue")
-  for(pi=p) translate(pi) cube(3,center=true);
+  for(pi=p) translate(pi) cube(2,center=true);
 
 }
-*cubeOnThreePoints([[0,0,0] , [10,0,-20], [-30,20,10] ]); 
+cubeOnThreePoints([[0,0,0] , [10,0,-20], [-30,20,10] ]); 
 
 module ruler_ticks(end){
     for(j=[1:end]) {

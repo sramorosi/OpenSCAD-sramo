@@ -298,7 +298,7 @@ module involute_bevel_gear_tooth (
 module gear (
     number_of_teeth=15,
     circular_pitch=undef, diametral_pitch=undef,
-    pressure_angle=28,
+    pressure_angle=20, // was 28.  Changed to 20 to match Actobotic 32P gears
     clearance = undef,
     gear_thickness=5,
     rim_thickness=undef,
@@ -846,35 +846,19 @@ module test_backlash ()
     translate([0,0,-5])
     cylinder ($fn=20,r=backlash / 4,h=25);
 }
-module 64T_32P_Actobotics ()
+module 32P_Actobotics (teeth=32,thickness=6,bore=4)
 {
-    teeth = 64;
     gear (
         number_of_teeth = teeth,
         circular_pitch= 2.54, //1*25.4, //32*180*pi/180,
-        gear_thickness = 0.25*25.4,
-        rim_thickness = 0,
-        rim_width = 0.3*25.4, // controls the circles diameter
-        hub_thickness = 0.2*25.4,  // ?
-        hub_diameter=1.5*25.4,// controls the circles diameter
-        bore_diameter=0.5*25.4, // center bore
-        backlash = 0,
-        circles=16);
-}
-*64T_32P_Actobotics();
-module 32T_32P_Actobotics ()
-{
-    teeth = 32;
-    gear (
-        number_of_teeth = teeth,
-        circular_pitch= 2.54, //1*25.4, //32*180*pi/180,
-        gear_thickness = 6,
+        gear_thickness = thickness,
         rim_thickness = 0,
         rim_width = 0, // controls the circles diameter
         hub_thickness = 0,  // ?
         hub_diameter=0,// controls the circles diameter
-        bore_diameter=2, // center bore
+        bore_diameter=bore, // center bore
         backlash = 0,
         circles=0);
 }
-32T_32P_Actobotics();
+*32P_Actobotics(teeth=32);
+translate([0,0,0]) 32P_Actobotics(teeth=51,thickness=8);

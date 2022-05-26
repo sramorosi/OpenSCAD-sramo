@@ -1330,14 +1330,14 @@ module base_and_shoulder_assy(base_ang=0,A_angle=0,B_angle=0){
         }
     // sholder big gear  64 tooth
     // off for thingiverse, purchased part
-    translate([0,-1.42*shoulder_z_top,0]) rotate([90,0,0]) 64T_32P_Actobotics();
+    translate([0,-1.42*shoulder_z_top,0]) rotate([90,0,0]) 32P_Actobotics(teeth=64);
     // the distance between gears is the teeth*pitch/pi
     color ("red",.5) 
         translate([-gear_center_dist,base_z_top-2,0])
             rotate([-90,0,0]) {
                 servo_body();  // shoulder servo
                 // off for thingiverse, purchased part
-                32T_32P_Actobotics();   // servo gear 32 tooth
+                32P_Actobotics(teeth=32);   // servo gear 32 tooth
     }
         
     // Base
