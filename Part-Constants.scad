@@ -41,7 +41,7 @@ servo_horn_d2=7.5;
 servo_horn_t=7.4;
 
 // Springs
-//  McMaster Carr 9271K619, torsion spring
+//  McMaster Carr 9271K619, torsion spring, used in MAKE 2
 9271K619_angle = 180; // free leg angle
 9271K619_OD = 19.35; // mm
 9271K619_wd = 1.9;  // wire diameter mm
@@ -50,6 +50,17 @@ servo_horn_t=7.4;
 9271K619_LH = true;  // LH or RH (false)
 9271K619_t = (9271K619_coils+1)*9271K619_wd; // thickness of the spring
 9271K619_ID = 9271K619_OD-2*9271K619_wd;  // ID of the coil
+
+//  McMaster Carr 9271K589, torsion spring, used in MAKE 3
+9271K589_angle = 90; // free leg angle
+9271K589_OD = 21.54; // mm
+9271K589_wd = 2.667;  // wire diameter mm
+9271K589_len = 88.9;  // arm length mm
+9271K589_coils = 5.25;  // number of coils
+9271K589_LH = true;  // LH or RH (false)
+9271K589_t = (9271K589_coils+1)*9271K589_wd; // thickness of the spring
+9271K589_ID = 9271K589_OD-2*9271K589_wd;  // ID of the coil
+//9271K589_Dshaft = 12.7; // The largest shaft that can go through spring
 
 //GT2pulleyd = 12;
 //GT2pulleyt = 8.5;

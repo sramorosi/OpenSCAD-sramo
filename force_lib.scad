@@ -18,11 +18,11 @@ display_torque = false;
 
 // test array
 e=[[2,3,4],[1,2,3],[0,0,1]];
-echo(norm(e[0]),norm(e[1]),norm(e[2]));
-echo(cross([1,0,0],[0,0,1]));
-echo(e[1],rotZ_pt(90,e[1]));
+//echo(norm(e[0]),norm(e[1]),norm(e[2]));
+//echo(cross([1,0,0],[0,0,1]));
+//echo(e[1],rotZ_pt(90,e[1]));
 
-echo(dist_line_pt());
+//echo(dist_line_pt());
 
 if (display_force) force_arrow([0,0,0],[1,0,0],mag=mag);
 if (display_force) force_arrow([0,0,0],[0,-1,0],mag=mag);
@@ -84,6 +84,26 @@ module draw_3d_list(the3dlist=[],size=10,dot_color="blue",value=[],idx=0) {
     // Note: that an undefined causes the recursion to stop
 }
 
+function larger(a=0,b=-1) =  abs(a) > abs(b) ? a : b ;
+// Simple function to return the value farthest from zero
+
+function largeInVector(vector,i=0) = 
+// Recursive function to return the value farthest from zero in a vector
+    (i < len(vector)-1) ? 
+    larger((vector[i]),(largeInVector(vector,i+1))) :  
+         vector[i] ;
+
+function WhereInVector(vector,value,i=0) = 
+// Recursive function to return the fist location of a value in a vector
+    (i < len(vector)-1) ? 
+    (vector[i]==value ? i : WhereInVector(vector,value,i+1)) :  
+        (vector[i]==value ?  i : -9999) ;
+
+aaa = [-20,2,-1000,2,10,500];
+test = largeInVector(aaa);
+position = WhereInVector(aaa,test);
+echo(test=test,position=position);
+
 module Margin_Safety(min,max,allowable,name="THING NAME") {
     // calculate Engineering Margin of Safety for "thing"
     // Two actual values can be provided, representing most negative and most pos
@@ -92,6 +112,23 @@ module Margin_Safety(min,max,allowable,name="THING NAME") {
     MAX = max(abs(max),abs(min));
     MS = (allowable/MAX)-1;
     echo(name," MARGIN OF SAFETY ",MS=MS,MAX=MAX);
+}
+module Margin_Safety2(loads=[],allowable,name="THING NAME") {
+    // calculate Engineering Margin of Safety for "thing"
+    // Two actual values can be provided, representing most negative and most pos
+    // allowable = the allowable value
+    // Move this module to the force library
+    loadslen=len(loads);
+    if (loadslen > 0) {
+        //min_load=min(loads);
+        max_load=largeInVector(loads);
+        pos = WhereInVector(loads,max_load);
+        MAX = abs(max_load);
+        MS = (allowable/MAX)-1;
+        echo(name," MARGIN OF SAFETY ",MS=MS,max_load=max_load,pos=pos);
+    } else {
+        echo(" NO LOADS PASSED TO MS MODULE ");
+    }
 }
 
 module force_arrow(from=[1,1,0],vec=[1,0,0],mag=10) {
@@ -175,7 +212,7 @@ function spring_torque(pt1=[10,0,0],pt2=[10,10,0],ptj=[-10,0,0],K=1,freelen=1) =
     K * (sprlen-freelen) * arm;  // the torque calculation
 
 sprtest = spring_torque();  // test
-echo(sprtest=sprtest);
+//echo(sprtest=sprtest);
 
 // convert number into a red to green value
 function val_red(i) = i < 3 ? 0 : i < 4 ? 0.25 : i < 5 ? 0.5 : 1 ;
@@ -188,7 +225,7 @@ module draw_spring(pt1=[100,0,50],pt2=[100,100,50],freelen=10) {
     sprlen = norm(pt1-pt2); 
     pct_elong = (sprlen-freelen)/freelen-1; 
     sprd = norm(pt1-pt2)/15; // spring diameter for display only
-    echo(pct_elong=pct_elong*100,sprd=sprd);
+    //echo(pct_elong=pct_elong*100,sprd=sprd);
     color ([val_red(pct_elong),val_green(pct_elong),0.1])
         pt_pt_cylinder(from=pt1, to=pt2, d=sprd);
 }

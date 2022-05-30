@@ -532,7 +532,7 @@ module tension_spring(from=[10,0,0],to=[20,30,20],wire_dia=0.5,od=2,coils=10,end
 module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5,LH=true,inverse=false) {
     // deflection_angle is not implimented
     
-    if (deflection_angle != 180) echo("ONLY 180 DEG TORSION SPRINGS IMPLEMENTED");
+    //if (deflection_angle != 180) echo("ONLY 180 DEG TORSION SPRINGS IMPLEMENTED");
         
     turn_sign = LH ? 1 : -1 ;  // used for LH or RH springs
     sp_len = (coils+1)*wire_d;
@@ -548,7 +548,9 @@ module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5,LH=t
     x_offset = OD/2 - wire_d/2;
     WD = (inverse != false) ? wire_d*1.25 :  wire_d;
     LL = (inverse != false) ? leg_len*1.25 :  leg_len;
-    translate([x_offset,turn_sign*LL/2,0]) 
+    
+    leg_rot = 180-deflection_angle;
+    rotate([0,0,leg_rot]) translate([x_offset,turn_sign*LL/2,0]) 
         rotate([90,0,0]) 
             hull() {
                 if (inverse) translate([0,WD/2,0]) cylinder(h=LL,d=WD,center=true,$fn=16);
@@ -563,6 +565,8 @@ module torsion_spring(deflection_angle=180,OD=1,wire_d=.1,leg_len=2,coils=5,LH=t
 }
 *torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH);
 *translate([-30,0,0]) torsion_spring (deflection_angle=9271K619_angle,OD=9271K619_OD,wire_d=9271K619_wd,leg_len=9271K619_len,coils=9271K619_coils,LH=9271K619_LH, inverse=true);
+*torsion_spring (deflection_angle=9271K589_angle,OD=9271K589_OD,wire_d=9271K589_wd,leg_len=9271K589_len,coils=9271K589_coils,LH=9271K589_LH,inverse=false);
+
 module pt_pt_cylinder (from=[10,10,0],to=[-10,0,-10], d = 2){
     // Create a cylinder from point to point
     
@@ -614,7 +618,7 @@ module pt_pt_bar (from=[10,10,0],to=[-10,0,-10], d = 2){
         echo("MODULE PT_PT_CYLINDER; small length =",length);
     }
 }
-pt_pt_bar(to=[100,0,100],from=[0,50,100],d=2.54);
+*pt_pt_bar(to=[100,0,100],from=[0,50,100],d=2.54);
 
 module pt_pt_belt (from=[10,10,10],to=[-10,0,10], d = 1,r_pulley=30,round=true){
     // Create belts from point to point
@@ -761,19 +765,19 @@ module servo_body (vis=true){
         
         // cylinders for screw starts
         translate([svo_screw_l/2-svo_shaft,svo_screw_w/2,-svo_flange_d])
-            cylinder(h=2*svo_shaft,d=3,center=true);
+            cylinder(h=3*svo_shaft,d=3,center=true);
         translate([svo_screw_l/2-svo_shaft,-svo_screw_w/2,-svo_flange_d])
-            cylinder(h=2*svo_shaft,d=3,center=true);
+            cylinder(h=3*svo_shaft,d=3,center=true);
         translate([-svo_screw_l/2-svo_shaft,-svo_screw_w/2,-svo_flange_d])
-            cylinder(h=2*svo_shaft,d=3,center=true);
+            cylinder(h=3*svo_shaft,d=3,center=true);
         translate([-svo_screw_l/2-svo_shaft,svo_screw_w/2,-svo_flange_d])
-            cylinder(h=2*svo_shaft,d=3,center=true);
+            cylinder(h=3*svo_shaft,d=3,center=true);
         }
         // subtract main axis cyl for visulization
         if (vis) cylinder (h=4*svo_d,d=4,center=true);
     }
 }
-*servo_body(vis=false);
+servo_body(vis=false);
 
 module servo_shim (l=61,w=25.4,t=2.54) {
     $fa=$preview ? 6 : 1; // minimum angle fragment
@@ -1052,7 +1056,7 @@ module cubeOnThreePoints(p) {
   for(pi=p) translate(pi) cube(2,center=true);
 
 }
-cubeOnThreePoints([[0,0,0] , [10,0,-20], [-30,20,10] ]); 
+*cubeOnThreePoints([[0,0,0] , [10,0,-20], [-30,20,10] ]); 
 
 module ruler_ticks(end){
     for(j=[1:end]) {
