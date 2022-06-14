@@ -777,7 +777,7 @@ module servo_body (vis=true){
         if (vis) cylinder (h=4*svo_d,d=4,center=true);
     }
 }
-servo_body(vis=false);
+*servo_body(vis=false);
 
 module servo_shim (l=61,w=25.4,t=2.54) {
     $fa=$preview ? 6 : 1; // minimum angle fragment
@@ -853,17 +853,21 @@ module hex (size=0.5,l=1) {
     linear_extrude(height=l,convexity=10) 
         polygon( points=[[x,y1],[0,y2],[-x,y1],[-x,-y1],[0,-y2],[x,-y1],[x,y1]] );
 }
-module P090S_pot (L=13.1,negative=false) {
+
+lenPin=7; // P090 electrical pin length constant
+L_pot_shaft = 13.1;  // P090 shaft length above the body
+
+module P090S_pot (negative=false) {
     // units are in metric
-    // nagative false = model a potentiometer for display
+    // The P090S (Style S) has the three pins off of the TOP
+    // Solder the wires to the pins (need solid connection)
+    // negative false = model a potentiometer for display
     // negative true = model to be used with a difference() in another model
-    // L = length of the shaft above the body
     
     ss = negative ? 1.0: 0.97;  // if negative false then scale down
     // constants
     zbody = 5.1;
     zb = zbody+10;
-    lenPin=7;
     zpin = -4-lenPin;
 
     scale([ss,ss,ss]){ // scale down the model for display
@@ -884,9 +888,11 @@ module P090S_pot (L=13.1,negative=false) {
         
     
         // shaft F-Type
-        color("darkslategrey") difference () {
-            translate([0,0,L/2]) cylinder(h=L,d=6.2,center=true,$fn=48);
-            translate ([-5,1.45,5]) cube(L,center=false); // key
+        color("darkslategrey") 
+            difference () {
+                translate([0,0,L_pot_shaft/2]) 
+                    cylinder(h=L_pot_shaft,d=6.2,center=true,$fn=48);
+                translate ([-5,-L_pot_shaft-1.45,5]) cube(L_pot_shaft,center=false); // key
         }
         // pins (3)
         translate([0,7,zpin]) elect_pin();
@@ -896,7 +902,7 @@ module P090S_pot (L=13.1,negative=false) {
         clip();
         mirror([1,0,0]) clip();
         // wire connector
-        color("ivory") translate([0,6,-10]) cube([8,4,8],center=true);
+        //color("ivory") translate([0,6,-10]) cube([8,4,8],center=true);
     }
      
     module elect_pin() {
@@ -913,9 +919,63 @@ module P090S_pot (L=13.1,negative=false) {
 *P090S_pot(negative=true);
 *translate([20,0,0]) P090S_pot(negative=false);
 
+module P090L_pot (negative=false) {
+    // units are in metric
+    // The P090L (Style L) has the three pins off of the side
+    // Solder the wires to the pins (need solid connection)
+    // Cut off connectors to reduce installation volume
+    // negative false = model a potentiometer for display
+    // negative true = model to be used with a difference() in another model
+    
+    ss = negative ? 1.0: 0.97;  // if negative false then scale down
+    // constants
+    zbody = 5.1;
+    zb = zbody+1;
+    zpin = -4;
+
+    scale([ss,ss,ss]){ // scale down the model for display
+        color("green") if (!negative) { // potentiometer for display
+            translate([0,0,-zbody/2]) cube([10,12,zbody],center=true);
+            // two bumps on backside
+            translate([0,-8.5/2,-zbody]) cylinder(h=2,d=1.2,center=true,$fn=20);
+            translate([0,8.5/2,-zbody]) cylinder(h=2,d=1.2,center=true,$fn=20);
+
+        } else {         // potentiometer for difference()
+            translate([0,0,-zb/2]) cube([10,12.5,zb],center=true);
+            translate([0,-12.5,-zb/2]) cube([10,15,zb],center=true);
+        }
+        
+        cylinder(h=2,d=7.2,center=true,$fn=48); // ring around the shaft
+        
+        // two bumps around the shaft
+        translate([2.7,-3.8,0]) cylinder(h=2,d=2.5,center=true,$fn=24);
+        translate([-2.7,3.8,0]) cylinder(h=2,d=2.5,center=true,$fn=24);
+        
+    
+        // shaft F-Type
+        color("darkslategrey") 
+            difference () {
+                translate([0,0,L_pot_shaft/2]) 
+                    cylinder(h=L_pot_shaft,d=6.2,center=true,$fn=48);
+                translate ([-5,-L_pot_shaft-1.45,5]) cube(L_pot_shaft,center=false); // key
+        }
+        // pins (3)
+        translate([0,7,zpin]) elect_pin();
+        translate([-2.5,7,zpin]) elect_pin();
+        translate([2.5,7,zpin]) elect_pin();
+    }
+     
+    module elect_pin() {
+        // 1 mm diamater electric pin
+        rotate([90,0,0]) translate([0,0,lenPin/2]) cylinder(h=lenPin,r=.5,$fn=8);
+    }
+}
+P090L_pot(negative=true);
+translate([20,0,0]) P090L_pot(negative=false);
+
 module RV112FF_pot (L=19,negative=false) {
     // units are in metric
-    // nagative false = model a potentiometer for display
+    // negative false = model a potentiometer for display
     // negative true = model to be used with a difference() in another model
     // L = length of the shaft above the body
     

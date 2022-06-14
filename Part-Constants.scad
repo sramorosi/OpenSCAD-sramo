@@ -62,8 +62,5 @@ servo_horn_t=7.4;
 9271K589_ID = 9271K589_OD-2*9271K589_wd;  // ID of the coil
 //9271K589_Dshaft = 12.7; // The largest shaft that can go through spring
 
-//GT2pulleyd = 12;
-//GT2pulleyt = 8.5;
-
 pot_shaft_dia = 6.2; // mm, potentiometer shaft dia
 pot_lug_t = 8; // thickness of the lug over potentiometer shaft
