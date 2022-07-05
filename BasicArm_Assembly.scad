@@ -1,10 +1,14 @@
 /*
   A VERY BASIC ARM ASSEMBLY MODEL
+  
+  Contains a method to generate an array of angles from a path
+  
+  
   */
 use <Robot_Arm_Parts_lib.scad>
-lenAB=195;
-lenBC=240;
-lenCD=200;
+lenAB=320;
+lenBC=320;
+lenCD=150;
 cyl_d = 10;
 // Joint A angle
 A_angle = 90; // [0:1:180]
@@ -15,14 +19,15 @@ C_angle = 20; // [-145:1:145]
 // Turntable angle
 T_angle = 30; // [-90:90]
 // Number of position steps, for arrays
-steps = 40;  // [1:1:100]
+steps = 20;  // [1:1:100]
 
-
+/*
 pts=pt_from_angles(A_angle,B_angle,C_angle,T_angle,lenAB,lenBC,lenCD);
 echo(pts=pts);
 
 invAngles = inverse_arm_kinematics(pts[0],lenAB,lenBC);
 echo(invAngles=invAngles);
+*/
 
 module draw_assy (A_angle=90,B_angle=0,C_angle=0,T_angle=0,lenAB=100,lenBC=200,lenCD=50) {
     //  A, zero = horizontal, positive rotation up
@@ -53,13 +58,14 @@ module draw_assy (A_angle=90,B_angle=0,C_angle=0,T_angle=0,lenAB=100,lenBC=200,l
         }
     }
 }
-draw_assy(A_angle,B_angle,C_angle,T_angle,lenAB,lenBC,lenCD);
+*draw_assy(A_angle,B_angle,C_angle,T_angle,lenAB,lenBC,lenCD);
 
 // USE LIST COMPREHENSIONS TO FILL ARRAYS
 // ELLIPSE
-//c_pts = [ for (a = [0 : steps-1]) [270+100*cos(360*(a/steps)),200*sin(360*(a/steps)),180] ];
+r=300;
+c_pts = [ for (a = [0 : steps-1]) [350+r*cos(360*(a/steps)),r*sin(360*(a/steps)),180] ];
 // LINE
-c_pts = [ for (a = [0 : steps-1]) [200,-300+600*(a/steps),180] ];
+//c_pts = [ for (a = [0 : steps-1]) [200,-300+600*(a/steps),180] ];
 // angle[0] = A, angle[1] = B
 echo(c_pts=c_pts);
 Ang_array = [ for (a = [0 : steps-1]) inverse_arm_kinematics(c_pts[a],lenAB,lenBC) ];
@@ -70,4 +76,4 @@ module draw_multi() {
         draw_assy(Ang_array[a][0],Ang_array[a][1],C_angle,Ang_array[a][2],lenAB,lenBC,lenCD);
     }
 }
-*draw_multi();
+draw_multi();

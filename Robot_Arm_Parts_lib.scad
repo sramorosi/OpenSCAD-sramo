@@ -63,15 +63,19 @@ let (vxy = norm([c[0],c[1],0]))  // vector length on the xy plane
 let (T_angle = vxy > 0 ? atan2(c[1],c[0]) : 0) // T angle (check for zero)
 let (crot = rot_pt_z(c,-T_angle)) // rotate to the XZ plane
 let (vt = norm(crot))  // vector length from A to C
+let (vt_long = (vt > (lenAB+lenBC) ? true : false) )
 let (sub_angle1 = atan2(crot[2],crot[0]))  // atan2 (Y,X)!
-let (sub_angle2 = law_cosines(vt,lenAB,lenBC) )
-//echo(vt=vt,sub_angle1=sub_angle1,sub_angle2=sub_angle2)
-[sub_angle1 + sub_angle2,law_cosines(lenBC,lenAB,vt)-180,T_angle] ;
+let (sub_angle2 = vt_long ? 0.1 : law_cosines(vt,lenAB,lenBC) )
+let (a_ang = sub_angle1 + sub_angle2)
+let (b_ang = vt_long ? 0.1 : law_cosines(lenBC,lenAB,vt)-180 )
+echo(vt=vt,sub_angle1=sub_angle1,sub_angle2=sub_angle2,vt_long=vt_long)
+[a_ang,b_ang,T_angle] ;
     
 //invAngles = inverse_arm_kinematics([7.071,7.071,10],10,10);
-invAngles = inverse_arm_kinematics([346.41, 200, 200],200,400);
-echo(invAngles=invAngles);
+//invAngles = inverse_arm_kinematics([346.41, 200, 200],200,400);
+//echo(invAngles=invAngles);
 
+// Not sure why I created k2...
 function inverse_arm_k2 (c=[0,10,0],lenAB=100,lenBC=120) = 
 // Given a three body system Ground-AB-BC, where A is [0,0,0]
 // Lengths LenAB and LenBC are specified
@@ -89,6 +93,10 @@ let (sub_angle1 = atan2(crot[2],crot[0]))  // atan2 (Y,X)!
 let (sub_angle2 = law_cosines(vt,lenAB,lenBC) )
 //echo(vt=vt,sub_angle1=sub_angle1,sub_angle2=sub_angle2)
 [sub_angle1 + sub_angle2,law_cosines(lenBC,lenAB,vt)-180,T_angle] ;
+
+//invAngles = inverse_arm_kinematics([7.071,7.071,10],10,10);
+//invAngles2 = inverse_arm_k2([346.41, 200, 200],200,400);
+//echo(invAngles2=invAngles2);
 
 module draw_dummy_arm(a=[0,0,0],b=[0,0,100],c=[100,0,100],d=[100,0,0]) {
     color("silver") pt_pt_cylinder (from=a,to=b, d = 2,$fn=12);

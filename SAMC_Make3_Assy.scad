@@ -50,10 +50,6 @@ cgBC = 215; // location of BC arm cg (mm)
 ABweight = 323; // grams
 cgAB = 150; // location of BC arm cg (mm)
 
-// Maximum Motor Torque (gram-mm) 
-Motor_Max_Torque = 250000; 
-echo("MOTOR CAPABILITY=",Motor_Max_Torque=Motor_Max_Torque," gram-mm");
-
 // torsion spring constants for A joint
 A_K = -2433; // g-mm/deg,   
             // 600 is for spring 9271K619   ~589
@@ -64,8 +60,17 @@ A_K = -2433; // g-mm/deg,
 A_theta_zero = 90; // degrees, 90 is straight up
 
 // Angle ratio (288/180) = 1.6   1.6*32 = 51
-big_gear_teeth = 53;
+
+// With 360 deg servo:
+// Angle ratio (360/180) = 2.0    2 * 32 = 64
+big_gear_teeth = 60;
 small_gear_teeth = 32;
+
+// Maximum Motor Torque (gram-mm) 
+Motor_Max_Torque = 250000; 
+Geared_Max_Torque = Motor_Max_Torque * (big_gear_teeth/small_gear_teeth)*0.8;
+echo("MOTOR CAPABILITY=",Motor_Max_Torque=Motor_Max_Torque," gram-mm");
+echo("GEARED CAPABILITY=",Geared_Max_Torque=Geared_Max_Torque," gram-mm");
 
 // the distance between gears is the teeth*pitch/pi
 //gear_center_dist = (big_gear_teeth-small_gear_teeth)/2*(2.54/3.14159) - 0;
@@ -106,7 +111,7 @@ module torsion_spring_spacer() {
     translate([0,0,18.5/2]) 
         washer(d=9271K589_ID-1,t=21,d_pin=hole_qtr_inch*1.03);
 }
-torsion_spring_spacer(); // EXPORT AS STL
+*torsion_spring_spacer(); // EXPORT AS STL
 
 module torsion_spring_make3() {
     torsion_spring (deflection_angle=9271K589_angle,OD=9271K589_OD,wire_d=9271K589_wd,leg_len=9271K589_len,coils=9271K589_coils,LH=9271K589_LH,inverse=false);
@@ -223,7 +228,7 @@ module base_assy(A1=0){
     spring_combo();
 
 }
-*base_assy(A1=180); // not for print
+base_assy(A1=180); // not for print
 
 *difference() {
     base_assy(A1=180); // not for print
@@ -251,14 +256,14 @@ module CalculateMoments(display=false) {
         
     // MOMENT ON B, DUE TO CD AND BC
     B_trq = [ for (a = [0 : steps-1]) (BCweight*cgBC+(payload+CDweight)*lenBC)*cos(angles[a][0]+angles[a][1])+C_mom[a]];
-    Margin_Safety2(B_trq,Motor_Max_Torque,"B SERVO - GREEN");
+    Margin_Safety2(B_trq,Geared_Max_Torque,"B SERVO - GREEN");
     *if (display) draw_3d_list(c,max_range/100,"green",B_trq/400); 
     *echo(B_trq=B_trq);
     
     B_trq_noload = [ for (a = [0 : steps-1]) (BCweight*cgBC+(CDweight)*lenBC)*cos(angles[a][0]+angles[a][1])+CDweight*cgCD*cos(angles[a][0]+angles[a][1]+angles[a][2])];
 
     A_trq_load_nospr = [ for (a = [0 : steps-1]) (ABweight*cgAB+(BCweight+payload+CDweight)*lenAB)*cos(angles[a][0])+ B_trq[a] ]; 
-    Margin_Safety2(A_trq_load_nospr,Motor_Max_Torque,"A SERVO - NO SPRING - BLUE");
+    Margin_Safety2(A_trq_load_nospr,Geared_Max_Torque,"A SERVO - NO SPRING - BLUE");
     *if (display) draw_3d_list(c,max_range/80,"blue",A_trq_load_nospr/400); 
     *echo(A_trq_load_nospr=A_trq_load_nospr);
 
@@ -272,13 +277,13 @@ module CalculateMoments(display=false) {
     
     // calculate max A moment with full payload and spring
     A_trq_load_spr = [ for (a = [0 : steps-1]) A_trq_load_nospr[a] - A_spr_torque[a] ]; 
-    Margin_Safety2(A_trq_load_spr,Motor_Max_Torque,"A SERVO - SPRING - BLUE");
+    Margin_Safety2(A_trq_load_spr,Geared_Max_Torque,"A SERVO - SPRING - BLUE");
     //echo(A_trq_load_spr=A_trq_load_spr);
     if (display) draw_3d_list(c,max_range/80,"blue",A_trq_load_spr/400); 
     
     // calculate max A moment with NO payload and spring (can be critical!)
     A_trq_noload_spr = [ for (a = [0 : steps-1]) (ABweight*cgAB+(BCweight+CDweight)*lenAB)*cos(angles[a][0])+ B_trq_noload[a]  - A_spr_torque[a] ]; 
-    Margin_Safety2(A_trq_noload_spr,Motor_Max_Torque,"A SERVO - SPRING - NO PAYLOAD - Yellow");
+    Margin_Safety2(A_trq_noload_spr,Geared_Max_Torque,"A SERVO - SPRING - NO PAYLOAD - Yellow");
     if (display) draw_3d_list(c,max_range/70,"yellow",A_trq_noload_spr/400); 
     *echo(A_trq_noload_spr=A_trq_noload_spr);
         
