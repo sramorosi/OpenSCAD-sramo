@@ -50,6 +50,9 @@ let (pD6=rot_pt_y(pD5,A_angle))
 let (pC4=rot_pt_y(pC3,A_angle))
 [rot_pt_z(pC4,T_angle),rot_pt_z(pD6,T_angle)];
 
+ptsCD=pt_from_angles(90,-90,0,45,195,240,140);
+echo(ptsCD=ptsCD);
+
 function inverse_arm_kinematics (c=[0,10,0],lenAB=100,lenBC=120) = 
 // Given a three body system Ground-AB-BC, where A is [0,0,0]
 // Lengths LenAB and LenBC are specified
@@ -491,15 +494,15 @@ module pulley_groove(r=2,d_grv=0.25,round=true){
             }
         }
 }
-module washer(d=20,t=2,d_pin=10){
+module washer(d=20,t=2,d_pin=10,center=true){
     // model washer on xy plane at 0,0,0 of radius r
     // t is thickness (centered about z=0)
 
     difference(){
-        cylinder(t,d=d,center=true);  // outside
+        cylinder(t,d=d,center=center);  // outside
         
         // subtract bore
-        cylinder(2*t,d=d_pin,center=true);
+        cylinder(3*t,d=d_pin,center=true);
     };
 }
 *washer($fn=50);
@@ -753,7 +756,18 @@ module servo_horn (l=servo_horn_l, d1=servo_horn_d1, d2=servo_horn_d2, t=servo_h
 }
 *servo_horn(vis=false);
 
-module servo_body (vis=true){
+module svoScrews() { // 2D pattern
+    translate([-svo_shaft,0,0]) 
+        rectPattern(svo_screw_l,svo_screw_w) 
+            circle(d=3.5);  // min dia for 1/8" mill
+}
+module svo2D() { // for SVG, for X-carve
+    svoScrews($fn=24);
+    translate([-svo_shaft,0,0]) square([svo_l,svo_w], center=true);
+}
+*svo2D();  // 2D
+
+module servo_body (vis=true){ // true = normal,  false = for subtraction
     // Create servo body on xy plane, spline shaft center at 0,0,0
     // long body direction along -x axis
     // body from z=0 down
@@ -762,32 +776,32 @@ module servo_body (vis=true){
 
     difference () {
         union () {
-        translate([-svo_shaft,0,-svo_d/2]) // main body
-            rounded_cube(size=[svo_l,svo_w,svo_d],r=.8,center=true,$fn=24); 
-        
-        translate([-svo_shaft,0,-svo_flange_d-svo_flange_t/2])  // flange
-            rounded_cube(size=[svo_flange_l,svo_w,svo_flange_t],r=.8,center=true);
-        
-        translate([-svo_shaft,0,-8.9])
-            cube(size=[svo_flange_l,2.54,3.05],center=true); // gussetts
-        
-        // cylinders for screw starts
-        translate([svo_screw_l/2-svo_shaft,svo_screw_w/2,-svo_flange_d])
-            cylinder(h=3*svo_shaft,d=3,center=true);
-        translate([svo_screw_l/2-svo_shaft,-svo_screw_w/2,-svo_flange_d])
-            cylinder(h=3*svo_shaft,d=3,center=true);
-        translate([-svo_screw_l/2-svo_shaft,-svo_screw_w/2,-svo_flange_d])
-            cylinder(h=3*svo_shaft,d=3,center=true);
-        translate([-svo_screw_l/2-svo_shaft,svo_screw_w/2,-svo_flange_d])
-            cylinder(h=3*svo_shaft,d=3,center=true);
+            translate([-svo_shaft,0,-svo_d/2]) // main body
+                rounded_cube(size=[svo_l,svo_w,svo_d],r=.8,center=true,$fn=24); 
+            
+            translate([-svo_shaft,0,-svo_flange_d-svo_flange_t/2])  // flange
+                rounded_cube(size=[svo_flange_l,svo_w,svo_flange_t],r=.8,center=true);
+            
+            translate([-svo_shaft,0,-8.9])
+                cube(size=[svo_flange_l,2.54,4],center=true); // gussetts
+            
+            // cylinders for screw starts
+            if (vis)  {
+                cylinder (h=10,d=5,center=true);
+            } else {
+                translate([0,0,-40]) linear_extrude(60,convexity=10) svoScrews();
+            }
         }
         // subtract main axis cyl for visulization
-        if (vis) cylinder (h=4*svo_d,d=4,center=true);
+        if (vis) {
+            cylinder (h=4*svo_d,d=4,center=true);
+            translate([0,0,-20]) linear_extrude(20,convexity=10) svoScrews();
+        }
     }
 }
-*servo_body(vis=false);
+*color ("red",.5) servo_body(vis=true);
 
-module servo_shim (l=61,w=25.4,t=2.54) {
+module servo_shim (l=61,w=25.4,t=3) {
     $fa=$preview ? 6 : 1; // minimum angle fragment
     flange_z = -9.65;
     difference () {
@@ -795,6 +809,47 @@ module servo_shim (l=61,w=25.4,t=2.54) {
         servo_body (vis=false,$fn=16);
     }
 }
+*servo_shim();
+
+module servo_shim_spacer(l=svo_flange_l,w=svo_w-1,t=1.5) {
+    $fa=$preview ? 6 : 1; // minimum angle fragment
+    flange_z = -9.65;
+    difference () {
+        translate([-svo_shaft,0,flange_z+4]) cube([l,w,t],center=true);
+        servo_body (vis=false,$fn=16);
+    }
+}
+*servo_shim_spacer();
+
+module servo_hub() { // modeled after ServoCity servo hub SKU: 525123
+    difference() {
+        translate([0,0,0.799/mm_inch]) 
+            washer(d=1/mm_inch, t=0.2/mm_inch,d_pin=0.3/mm_inch,center=false);
+        Rotation_Pattern(number=8,radius=0.385/mm_inch,total_angle=360) 
+            cylinder(h=50,d=0.125/mm_inch,center=false,$fn=12);
+    }
+    washer(d=0.5/mm_inch,t=0.8/mm_inch,d_pin=0.3/mm_inch,center=false);
+}
+*servo_hub();
+
+module block_side () {
+    difference() {
+        washer(d=1/mm_inch, t=0.2/mm_inch,d_pin=0.3/mm_inch,center=false);
+        Rotation_Pattern(number=8,radius=0.385/mm_inch,total_angle=360) 
+            cylinder(h=50,d=0.125/mm_inch,center=true,$fn=12);
+    }
+}
+
+module servo_block() { // modeled after ServoCity Hub Shaft ServoBock SKU: 637112
+    translate([0,-5.5,1.31/2/mm_inch]) rotate([-90,0,0]) {
+        color ("red",.5) servo_body(vis=true);
+        servo_shim(l=2.41/mm_inch,w=1.31/mm_inch);
+        translate([0,0,2]) servo_hub();
+        translate([0,1.31/2/mm_inch,5.5]) rotate([90,0,0]) block_side();
+        translate([0,-1.31/2/mm_inch,5.5]) rotate([90,0,180]) block_side();
+    }
+}
+*servo_block();
 module GT2_2_idle_pulley () {
     // draw in inches (always scaled)
     color ("Silver") 
@@ -978,8 +1033,8 @@ module P090L_pot (negative=false) {
         rotate([90,0,0]) translate([0,0,lenPin/2]) cylinder(h=lenPin,r=.5,$fn=8);
     }
 }
-P090L_pot(negative=true);
-translate([20,0,0]) P090L_pot(negative=false);
+*P090L_pot(negative=true);
+*translate([20,0,0]) P090L_pot(negative=false);
 
 module RV112FF_pot (L=19,negative=false) {
     // units are in metric
@@ -1213,6 +1268,14 @@ module Rotation_Pattern(number=3,radius=20,total_angle=360) {
   }
 }
 *Rotation_Pattern(5,30) cylinder(h=10,d=3,center=true);
+
+module rectPattern(x=10,y=20) { // four obects in a rectangular pattern
+    translate([x/2,y/2,0]) children();
+    translate([x/2,-y/2,0]) children();
+    translate([-x/2,y/2,0]) children();
+    translate([-x/2,-y/2,0]) children();
+}
+*rectPattern(30,50) circle(10); // 2D result
 
 module 2d_test() {
     // RENDER F6 and export to .svg, then import to Easel

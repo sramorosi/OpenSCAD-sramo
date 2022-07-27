@@ -6,8 +6,8 @@
   
   */
 use <Robot_Arm_Parts_lib.scad>
-lenAB=320;
-lenBC=320;
+lenAB=195; 
+lenBC=240;
 lenCD=150;
 cyl_d = 10;
 // Joint A angle
@@ -62,8 +62,8 @@ module draw_assy (A_angle=90,B_angle=0,C_angle=0,T_angle=0,lenAB=100,lenBC=200,l
 
 // USE LIST COMPREHENSIONS TO FILL ARRAYS
 // ELLIPSE
-r=300;
-c_pts = [ for (a = [0 : steps-1]) [350+r*cos(360*(a/steps)),r*sin(360*(a/steps)),180] ];
+r=150;
+c_pts = [ for (a = [0 : steps-1]) [200+r*cos(360*(a/steps)),r*sin(360*(a/steps)),150] ];
 // LINE
 //c_pts = [ for (a = [0 : steps-1]) [200,-300+600*(a/steps),180] ];
 // angle[0] = A, angle[1] = B
