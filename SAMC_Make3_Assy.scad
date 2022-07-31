@@ -11,7 +11,8 @@
 use <force_lib.scad> // contains forces, springs, MS modules and functions
 include <Part-Constants.scad>
 use <Robot_Arm_Parts_lib.scad>
-use <BasicArm_Assembly.scad>
+//use <BasicArm_Assembly.scad>
+use <SACC_Assembly.scad>
 use <gears_involute.scad>  // Modified version of spur gears by to GregFrost
 
 // Number of position step in internal calculation
@@ -51,6 +52,7 @@ max_range = lenAB+lenBC;
   A 12 oz can of pop/beer is 375 grams (i.e. payload goal)
   A 40x20x40 mm servo is about 70 grams
   gopro = 120 gram
+  claw assembly = 150 gram
   smartphone = 160 gram   */
 // Payload weight on point D
 payload=200; // Maximum payload weight (thing being lifted) (g)
@@ -78,7 +80,7 @@ A_theta_zero = 90; // degrees, 90 is straight up
 // Angle ratio (288/180) = 1.6   1.6*32 = 51
 // With 360 deg servo:
 // Angle ratio (360/180) = 2.0    2 * 32 = 64
-big_gear_teeth = 62; // Printed. Used at A ang B joints
+big_gear_teeth = 66; // Printed. Used at A ang B joints
 small_gear_teeth = 32; // Servo gear from ServoCity
 // Distance between gears is the (total_teeth/2)*pitch/pi
 //gear_center_dist = (big_gear_teeth+small_gear_teeth)/2*(2.54/3.14159) - 0;
@@ -193,6 +195,7 @@ module guss_profile(tube=wTube,gap=0.1,daxel=Qtr_bearing_od,dholes=3.5) {
     }
 }
 *guss_profile(tube=wTube,gap=armSpace,daxel=Qtr_bearing_od,dholes=3.5); // EXPORT AS SVG
+
 *translate([-wTube,0,0]) { // BC ARM MACHINING. EXPORT AS SVG, rotate 90
     translate([-lenBC+wTube,0,0]) rotate([0,0,180]) svo2D(); 
     rotate([0,0,90]) hole_pair_2D (x = 0,y=1.6*wTube,d=3.5); // attach holes
@@ -203,7 +206,7 @@ module guss_profile(tube=wTube,gap=0.1,daxel=Qtr_bearing_od,dholes=3.5) {
 *circle(d=12); // wire access hole, TA MACHINING. EXPORT AS SVG, rotate 90
 
 module plain_guss() {
-    color("green") difference () {
+    color("DeepSkyBlue") difference () {
         linear_extrude(6, convexity=10) 
         guss_profile(tube=wTube,gap=armSpace,daxel=Qtr_bearing_od,dholes=3.5);
         
@@ -216,16 +219,16 @@ module plain_guss() {
 }
 *plain_guss(); // EXPORT AS STL
 
-module big_gear_guss() {
+module big_gear_guss(teeth=10) {
     $fn=$preview ? 64 : 120; // minimum fragment
-    union() {
+    color("Aqua") union() {
         32P_Actobotics(teeth=big_gear_teeth,thickness=8,bore=Qtr_bearing_od);    
         linear_extrude(8, convexity=10) guss_profile(tube=wTube,gap=armSpace,daxel=Qtr_bearing_od,dholes=3.5);
     }
 }
-*big_gear_guss(); // EXPORT AS STL
+*big_gear_guss(teeth=big_gear_teeth); // EXPORT AS STL
 
-module svo_sub_assy() {
+module geared_svo_block_assy() {
     translate([-svoCtrAxial,svoCtrLateral,0]) {
         color("blue") servo_mount();
         color ("red",.5) servo_body();  // servo
@@ -233,9 +236,59 @@ module svo_sub_assy() {
         32P_Actobotics(teeth=small_gear_teeth);   // servo gear 32 tooth
     }   
 }
+*geared_svo_block_assy();  // NOT FOR PRINT
+
+module claw_bracket(width=30,thk=25,len=60) {
+    // COMPLIANT CLAW height
+    claw_height = 25; 
+    hole_space = claw_height*0.7;
+    difference () {
+    union() {
+        svo_block_ring(thk=thk,$fn=48);
+        translate([20,width,(thk+5)/2]) ear();
+        translate([20,-width,(thk+5)/2]) rotate([180,0,0]) ear();
+    }
+    // remove End attach pin
+    translate ([len-claw_height,0,15]) rotate([90,90,0])
+        hole_pair (x = 0,y=hole_space,d=3.5,h=100);
+    }
+    module ear() {
+        difference() {
+            cube([len,width,thk-5],center=true);
+            translate([-20,-10,0]) cylinder(h=thk*2,d=24,center=true);
+        }
+    }
+}
+*claw_bracket(width=10);  // FOR PRINT
+
+module DClaw_assy(d_angle=0,assy=true){
+    claw_end_w = 10; // claw interface width, mm
+    if (assy) servo_block(angle=d_angle);
+    translate([0,0,28]) 
+        rotate([0,0,d_angle]) {
+            color("blue",0.5) claw_bracket(width=claw_end_w);
+            if (assy) translate([35,0,6]) rotate([90,-90,0]) Claw(assy=true);
+        }
+}
+*DClaw_assy(d_angle=0);
+
+module CD_assy(c_angle=0,d_angle=0) {
+    rotate([0,0,0]) {
+        color ("red",.5) servo_body();  // servo
+        servo_shim();
+        servo_hub();
+        // 1.31/2/mm_inch
+        rotate([0,0,c_angle]) {
+            translate([0,5,43]) 
+                rotate([90,0,0]) DClaw_assy(d_angle=d_angle);
+        }
+    }
+}
+*CD_assy(c_angle=20,d_angle=20);
+
 module BC_arm_assy(armLen = 100,c_angle=0,d_angle=0){
     // fixed tube assy
-    big_gear_guss();
+    big_gear_guss(teeth=big_gear_teeth);
     translate([0,0,-wTube-2*armSpace]) plain_guss();
 
     // BC tube
@@ -250,13 +303,7 @@ module BC_arm_assy(armLen = 100,c_angle=0,d_angle=0){
             }
         }
         translate([-armLen,-wTube-armSpace,-6]) rotate([180,0,180]) {
-            color ("red",.5) servo_body();  // servo
-            servo_shim();
-            servo_hub();
-            translate([0,0,60]) rotate([0,180,180-c_angle]) {
-                servo_block();
-                color("green") translate([0,0,15]) rotate([0,d_angle,0]) translate([0,20,-15]) cube([100,10,30],center=false);
-            }
+            CD_assy(c_angle=c_angle,d_angle=d_angle);
         }
 }
 *BC_arm_assy(armLen=lenBC,c_angle=45); // not for print
@@ -271,9 +318,9 @@ module AB_arm_assy(armLen = 100){
         translate([-armLen,0,0]) cylinder(h=2*wTube,d=0.25/mm_inch,center=true,$fn=24);
     }
     
-    svo_sub_assy();
+    geared_svo_block_assy();
     
-    translate([-armLen,0,0]) rotate([0,0,180]) svo_sub_assy();
+    translate([-armLen,0,0]) rotate([0,0,180]) geared_svo_block_assy();
     
     spring_combo();
 }
@@ -281,7 +328,7 @@ module AB_arm_assy(armLen = 100){
 
 module TA_assy(tubeLen=lenTA) { // Assy between Turntable and joint A
     // fixed tube assy
-    big_gear_guss();
+    big_gear_guss(teeth=big_gear_teeth);
     translate([0,0,-wTube-2*armSpace]) plain_guss();
     // fixed tube
     difference(){
@@ -355,7 +402,7 @@ CalculateMoments();
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 // distance of shoulder plate from zero
-shoulder_y_shift = 45; 
+shoulder_y_shift = 37.5; 
 // Shoulder part offset down from zero, mm
 shoulder_z_top = 0;  
 // Shoulder thickness
@@ -363,7 +410,7 @@ shoulder_t = 7;
 // Shoulder width
 shoulder_w = 75;
 // Shoulder length
-shoulder_l = 88;
+shoulder_l = 75;
 // Shoulder gusset thickness
 t_guss = 7.5;
 // Shoulder gusset offset from center
@@ -371,19 +418,15 @@ x_guss = 15;
 // rotation of joint A torsion spring in installation (deg)
 A_Tspr_rot = 6;  
 
-module shoulder_plate(part_A=true,h_guss=10,shoulder_y_A=0,shoulder_y_1=20,shoulder_y_2=40,shoulder_y_B=60) {
+module shoulder_plate(part_A=true) {
     // Assembly of the shoulder of the arm
     // MAKE STL TWO PARTS (A and B). 
     // XY = HORIZON
     $fn=$preview ? 64 : 128; // minimum number of fragements
     // parameters for the 4 shoulder attach bolts to the bearing
     shoulder_bearing_hole_space = 59;
-    x_bs = shoulder_bearing_hole_space/2;
-    y_bs = shoulder_bearing_hole_space/2;
-    // parameters for the 4 gear attach screws
     hole_space_gear = 38;
-    x_g = hole_space_gear/2;
-    y_g = hole_space_gear/2;
+    sb_rad = sqrt(2*shoulder_bearing_hole_space*shoulder_bearing_hole_space)/2;
 
     difference () {
         union () {
@@ -404,50 +447,31 @@ module shoulder_plate(part_A=true,h_guss=10,shoulder_y_A=0,shoulder_y_1=20,shoul
                 cylinder(h=shoulder_t*5,d=15,center=true);
         
         // subtract the 4 shoulder mounting bolt holes
-        translate([x_bs,y_bs+shoulder_y_shift,0])
-                cylinder(h=shoulder_t*3,d=2.5,center=true);
-        translate([x_bs,-y_bs+shoulder_y_shift,0])
-                cylinder(h=shoulder_t*3,d=2.5,center=true);
-        translate([-x_bs,-y_bs+shoulder_y_shift,0])
-                cylinder(h=shoulder_t*3,d=2.5,center=true);
-        translate([-x_bs,y_bs+shoulder_y_shift,0])
+        translate([0,shoulder_w/2,0])  rotate([0,0,45]) 
+            Rotation_Pattern(number=4,radius=sb_rad) 
                 cylinder(h=shoulder_t*3,d=2.5,center=true);
         
         // subtract the 4 gear mounting screw holes
-        translate([0,y_g+shoulder_y_shift,-12])
-                cylinder(h=shoulder_t*4,d=hole_no6_screw,center=true);
-        translate([x_g,shoulder_y_shift,-12])
-                cylinder(h=shoulder_t*4,d=hole_no6_screw,center=true);
-        translate([-x_g,shoulder_y_shift,-12])
-                cylinder(h=shoulder_t*4,d=hole_no6_screw,center=true);
-        translate([0,-y_g+shoulder_y_shift,-12])
-                cylinder(h=shoulder_t*4,d=hole_no6_screw,center=true);
+        translate([0,shoulder_w/2,0])  
+            Rotation_Pattern(number=4,radius=hole_space_gear/2) 
+                cylinder(h=shoulder_t*8,d=hole_no6_screw,center=true);
     }
 }
-h_gusset = 18; // Gusset height
-shoulder_y_A = 0; // A servo position
-shoulder_y_1 = 18;
-shoulder_y_2 = 72;
-shoulder_y_B = 95; // B servo length, was 93
-
-*shoulder_servo_lug(h_guss=h_gusset,thk=shoulder_t);//FOR_PRINT
-
-*shoulder_lug(h_guss=h_gusset,thk=shoulder_t);//FOR_PRINT
 
 // Part A
-*shoulder_plate(part_A=true,h_guss=h_gusset,shoulder_y_A=shoulder_y_A,shoulder_y_1=shoulder_y_1,shoulder_y_2=shoulder_y_2,shoulder_y_B=shoulder_y_B);// FOR_PRINT
+*shoulder_plate(part_A=true);// FOR_PRINT
 
 // Part B
-*shoulder_plate(part_A=false,h_guss=h_gusset,shoulder_y_A=shoulder_y_A,shoulder_y_1=shoulder_y_1,shoulder_y_2=shoulder_y_2,shoulder_y_B=shoulder_y_B);// FOR_PRINT
+*shoulder_plate(part_A=false);// FOR_PRINT
 
-module shoulder_assy (h_guss=h_gusset,shoulder_y_A=shoulder_y_A,shoulder_y_1=shoulder_y_1,shoulder_y_2=shoulder_y_2,shoulder_y_B=shoulder_y_B) {
+module shoulder_assy () {
     // Assembly of the shoulder of the arm
     // XY = HORIZON
     $fn=$preview ? 64 : 128; // minimum number of fragements
 
     translate([0,0,-shoulder_z_top]) {
-    shoulder_plate(part_A=true,h_guss=h_gusset,shoulder_y_A=shoulder_y_A,shoulder_y_1=shoulder_y_1,shoulder_y_2=shoulder_y_2,shoulder_y_B=shoulder_y_B);
-    shoulder_plate(part_A=false,h_guss=h_gusset,shoulder_y_A=shoulder_y_A,shoulder_y_1=shoulder_y_1,shoulder_y_2=shoulder_y_2,shoulder_y_B=shoulder_y_B);
+    shoulder_plate(part_A=true);
+    shoulder_plate(part_A=false);
     }
 }
 *shoulder_assy ();// not for print
@@ -541,15 +565,15 @@ module base_servo_mount() {
 }
 *base_servo_mount(); //FOR_PRINT
 
+// location for the holes that screw the base to the wood
+x_w = (base_x-20)/2;
+y_w = (base_y-20)/2;
+
 module base_plate() {
     $fn=$preview ? 64 : 120; // minimum fragment
-    // location for the holes that screw the base to the wood
-    x_w = (base_x-20)/2;
-    y_w = (base_y-20)/2;
     // parameters for the 4 base attach bolts to the bearing
-    base_bearing_hole_space = 77;
-    x_bb = base_bearing_hole_space/2;
-    y_bb = base_bearing_hole_space/2;
+    base_bearing_hole_space = 77; // square size
+    base_bearing_hole_rad = sqrt(2*base_bearing_hole_space*base_bearing_hole_space)/2;
     difference() {
          rounded_cube(size=[base_x,base_y,base_t],r=12,center=true);
 
@@ -565,10 +589,8 @@ module base_plate() {
             cube([svo_flange_l*1.2,svo_w*1.1,base_t],center=true);
         
         // subtract the 4 bearing mounting screw holes
-        translate([x_bb,y_bb,0]) cylinder(h=base_t*3,d=2.5,center=true);
-        translate([x_bb,-y_bb,0]) cylinder(h=base_t*3,d=2.5,center=true);
-        translate([-x_bb,-y_bb,0])cylinder(h=base_t*3,d=2.5,center=true);
-        translate([-x_bb,y_bb,0]) cylinder(h=base_t*3,d=2.5,center=true);
+        rotate([0,0,45]) Rotation_Pattern(number=4,radius=base_bearing_hole_rad) 
+            cylinder(h=base_t*3,d=2.5,center=true);
         
         // subtract the 4 2X4 screw mounting holes
         translate([x_w,y_w,0]) cylinder(h=base_t*3,d=4,center=true);
@@ -585,10 +607,20 @@ module base_plate() {
         }
     }
 }
-*base_plate(); //FOR_PRINT
+*base_plate(); //FOR PRINT
+
+module base_plate_svg () { // 2D svg for routing
+    // The 4 2X4 screw mounting holes
+    translate([x_w,y_w,0]) circle(d=4);
+    translate([x_w,-y_w,0]) circle(d=4);
+    translate([-x_w,-y_w,0])circle(d=4);
+    translate([-x_w,y_w,0]) circle(d=4);
+    translate([35,0,0]) square([110,80],center=true);
+}
+*color("blue") base_plate_svg();  // FOR CARVING
 
 module base_assy_make2() {
-    base_plate();
+    color("Turquoise") base_plate();
     translate([gear_center_dist,0,-3]) 
     base_servo_mount();
         
@@ -612,7 +644,7 @@ module base_and_shoulder_assy(T_angle=0,A_angle=0,B_angle=0){
     // shoulder, adjust z translation as required
     rotate([0,0,T_angle]) 
         translate([0,-shoulder_y_shift,0]) { 
-            color("green",.5) shoulder_assy (); 
+            color("RoyalBlue") shoulder_assy (); 
         }
     // sholder big gear  64 tooth
     // off for thingiverse, purchased part

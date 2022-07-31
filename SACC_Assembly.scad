@@ -917,7 +917,7 @@ module C_horn(){
             cube([claw_radius*2,claw_height,thk],center=false);
     }
 }
-*C_horn();// FOR_PRINT
+C_horn();// FOR_PRINT
 
 module claw_servo_bracket() {
     $fn=$preview ? 64 : 128; // minimum number of fragements
@@ -994,7 +994,7 @@ module Claw(assy=true){
             rotate([0,90,-90]) servo_body();
         // GoPro
         *translate([20,-66,-30]) rotate([90,0,95]) GoPro_model();
-        translate([35,-16,0]) rotate([-90,0,0]) GoPro_bracket();
+        *translate([35,-16,0]) rotate([-90,0,0]) GoPro_bracket();
     }
 }
 *Claw(assy=false); //FOR_PRINT

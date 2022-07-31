@@ -832,24 +832,26 @@ module servo_hub() { // modeled after ServoCity servo hub SKU: 525123
 }
 *servo_hub();
 
-module block_side () {
+module svo_block_ring (thk=0.2/mm_inch) { // represents side of servo block
     difference() {
-        washer(d=1/mm_inch, t=0.2/mm_inch,d_pin=0.3/mm_inch,center=false);
+        washer(d=1/mm_inch, t=thk,d_pin=0.3/mm_inch,center=false);
         Rotation_Pattern(number=8,radius=0.385/mm_inch,total_angle=360) 
-            cylinder(h=50,d=0.125/mm_inch,center=true,$fn=12);
+            cylinder(h=thk*5,d=0.125/mm_inch,center=true,$fn=12);
     }
 }
+*svo_block_ring(thk=25,$fn=48);
 
-module servo_block() { // modeled after ServoCity Hub Shaft ServoBock SKU: 637112
-    translate([0,-5.5,1.31/2/mm_inch]) rotate([-90,0,0]) {
-        color ("red",.5) servo_body(vis=true);
+module servo_block(angle=0) { // modeled after ServoCity Hub Shaft ServoBock SKU: 637112
+    color ("red",.5) servo_body(vis=true);
+    color("Silver") {
         servo_shim(l=2.41/mm_inch,w=1.31/mm_inch);
-        translate([0,0,2]) servo_hub();
-        translate([0,1.31/2/mm_inch,5.5]) rotate([90,0,0]) block_side();
-        translate([0,-1.31/2/mm_inch,5.5]) rotate([90,0,180]) block_side();
+        translate([0,0,2]) rotate([0,0,angle]) servo_hub();
+        translate([0,1.31/2/mm_inch,5.5]) rotate([90,0,0]) svo_block_ring();
+        translate([0,-1.31/2/mm_inch,5.5]) rotate([90,0,180]) svo_block_ring();
     }
 }
-*servo_block();
+*servo_block(angle=10);
+
 module GT2_2_idle_pulley () {
     // draw in inches (always scaled)
     color ("Silver") 
