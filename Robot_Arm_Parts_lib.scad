@@ -1,6 +1,6 @@
 // Robot Arm Parts Object Library
 //  Started on 4/6/2020 by SrAmo
-//  last modified December 2021 by SrAmo
+//  last modified August 2022 by SrAmo
 use <force_lib.scad>
 use <Pulley-GT2_2.scad>
 include <Part-Constants.scad>
@@ -21,6 +21,10 @@ function rot_x (x,y,a) = x*cos(a)-y*sin(a);
 
 function rot_y (x,y,a) = x*sin(a)+y*cos(a);
 
+function rot_pt_x (pt=[10,10,10],xang=45) =
+// Rotate pt about the X-axis by xang
+[pt[0],rot_x(pt[1],pt[2],xang),rot_y(pt[1],pt[2],xang)];
+
 function rot_pt_y (pt=[10,10,10],yang=45) =
 // Rotate pt about the Y-axis by yang
 [rot_x(pt[0],pt[2],yang),pt[1],rot_y(pt[0],pt[2],yang)];
@@ -35,71 +39,58 @@ function rot_pt_z (pt=[10,10,10],zang=45) =
 //zpoint = rot_pt_z();
 //echo(zpoint=zpoint);
 
-function pt_from_angles(A_angle=90,B_angle=0,C_angle=0,T_angle=0,lAB=1,lBC=1,lCD=1) =
-// returns an array of two points [C,D]
-let (pD1=[lCD,0,0])
+function anglesToC(alphaA=90,alphaB=0,alphaT=0,lAB=1,lBC=1) =
+// Forward Kinematics
+// alpha = global angles,  theta = local angles
+// returns points C
 let (pC1=[lBC,0,0])
 let (pB1=[lAB,0,0])
-let (pD2=rot_pt_y(pD1,C_angle))
-let (pD3=pD2+pC1)
-let (pD4=rot_pt_y(pD3,B_angle))
-let (pC2=rot_pt_y(pC1,B_angle))
-let (pD5=pD4+pB1)
+let (pC2=rot_pt_y(pC1,alphaB))
 let (pC3=pC2+pB1)
-let (pD6=rot_pt_y(pD5,A_angle))
-let (pC4=rot_pt_y(pC3,A_angle))
-[rot_pt_z(pC4,T_angle),rot_pt_z(pD6,T_angle)];
+let (pC4=rot_pt_y(pC3,alphaA))
+rot_pt_z(pC4,alphaT);
 
-ptsCD=pt_from_angles(90,-90,0,45,195,240,140);
-echo(ptsCD=ptsCD);
+//ptsCD=anglesToC(90,-90,45,195,240);
+//echo(ptsCD=ptsCD);
 
 function inverse_arm_kinematics (c=[0,10,0],lenAB=100,lenBC=120) = 
 // Given a three body system Ground-AB-BC, where A is [0,0,0]
 // Lengths LenAB and LenBC are specified
 // The location of c is specified
-// The joints A,B are on a table with rotation T_angle parallel to Z through A
-// With T_angle = 0, then joints A & B are parallel to the Y axis
+// The joints A,B are on a table with rotation alphaT parallel to Z through A
+// With alphaT = 0, then joints A & B are parallel to the Y axis
 // calculate the angles given pt C ***Inverse Kinematics***
-// returns an array with [A_angle,B_angle,T_angle] 
-//    where B_angle is ABC (not BC to horizontal)
+// returns an array with [alphaA,alphaB,alphaT] 
+//    where alphaB is ABC (not BC to horizontal)
 let (vxy = norm([c[0],c[1],0]))  // vector length on the xy plane
-let (T_angle = vxy > 0 ? atan2(c[1],c[0]) : 0) // T angle (check for zero)
-let (crot = rot_pt_z(c,-T_angle)) // rotate to the XZ plane
+let (alphaT = vxy > 0 ? atan2(c[1],c[0]) : 0) // T angle (check for zero)
+let (crot = rot_pt_z(c,-alphaT)) // rotate to the XZ plane
 let (vt = norm(crot))  // vector length from A to C
 let (vt_long = (vt > (lenAB+lenBC) ? true : false) )
 let (sub_angle1 = atan2(crot[2],crot[0]))  // atan2 (Y,X)!
 let (sub_angle2 = vt_long ? 0.1 : law_cosines(vt,lenAB,lenBC) )
 let (a_ang = sub_angle1 + sub_angle2)
 let (b_ang = vt_long ? 0.1 : law_cosines(lenBC,lenAB,vt)-180 )
-echo(vt=vt,sub_angle1=sub_angle1,sub_angle2=sub_angle2,vt_long=vt_long)
-[a_ang,b_ang,T_angle] ;
+//echo(vt=vt,sub_angle1=sub_angle1,sub_angle2=sub_angle2,vt_long=vt_long)
+[a_ang,b_ang,alphaT] ;
     
 //invAngles = inverse_arm_kinematics([7.071,7.071,10],10,10);
 //invAngles = inverse_arm_kinematics([346.41, 200, 200],200,400);
 //echo(invAngles=invAngles);
 
-// Not sure why I created k2...
-function inverse_arm_k2 (c=[0,10,0],lenAB=100,lenBC=120) = 
-// Given a three body system Ground-AB-BC, where A is [0,0,0]
-// Lengths LenAB and LenBC are specified
-// The location of c is specified
-// The joints A,B are on a table with rotation T_angle parallel to Z through A
-// With T_angle = 0, then joints A & B are parallel to the Y axis
-// calculate the angles given pt C ***Inverse Kinematics***
-// returns an array with [A_angle,B_angle,T_angle] 
-//    where B_angle is ABC (not BC to horizontal)
-let (vxy = norm([c[0],c[1],0]))  // vector length on the xy plane
-let (T_angle = vxy > 0 ? atan2(c[1],c[0]) : 0) // T angle (check for zero)
-let (crot = rot_pt_z(c,-T_angle)) // rotate to the XZ plane
-let (vt = norm(crot))  // vector length from A to C
-let (sub_angle1 = atan2(crot[2],crot[0]))  // atan2 (Y,X)!
-let (sub_angle2 = law_cosines(vt,lenAB,lenBC) )
-//echo(vt=vt,sub_angle1=sub_angle1,sub_angle2=sub_angle2)
-[sub_angle1 + sub_angle2,law_cosines(lenBC,lenAB,vt)-180,T_angle] ;
+function clawToC(G=[180,50,40],alphaC=0,alphaD=0,s_CG_x=180,s_CG_y=40) =
+// Claw pickup point is G.  Determine point C based on angles C and D.
+let (pointC = [-s_CG_x,0,-s_CG_y])
+let (C1= rot_pt_x (pointC,alphaD))  // rotate D
+let (C2= rot_pt_y (C1,alphaC))  // rotate C
+let (thetaT=atan2(G[1],G[0]))  // expected turtable angle
+let (C3=rot_pt_z(C2,thetaT)) // correct for turtable
+// need another correction. D angle impacts turntable angle
+//echo(thetaT=thetaT)
+[G[0]+C3[0],G[1]+C3[1],G[2]+C3[2]];
 
-//invAngles = inverse_arm_kinematics([7.071,7.071,10],10,10);
-//invAngles2 = inverse_arm_k2([346.41, 200, 200],200,400);
-//echo(invAngles2=invAngles2);
+NEWC=clawToC();
+echo(NEWC=NEWC);
 
 module draw_dummy_arm(a=[0,0,0],b=[0,0,100],c=[100,0,100],d=[100,0,0]) {
     color("silver") pt_pt_cylinder (from=a,to=b, d = 2,$fn=12);

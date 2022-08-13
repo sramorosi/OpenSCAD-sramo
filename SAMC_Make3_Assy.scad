@@ -1,44 +1,46 @@
 //  SAMC Make 3
 //  Servo Actuated Motion Control
 //
-//  By SrAmo,  May 2022
+//  By SrAmo,  August 2022
 //
 // To Do:
-// AB and BC arm model
-// Joint C model/profile for tube
-// Claw/camera holder model
-// Base model
+// Angles, lengths diagram
+//  Update forward and inverse calculations
+// Fix inverse to have greater range
+// base 2x4 model
+// add holes to tubes (for print or routing
+// 
 use <force_lib.scad> // contains forces, springs, MS modules and functions
 include <Part-Constants.scad>
 use <Robot_Arm_Parts_lib.scad>
-//use <BasicArm_Assembly.scad>
-use <SACC_Assembly.scad>
+use <SACC_Assembly.scad> // FOR CLAW REUSE... INCORPORATE BEFORE PUBLISH
 use <gears_involute.scad>  // Modified version of spur gears by to GregFrost
+use <arduino.scad>
 
 // Number of position step in internal calculation
 steps = 40; // [2:1:200]
 // Joint A angle
-AA = 170; // [0:1:175]
+AA = 150; // [0:1:175]
 // Joint B angle
-BB = -170; // [-175:1:0]
+BB = -100; // [-175:1:0]
 // Joint C angle
-CC = -10; // [-145:1:145]
+CC = 10; // [-145:1:145]
 // Joint D angle
-DD = 0; // [-145:1:145]
+DD = 10; // [-145:1:145]
 // Joint CLAW angle
-CLAW = 0; // [-145:1:145]
+//CLAW = 20; // [-145:1:145]
 // Turntable angle
-TT = 0; // [-80:80]
+TT = 20; // [-80:80]
 
 // length of A-B arm (mm)
-lenAB=350; 
+s_AB=350; 
 // length of B-C arm (mm)
-lenBC=380; 
+s_BC=380; 
 // C to grip/load point (mm)
-lenCD = 160;
-A_xOffset = 35; // (mm)
+lenCD = 160;  // to become s_CG_x and s_CG_y
+s_TA = 15; // (mm)
 // length of Turntable-A tube (mm)
-lenTA=70; 
+tube_TA=70; 
 
 //  Using 1 inch square tube for the arms
 wTube = 1/mm_inch; 
@@ -46,7 +48,7 @@ twall = 0.0625/mm_inch;
 // Space between arm to help movement
 armSpace = 3; // mm
 
-max_range = lenAB+lenBC;
+max_range = s_AB+s_BC;
 
 /* DEFINE WEIGHTS. Reference weights:
   A 12 oz can of pop/beer is 375 grams (i.e. payload goal)
@@ -59,7 +61,7 @@ payload=200; // Maximum payload weight (thing being lifted) (g)
 CDweight=200;  // weight of CD arm (servos, structure) (g)
 cgCD = 80; // Center of Gravity of CD, from C (mm)
 
-echo(lenAB=lenAB,lenBC=lenBC,lenCD=lenCD,payload=payload);
+echo(s_AB=s_AB,s_BC=s_BC,lenCD=lenCD,payload=payload);
 
 // weight of BC arm
 BCweight = 232; // (grams)
@@ -197,7 +199,7 @@ module guss_profile(tube=wTube,gap=0.1,daxel=Qtr_bearing_od,dholes=3.5) {
 *guss_profile(tube=wTube,gap=armSpace,daxel=Qtr_bearing_od,dholes=3.5); // EXPORT AS SVG
 
 *translate([-wTube,0,0]) { // BC ARM MACHINING. EXPORT AS SVG, rotate 90
-    translate([-lenBC+wTube,0,0]) rotate([0,0,180]) svo2D(); 
+    translate([-s_BC+wTube,0,0]) rotate([0,0,180]) svo2D(); 
     rotate([0,0,90]) hole_pair_2D (x = 0,y=1.6*wTube,d=3.5); // attach holes
     circle(d=12); // wire access hole
     // ADD MANUAL HOLE 0.67 INCH FROM y=0 IN EASLE FOR servo hub bore
@@ -261,32 +263,32 @@ module claw_bracket(width=30,thk=25,len=60) {
 }
 *claw_bracket(width=10);  // FOR PRINT
 
-module DClaw_assy(d_angle=0,assy=true){
+module DClaw_assy(t_D=0,assy=true){
     claw_end_w = 10; // claw interface width, mm
-    if (assy) servo_block(angle=d_angle);
+    if (assy) servo_block(angle=t_D);
     translate([0,0,28]) 
-        rotate([0,0,d_angle]) {
+        rotate([0,0,t_D]) {
             color("blue",0.5) claw_bracket(width=claw_end_w);
             if (assy) translate([35,0,6]) rotate([90,-90,0]) Claw(assy=true);
         }
 }
-*DClaw_assy(d_angle=0);
+*DClaw_assy(t_D=0);
 
-module CD_assy(c_angle=0,d_angle=0) {
+module CD_assy(t_C=0,t_D=0) {
     rotate([0,0,0]) {
         color ("red",.5) servo_body();  // servo
         servo_shim();
         servo_hub();
         // 1.31/2/mm_inch
-        rotate([0,0,c_angle]) {
+        rotate([0,0,t_C+90]) {
             translate([0,5,43]) 
-                rotate([90,0,0]) DClaw_assy(d_angle=d_angle);
+                rotate([90,0,0]) DClaw_assy(t_D=t_D);
         }
     }
 }
-*CD_assy(c_angle=20,d_angle=20);
+*CD_assy(t_C=20,t_D=0);
 
-module BC_arm_assy(armLen = 100,c_angle=0,d_angle=0){
+module BC_arm_assy(armLen = 100,t_C=0,t_D=0){
     // fixed tube assy
     big_gear_guss(teeth=big_gear_teeth);
     translate([0,0,-wTube-2*armSpace]) plain_guss();
@@ -299,14 +301,13 @@ module BC_arm_assy(armLen = 100,c_angle=0,d_angle=0){
                     tube_model(t=wTube,wall=twall,l=armLen+wTube);
             translate([-armLen,0,0]) {
                 cylinder(h=3*wTube,d=12.64,center=true,$fn=24); // servo block shaft bore
-                translate([0,0,-5]) rotate([0,0,180]) linear_extrude(10,convexity=10) svo2D();
+                translate([0,0,-30]) rotate([0,0,180]) linear_extrude(10,convexity=10) svo2D();
             }
         }
-        translate([-armLen,-wTube-armSpace,-6]) rotate([180,0,180]) {
-            CD_assy(c_angle=c_angle,d_angle=d_angle);
-        }
+    translate([-armLen,-wTube-armSpace,-18]) rotate([0,0,180])
+        CD_assy(t_C=t_C,t_D=t_D);
 }
-*BC_arm_assy(armLen=lenBC,c_angle=45); // not for print
+*BC_arm_assy(armLen=s_BC,t_C=0,t_D=45); // not for print
 
 module AB_arm_assy(armLen = 100){
     // AB tube
@@ -324,9 +325,9 @@ module AB_arm_assy(armLen = 100){
     
     spring_combo();
 }
-*AB_arm_assy(armLen=lenAB); // not for print
+*AB_arm_assy(armLen=s_AB); // not for print
 
-module TA_assy(tubeLen=lenTA) { // Assy between Turntable and joint A
+module TA_assy(tubeLen=tube_TA) { // Assy between Turntable and joint A
     // fixed tube assy
     big_gear_guss(teeth=big_gear_teeth);
     translate([0,0,-wTube-2*armSpace]) plain_guss();
@@ -340,8 +341,8 @@ module TA_assy(tubeLen=lenTA) { // Assy between Turntable and joint A
 }
 *TA_assy();
 
-function get_CX (a) = (cos(a[0])*lenAB+cos(a[0]+a[1])*lenBC);
-function get_CY (a) = (sin(a[0])*lenAB+sin(a[0]+a[1])*lenBC);
+function get_CX (a) = (cos(a[0])*s_AB+cos(a[0]+a[1])*s_BC);
+function get_CY (a) = (sin(a[0])*s_AB+sin(a[0]+a[1])*s_BC);
 
 function sweep1(t=0.0,lowA=0,highA=180,lowB=0,highB=180,lowC=-20,highC=20) =
 (t<0.2) ? ([lowA,lowB,linear_interp(lowC,highC,t,0,0.2)]) : 
@@ -358,14 +359,14 @@ module CalculateMoments(display=false) {
     Margin_Safety2(C_mom,Motor_Max_Torque,"C moment");
         
     // MOMENT ON B, DUE TO CD AND BC
-    B_trq = [ for (a = [0 : steps-1]) (BCweight*cgBC+(payload+CDweight)*lenBC)*cos(angles[a][0]+angles[a][1])+C_mom[a]];
+    B_trq = [ for (a = [0 : steps-1]) (BCweight*cgBC+(payload+CDweight)*s_BC)*cos(angles[a][0]+angles[a][1])+C_mom[a]];
     Margin_Safety2(B_trq,Geared_Max_Torque,"B SERVO - GREEN");
     *if (display) draw_3d_list(c,max_range/100,"green",B_trq/400); 
     *echo(B_trq=B_trq);
     
-    B_trq_noload = [ for (a = [0 : steps-1]) (BCweight*cgBC+(CDweight)*lenBC)*cos(angles[a][0]+angles[a][1])+CDweight*cgCD*cos(angles[a][0]+angles[a][1]+angles[a][2])];
+    B_trq_noload = [ for (a = [0 : steps-1]) (BCweight*cgBC+(CDweight)*s_BC)*cos(angles[a][0]+angles[a][1])+CDweight*cgCD*cos(angles[a][0]+angles[a][1]+angles[a][2])];
 
-    A_trq_load_nospr = [ for (a = [0 : steps-1]) (ABweight*cgAB+(BCweight+payload+CDweight)*lenAB)*cos(angles[a][0])+ B_trq[a] ]; 
+    A_trq_load_nospr = [ for (a = [0 : steps-1]) (ABweight*cgAB+(BCweight+payload+CDweight)*s_AB)*cos(angles[a][0])+ B_trq[a] ]; 
     Margin_Safety2(A_trq_load_nospr,Geared_Max_Torque,"A SERVO - NO SPRING - BLUE");
     *if (display) draw_3d_list(c,max_range/80,"blue",A_trq_load_nospr/400); 
     *echo(A_trq_load_nospr=A_trq_load_nospr);
@@ -385,19 +386,19 @@ module CalculateMoments(display=false) {
     if (display) draw_3d_list(c,max_range/80,"blue",A_trq_load_spr/400); 
     
     // calculate max A moment with NO payload and spring (can be critical!)
-    A_trq_noload_spr = [ for (a = [0 : steps-1]) (ABweight*cgAB+(BCweight+CDweight)*lenAB)*cos(angles[a][0])+ B_trq_noload[a]  - A_spr_torque[a] ]; 
+    A_trq_noload_spr = [ for (a = [0 : steps-1]) (ABweight*cgAB+(BCweight+CDweight)*s_AB)*cos(angles[a][0])+ B_trq_noload[a]  - A_spr_torque[a] ]; 
     Margin_Safety2(A_trq_noload_spr,Geared_Max_Torque,"A SERVO - SPRING - NO PAYLOAD - Yellow");
     if (display) draw_3d_list(c,max_range/70,"yellow",A_trq_noload_spr/400); 
     *echo(A_trq_noload_spr=A_trq_noload_spr);
         
     *rotate([-90,0,0]) for (a = [0 : steps-1]) 
-        draw_assy(angles[a][0],angles[a][1],angles[a][2],0,lenAB,lenBC,lenCD);
+        draw_assy(angles[a][0],angles[a][1],angles[a][2],0,s_AB,s_BC,lenCD);
 
 }
 CalculateMoments();
 
 // Draw the steps, outside of force calculation module 
-*for (a = [0 : steps-1]) draw_assy(angles[a][0],angles[a][1],angles[a][2],0,lenAB,lenBC,lenCD);
+*for (a = [0 : steps-1]) draw_assy(angles[a][0],angles[a][1],angles[a][2],0,s_AB,s_BC,lenCD);
     
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -486,48 +487,38 @@ module zip_loop() {
 
 module Electronics_Board (Assy=true) {
     $fn=$preview ? 32 : 64; // minimum number of fragements
-    board_l = 170;
-    board_w = 140;
+    board_l = 100;
+    board_w = 90;
     board_t = 4;
-    board_shift = 50;
+    board_shift = 60;
     y_w = (board_w-20)/2;
     x_w = (board_l-20)/2;
     difference() {
         translate([board_shift,0,-2.1]) rounded_cube([board_l,board_w,board_t],r=10,center=true);
-        Power_Energy_Meter();
-        translate([50,-30,0]) scale([1.01,1.01,1]) Rocker_Switch();
-        *translate([80,30,-8]) rotate([0,0,90]) Current_Shunt();
+        translate([board_shift,33,0]) scale([1.01,1.01,1]) rotate([0,0,90]) Rocker_Switch();
         
         // subtract the 4 2X4 screw mounting holes
-        translate([x_w+board_shift,y_w,0]) cylinder(h=board_t*3,d=3,center=true);
+        translate([x_w+board_shift,y_w-20,0]) cylinder(h=board_t*3,d=3,center=true);
         translate([x_w+board_shift,-y_w,0]) cylinder(h=board_t*3,d=3,center=true);
         translate([-x_w+board_shift,-y_w,0])cylinder(h=board_t*3,d=3,center=true);
-        translate([-x_w+board_shift,y_w,0]) cylinder(h=board_t*3,d=3,center=true);
+        translate([-x_w+board_shift,y_w-20,0]) cylinder(h=board_t*3,d=3,center=true);
         
         // arduino board holes (see arduino.scad)
         // off for thingiverse, purchased part
-        *translate([140,10,10]) rotate([180,0,-90]) holePlacement()
+        translate([board_w,20,0]) rotate([180,0,-90]) holePlacement()
             union() {
                 cylinder(d=4, h = board_t*3, $fn=32);
               };
-       translate([125,40,-1]) rotate([0,0,-180]) linear_extrude(height = 1, convexity=10) 
+       *translate([125,40,-1]) rotate([0,0,-180]) linear_extrude(height = 1, convexity=10) 
            text("ARM MK 3", font = "Arial", size = 11);
     }
-    // zip tie loops for the current shunt
-    translate([60,40,0]) zip_loop();
-    translate([80,40,0]) zip_loop();
-    // zip tie loops for the arduino wires
-    translate([85,18,0]) zip_loop();
-    translate([85,-47,0]) zip_loop();
-    // zip tie loops for other wires
-    translate([40,10,0]) zip_loop();
+    translate([board_shift+20,40,0]) zip_loop(); // zip tie loop
+    translate([board_shift-20,-40,0]) zip_loop();// zip tie loop
 
     if (Assy) {
-        Power_Energy_Meter();
-        translate([50,-30,0]) Rocker_Switch();
-        translate([80,40,-12]) rotate([0,0,90]) Current_Shunt();
+        translate([board_shift,33,0]) rotate([0,0,90]) Rocker_Switch();
         // off for thingiverse, purchased part
-        *translate([140,10,-8]) rotate([180,0,-90]) arduino(); 
+        translate([board_w,20,-8]) rotate([180,0,-90]) arduino(); 
     }
 }
 *Electronics_Board(Assy=false);//FOR_PRINT
@@ -635,14 +626,14 @@ module base_assy_make2() {
         translate([-base_x/2,-base_x/2+10-1.5*25.4,-base_t/2]) rotate([0,90,0]) cube([3.5*25.4,1.5*25.4,l_wood]);
     }
     // Representation of electronics board
-    *translate([280,0,0]) rotate([0,0,180])Electronics_Board();
+    translate([130,50,0]) rotate([0,0,-90])Electronics_Board();
 }
 *base_assy_make2(); // not for print
 
-module base_and_shoulder_assy(T_angle=0,A_angle=0,B_angle=0){
+module base_and_shoulder_assy(t_T=0,t_A=0,t_B=0){
     base_z_top = -21.5; // base offset down from zero, mm
     // shoulder, adjust z translation as required
-    rotate([0,0,T_angle]) 
+    rotate([0,0,t_T]) 
         translate([0,-shoulder_y_shift,0]) { 
             color("RoyalBlue") shoulder_assy (); 
         }
@@ -659,34 +650,34 @@ module base_and_shoulder_assy(T_angle=0,A_angle=0,B_angle=0){
     // Base
     translate([0,0,base_z_top]) rotate([0,0,180]) base_assy_make2();
 }
-*base_and_shoulder_assy(T_angle=0,A_angle=0,B_angle=0); // not for print
+*base_and_shoulder_assy(t_T=0,t_A=0,t_B=0); // not for print
 
-module draw_assy (A_angle=0,B_angle=0,C_angle=0,D_angle=0,Claw_angle,T_angle=0) {
+module draw_assy (t_A=0,t_B=0,t_C=0,t_D=0,t_T=0) {
     // XZ = HORIZON
     // calculate b and c positions from angles
-    b=[lenAB*cos(A_angle),lenAB*sin(A_angle),0];  // B location
-    c = [(cos(A_angle)*lenAB+cos(B_angle)*lenBC),(sin(A_angle)*lenAB+sin(B_angle)*lenBC),0];
+    //b=[s_AB*cos(t_A),s_AB*sin(t_A),0];  // B location
+    //c = [(cos(t_A)*s_AB+cos(t_B)*s_BC),(sin(t_A)*s_AB+sin(t_B)*s_BC),0];
 
     // Draw Base and Shoulder assembly adjust z translation as required
-    base_and_shoulder_assy(T_angle=T_angle,A_angle=A_angle,B_angle=B_angle);
+    base_and_shoulder_assy(t_T=t_T,t_A=t_A,t_B=t_B);
     
-    translate([A_xOffset,-wTube/2,1.5*wTube+armSpace]) 
-        rotate([90,0,T_angle]) {
+    translate([s_TA,-wTube/2,1.5*wTube+armSpace]) 
+        rotate([90,0,t_T]) {
             TA_assy();
-            rotate([0,0,A_angle-180]) {
-                AB_arm_assy(armLen=lenAB);
-                // A joint 6 MM shaft,  LENGTH = 65 MM
-                *translate([0,0,1]) cylinder(h=65,d=5.5,center=true);
+            rotate([0,0,t_A-180]) {
+                AB_arm_assy(armLen=s_AB);
+                // A joint .25 inch shaft,  LENGTH = 2.5 inch
+                translate([0,0,-10]) cylinder(h=2.5/mm_inch,d=hole_qtr_inch,center=true);
                                 // Draw the BC link and End
-                translate([-lenAB,0,0]) {
-                    rotate([0,0,B_angle]) 
+                translate([-s_AB,0,0]) {
+                    rotate([0,0,t_B]) 
                         rotate([0,0,0]) 
-                            BC_arm_assy(armLen=lenBC,c_angle=C_angle,d_angle=D_angle);
-                    // B joint 6 MM shaft,  LENGTH = 70 MM
-                    *translate([0,0,-widthAB/2]) cylinder(h=70,d=5.5,center=true);
+                            BC_arm_assy(armLen=s_BC,t_C=t_C,t_D=t_D);
+                    // B joint .25 inch shaft,  LENGTH = 2.5 inch
+                    translate([0,0,-10]) cylinder(h=2.5/mm_inch,d=hole_qtr_inch,center=true);
                 }
 
             }
         }
 } 
-draw_assy (A_angle=AA,B_angle=BB,C_angle=CC,D_angle=DD,Claw_angle=CLAW,T_angle=TT); // not for print
+draw_assy (t_A=AA,t_B=BB,t_C=CC,t_D=DD,t_T=TT); // not for print
