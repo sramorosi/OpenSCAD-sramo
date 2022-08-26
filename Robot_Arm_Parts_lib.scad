@@ -97,14 +97,25 @@ module draw_dummy_arm(a=[0,0,0],b=[0,0,100],c=[100,0,100],d=[100,0,0]) {
     color("grey") pt_pt_cylinder (from=b,to=c, d = 2,$fn=12);
     color("black") pt_pt_cylinder (from=c,to=d, d = 2,$fn=12);
 }
-module hole_pair (x = 50,y=10,d=hole_M3,h=100) {
+module csk(d=10) {
+    rotate_extrude(angle=360,convexity=4) 
+        polygon(points=[[0,0],[0,-d],[d,0]]);
+}
+*csk();
+module hole_pair (x = 50,y=10,d=hole_M3,h=20,csk=false) {
     // make a pair of holes that are y appart, 
     // at x location. holes are parallel to the Z axis
     // Created for zip tie holes
     $fn=$preview ? 16 : 32; // minimum angle fragment
     translate ([x,-y/2,0]) cylinder(h=h,d=d,center=true);
     translate ([x,y/2,0]) cylinder(h=h,d=d,center=true);
+    if(csk) {
+        translate ([x,-y/2,h/2]) csk(d=d*1.2);
+        translate ([x,y/2,h/2]) csk(d=d*1.2);
+    }
 }
+hole_pair(csk=true);
+
 module hole_pair_2D (x = 50,y=10,d=hole_M3) {
     // 2D version of hole pair
     // make a pair of holes that are y appart, 
@@ -158,7 +169,7 @@ module zip_tie_holes (arm_l = 10,arm_w=1,zip_hole_d = hole_M3) {
             cylinder(h=4*arm_w,d=zip_hole_d,center=true);
     }
 }
-module rounded_cube(size=[10,20,10],r=1,center=true) {
+module rounded_cube(size=[20,30,10],r=5,center=true) {
     // Create a rounded cube in the xy plane, flat on the Z ends
     // Creates 4 cylinders and then uses hull
     
@@ -168,7 +179,7 @@ module rounded_cube(size=[10,20,10],r=1,center=true) {
     yn=center ? -yp : r;
     z=center ? 0 : size[2]/2;
 
-    hull () {
+    hull() {
         translate([xp,yp,z])
             cylinder(h=size[2],r=r,center=true);
         translate([xp,yn,z])
@@ -179,6 +190,8 @@ module rounded_cube(size=[10,20,10],r=1,center=true) {
             cylinder(h=size[2],r=r,center=true);       
     }  
 }
+*rounded_cube(center=false,$fn=48);
+
 module lug (r=1,w=3,h=2,t=.2,d=0) {
     // Create a lug part on the xy plane, thickness t from z=0
     //   base is on y=0 and has width w
@@ -192,7 +205,7 @@ module lug (r=1,w=3,h=2,t=.2,d=0) {
             translate([0,h,t/2])   
                 cylinder(h=t,r=r,center=true);
     
-            linear_extrude(height = t)
+            linear_extrude(height = t, convexity=10)
                 polygon(points=[[-w/2,0],[w/2,0],[x,y],[-x,y],[-w/2,0]]);
         }
         if (d != 0) translate([0,h,t/2])  
@@ -366,26 +379,29 @@ module servo_connection(len=100,t1=2,t2=38) {
     // Compliant Beam that connects Claw to Servo
     
     module subtract_1 () { // profile of links to servo
-        linear_extrude(height = t2)
+        linear_extrude(height = t2, convexity=10)
         polygon(points=[[0,0],[-len/5,-poly_z/2],[-len/1.2,-poly_z],[-len*2,-poly_z],[-len*2,t2/2],[0,0]]);
     }  
     
     poly_z = t2/2;   
     servo_lug_h = len/2.2; // Smooth transition to lug. manage the stress at the lug.
+    len2 = len-hole_servo_bushing;
 
     difference () {
         union() {
             // Link to the servo
             translate ([servo_lug_h-len,0,0]) rotate ([0,0,90])
                 lug (r=1.5*hole_servo_bushing,w=t1,h=servo_lug_h,t=t2,d=hole_servo_bushing,$fn=32);
-            translate ([-len+hole_servo_bushing,-t1/2,0]) cube([len-hole_servo_bushing,t1,t2]);
+            translate([-len+hole_servo_bushing,-t1/2,0]) 
+                linear_extrude(height=t2, convexity=10) 
+                    polygon(points=[[len2,3*t1],[len2-t1,t1],[0,t1],[0,0],[len2-t1,0],[len2,-2*t1]]);
         }
         // subtract lug features
         translate ([0,-t2/2,0]) rotate ([-90,0,0]) subtract_1();
         //translate ([0,link_adjust+t2,t2]) rotate ([90,0,0]) subtract_1();
     }
 }
-*translate([0,0,50]) servo_connection(len=52,t1=claw_t,t2=claw_height);
+*translate([0,0,50]) servo_connection(len=52,t1=2,t2=25);
 
 module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15) {
     // U shaped claw with a pre angle
@@ -398,7 +414,7 @@ module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15) {
     
     poly_z = t2/2;
     module subtract_2 () { // triangle removal on end of claw
-        linear_extrude(height = t2)
+        linear_extrude(height = t2, convexity=10)
             polygon(points=[[-t2/3,0],[0,t2/3],[t2/3,0],[-t2/3,0]]);
     }
     
@@ -615,7 +631,7 @@ module pt_pt_bar (from=[10,10,0],to=[-10,0,-10], d = 2){
         
         translate (from) 
         rotate (angles) 
-        linear_extrude(length) square(d,center=true);
+        linear_extrude(length, convexity=10) square(d,center=true);
     }else {
         echo("MODULE PT_PT_CYLINDER; small length =",length);
     }
@@ -968,7 +984,7 @@ module P090S_pot (negative=false) {
     }
     module clip() {
         translate([4.9,0,0]) rotate([90,90,0])
-        linear_extrude(3,center=true)
+        linear_extrude(3,center=true, convexity=10)
             polygon([[0,0],[8.5,0],[9.5,1],[10.5,0],[12,0],[12,-1],[0,-1],[0,0]]);
     }
 }
@@ -1083,7 +1099,7 @@ module RV112FF_pot (L=19,negative=false) {
     }
     module clip() {
         translate([6,0,0]) rotate([90,90,0])
-        linear_extrude(3,center=true)
+        linear_extrude(3,center=true, convexity=10)
             polygon([[0,0],[8.5,0],[9.5,1],[10.5,0],[12,0],[12,-1],[0,-1],[0,0]]);
     }
 }
@@ -1181,7 +1197,7 @@ module ruler_ticks(end){
     }
     for(i=[0:10:end]){
         color("Black")translate([i,0,0])cube([.2,4,.04]);
-        color("Black")linear_extrude(.02)translate([i,4,0])text(str(i),size
+        color("Black")linear_extrude(.02, convexity=10)translate([i,4,0])text(str(i),size
 = 2);
     }
 }
@@ -1189,21 +1205,21 @@ module ruler_ticks(end){
 
 module ruler(end){
     color("DeepSkyBlue")
-        linear_extrude(0.03)
+        linear_extrude(0.03, convexity=10)
             for(j=[1:end])
                 translate([j-0.05,0,])square([.1,3]);
 
     color ("SpringGreen")
-        linear_extrude(0.03)
+        linear_extrude(0.03, convexity=10)
             for(j=[1:end])
                 translate([j-.55,0,0])square([.1,2]);
 
     color("Black") {
-        linear_extrude(0.04)
+        linear_extrude(0.04, convexity=10)
             for(i=[0:10:end])
                 translate([i - 0.1,0])square([.2,4]);
 
-        linear_extrude(.02)
+        linear_extrude(.02, convexity=10)
             for(i=[0:10:end])
                 translate([i,4,0])text(str(i),size = 2);
     }
