@@ -54,9 +54,11 @@ module trapizoid3d(h1=40,h2=30,w=20,r=5,z) {
 *trapizoid3d();
 *trapizoid3d(h1=3.75*MM,h2=3*MM,w=2.4375*MM,r=0.375*MM,z=10);
 
-module door_handle() {
+module door_handle(hole_space=2.5*MM) {
+    height = 3.75*MM;
+    hole_offset = (height-hole_space)/2;
     difference() {
-        trapizoid3d(h1=3.75*MM,h2=3*MM,w=2.5*MM,r=0.375*MM,z=0.7*MM); // outside
+        trapizoid3d(h1=height,h2=3*MM,w=2.5*MM,r=0.375*MM,z=0.7*MM); // outside
         translate([0.5*MM,0.5*MM,.3*MM]) // inside
             trapizoid3d(h1=2.75*MM,h2=2.2*MM,w=1.6*MM,r=0.2*MM,z=0.4*MM);
         translate([-1,0,-1*MM]) 
@@ -64,8 +66,8 @@ module door_handle() {
         translate([-1.2*MM,0,2.375*MM]) rotate([-90,0,0]) // top
             //cube(size=[3*MM,2*MM,4*MM],center=false);
             rounded_cube(size=[3*MM,2*MM,4*MM],r=0.7*MM,center=false,$fn=130);
-        translate([0,1.25*MM+0.625*MM,0]) 
-            hole_pair (x = .19*MM,y=2.5*MM,d=.15*MM,h=2*0.376*MM,csk=true);
+        translate([0,hole_space/2+hole_offset,0]) 
+            hole_pair (x = .19*MM,y=hole_space,d=.15*MM,h=2*0.376*MM,csk=true);
     }
 }
-color("grey") door_handle($fn=36);
+color("grey") door_handle(hole_space=3.0*MM,$fn=48);

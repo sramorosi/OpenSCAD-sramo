@@ -53,9 +53,10 @@ rot_pt_z(pC4,alphaT);
 //ptsCD=anglesToC(90,-90,45,195,240);
 //echo(ptsCD=ptsCD);
 
-function inverse_arm_kinematics (c=[0,10,0],lenAB=100,lenBC=120) = 
+function inverse_arm_kinematics (c=[0,10,0],lenAB=100,lenBC=120,aOffset=0) = 
 // Given a three body system Ground-AB-BC, where A is [0,0,0]
 // Lengths LenAB and LenBC are specified
+//  aOffset is the X offset from the Turntable axis
 // The location of c is specified
 // The joints A,B are on a table with rotation alphaT parallel to Z through A
 // With alphaT = 0, then joints A & B are parallel to the Y axis
@@ -65,9 +66,10 @@ function inverse_arm_kinematics (c=[0,10,0],lenAB=100,lenBC=120) =
 let (vxy = norm([c[0],c[1],0]))  // vector length on the xy plane
 let (alphaT = vxy > 0 ? atan2(c[1],c[0]) : 0) // T angle (check for zero)
 let (crot = rot_pt_z(c,-alphaT)) // rotate to the XZ plane
-let (vt = norm(crot))  // vector length from A to C
+let (newA = [crot[0]-aOffset,crot[1],crot[2]])  // subtract the offset
+let (vt = norm(newA))  // vector length from A to C
 let (vt_long = (vt > (lenAB+lenBC) ? true : false) )
-let (sub_angle1 = atan2(crot[2],crot[0]))  // atan2 (Y,X)!
+let (sub_angle1 = atan2(newA[2],newA[0]))  // atan2 (Y,X)!
 let (sub_angle2 = vt_long ? 0.1 : law_cosines(vt,lenAB,lenBC) )
 let (a_ang = sub_angle1 + sub_angle2)
 let (b_ang = vt_long ? 0.1 : law_cosines(lenBC,lenAB,vt)-180 )
@@ -75,22 +77,9 @@ let (b_ang = vt_long ? 0.1 : law_cosines(lenBC,lenAB,vt)-180 )
 [a_ang,b_ang,alphaT] ;
     
 //invAngles = inverse_arm_kinematics([7.071,7.071,10],10,10);
-//invAngles = inverse_arm_kinematics([346.41, 200, 200],200,400);
+//invAngles = inverse_arm_kinematics([346.41, 200, 200],200,400,100); // 346 = 400*cos(30)
 //echo(invAngles=invAngles);
 
-function clawToC(G=[180,50,40],alphaC=0,alphaD=0,s_CG_x=180,s_CG_y=40) =
-// Claw pickup point is G.  Determine point C based on angles C and D.
-let (pointC = [-s_CG_x,0,-s_CG_y])
-let (C1= rot_pt_x (pointC,alphaD))  // rotate D
-let (C2= rot_pt_y (C1,alphaC))  // rotate C
-let (thetaT=atan2(G[1],G[0]))  // expected turtable angle
-let (C3=rot_pt_z(C2,thetaT)) // correct for turtable
-// need another correction. D angle impacts turntable angle
-//echo(thetaT=thetaT)
-[G[0]+C3[0],G[1]+C3[1],G[2]+C3[2]];
-
-NEWC=clawToC();
-echo(NEWC=NEWC);
 
 module draw_dummy_arm(a=[0,0,0],b=[0,0,100],c=[100,0,100],d=[100,0,0]) {
     color("silver") pt_pt_cylinder (from=a,to=b, d = 2,$fn=12);
@@ -114,7 +103,7 @@ module hole_pair (x = 50,y=10,d=hole_M3,h=20,csk=false) {
         translate ([x,y/2,h/2]) csk(d=d*1.2);
     }
 }
-hole_pair(csk=true);
+*hole_pair(csk=true);
 
 module hole_pair_2D (x = 50,y=10,d=hole_M3) {
     // 2D version of hole pair
