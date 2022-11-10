@@ -54,13 +54,18 @@ module trapizoid3d(h1=40,h2=30,w=20,r=5,z) {
 *trapizoid3d();
 *trapizoid3d(h1=3.75*MM,h2=3*MM,w=2.4375*MM,r=0.375*MM,z=10);
 
-module door_handle(hole_space=2.5*MM) {
+module door_handle(inside=true) {
+    // outside door = 2.5 inch hole space
+    // inside door = 3.0 inch hole space
+    // inside door has rebate under screws
+    hole_space = inside ? 3.0*MM :  2.5*MM;
+    inside_r = inside ? 0.4*MM : 0.2*MM;
     height = 3.75*MM;
     hole_offset = (height-hole_space)/2;
     difference() {
         trapizoid3d(h1=height,h2=3*MM,w=2.5*MM,r=0.375*MM,z=0.7*MM); // outside
-        translate([0.5*MM,0.5*MM,.3*MM]) // inside
-            trapizoid3d(h1=2.75*MM,h2=2.2*MM,w=1.6*MM,r=0.2*MM,z=0.4*MM);
+        translate([0.5*MM,0.5*MM,inside_r+0.1*MM]) // inside
+            trapizoid3d(h1=2.75*MM,h2=2.2*MM,w=1.6*MM,r=inside_r,z=0.5*MM-inside_r);
         translate([-1,0,-1*MM]) 
             cube([3*MM,4*MM,1*MM],center=false); // bottom
         translate([-1.2*MM,0,2.375*MM]) rotate([-90,0,0]) // top
@@ -68,6 +73,28 @@ module door_handle(hole_space=2.5*MM) {
             rounded_cube(size=[3*MM,2*MM,4*MM],r=0.7*MM,center=false,$fn=130);
         translate([0,hole_space/2+hole_offset,0]) 
             hole_pair (x = .19*MM,y=hole_space,d=.15*MM,h=2*0.376*MM,csk=true);
+        if (inside) {
+            translate([-.1,-.1,-.1]) cube([0.5*MM,4*MM,0.25*MM],center=false);
+        }
     }
 }
-color("grey") door_handle(hole_space=3.0*MM,$fn=48);
+color("grey") door_handle(inside=true,$fn=48);
+
+module berry_sieve() {
+    berryHole = 7.5; // size for berry.  7.5 is a bit small. Go to 8 mm?
+    mesht = 0.5;  // mesh thickness
+    comb = berryHole+mesht;
+    thk=4;  // thickness of sieve
+    union() {
+        difference() {
+            cylinder(h=thk,d=168,center=true);
+            translate([-100,-200,0]) for (i= [1:30]) {
+                for (j=[1:30]) {
+                    translate([i*(berryHole-mesht),j*comb+(i-1)*comb/2,-2*thk]) cylinder(h=4*thk,d=berryHole,$fn=6);
+                }
+            }
+        }
+        translate([0,0,thk/2]) washer(d=180,t=2*thk,d_pin=167,$fn=96);
+    }
+}
+*berry_sieve();

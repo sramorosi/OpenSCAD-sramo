@@ -1,10 +1,13 @@
 //  SAMC Make 3
 //  Servo Actuated Motion Control
 //
-//  By SrAmo,  November 2022
+//  By SrAmo,  October 2022
 //
 // To Do:
-// Angles, lengths diagram (with Thingiverse publish)
+// Angles, lengths diagram
+//  Update forward and inverse calculations
+// Fix inverse to have greater range
+// base 2x4 model
 // add holes to tubes (for print or routing
 // 
 use <force_lib.scad> // contains forces, springs, MS modules and functions
@@ -16,66 +19,59 @@ use <arduino.scad>
 // Number of position step in internal calculation
 steps = 40; // [2:1:200]
 // Joint A angle
-AA = 150; // [0:1:175]
+AA = 170; // [0:1:175]
 // Joint B angle
-BB = -100; // [-175:1:0]
+BB = -160; // [-175:1:0]
 // Joint C angle
-CC = 10; // [-145:1:145]
+CC = 160; // [-145:1:145]
 // Joint D angle
-DD = 10; // [-145:1:145]
+DD = 0; // [-145:1:145]
 // Joint CLAW angle
 //CLAW = 20; // [-145:1:145]
 // Turntable angle
-TT = 20; // [-80:80]
+TT = 0; // [-80:80]
 
 // length of A-B arm (mm)
-LEN_AB=350; 
+s_AB=150; 
 // length of B-C arm (mm)
-LEN_BC=380; 
+s_BC=170; 
 // C to grip/load point (mm)
-LEN_CD = 160;  // to become s_CM_x and s_CM_y
-SHIFT_TA = 15; // (mm)
+lenCD = 160;  // to become s_CG_x and s_CG_y
+s_TA = 15; // (mm)
 // length of Turntable-A tube (mm)
-LEN_TA=70; 
+tube_TA=70; 
 
 //  Using 1 inch square tube for the arms
-wTube = 1/mm_inch;  // mm
-twall = 0.0625/mm_inch;   // mm
+wTube = 1/mm_inch; 
+twall = 0.0625/mm_inch;  
 // Space between arm to help movement
 armSpace = 3; // mm
 
-max_range = LEN_AB+LEN_BC;
+max_range = s_AB+s_BC;
 
 /* DEFINE WEIGHTS. Reference weights:
-  A 12 oz can of pop/beer is 375 grams (i.e. payload goal)
+  A Power Play Cone is 73 grams
+  A 12 oz can of pop is 375 grams
   A 40x20x40 mm servo is about 70 grams
   gopro = 120 gram
-  claw assembly = 150 (grams)
+  claw assembly = 170 gram
   smartphone = 160 gram   */
-AL_DENSITY = 0.002770;  // aluminum gram/mm^3
-SERVO_MASS = 90;    // Servo plus mounting structure (grams)
-
 // Payload weight on point D
-PAYLOAD_MASS=200; // Maximum payload mass (thing being lifted) (gram)
-CD_MASS=200;  // weight of CD arm (servos, structure) (gram)
-CM_CD = LEN_CD/2; // center-of-mass of CD, from C (mm)
+payload=100; // Maximum payload weight (thing being lifted) (g)
+CDweight=200;  // weight of CD arm (servos, structure) (g)
+cgCD = 100; // Center of Gravity of CD, from C (mm)
 
-echo(LEN_AB=LEN_AB,LEN_BC=LEN_BC,LEN_CD=LEN_CD,PAYLOAD_MASS=PAYLOAD_MASS);
+echo(s_AB=s_AB,s_BC=s_BC,lenCD=lenCD,payload=payload);
 
 // weight of BC arm
-BC_tube_weight = AL_DENSITY*LEN_BC*(4*wTube*twall);
-BCweight = BC_tube_weight + SERVO_MASS; // (grams)
-CM_BC = LEN_BC*0.6; // location of BC arm center-of-mass from B (mm)
-
+BCweight = 232; // (grams)
+cgBC = 160; // location of BC arm cg (mm)
 // weight of AB arm
-AB_tube_weight = AL_DENSITY*LEN_AB*(4*wTube*twall);
-ABweight = AB_tube_weight + 2*SERVO_MASS; // (grams)
-CM_AB = LEN_AB*0.5; // location of AB arm center-or-mass from A (mm)
-
-echo(BCweight=BCweight,ABweight=ABweight," grams");
+ABweight = 230; // (grams)
+cgAB = 120; // location of BC arm cg (mm)
 
 // torsion spring constants for A joint
-A_K = -2433; // g-mm/deg,   
+A_K = -1; // g-mm/deg,   
             // 600 is for spring 9271K619   ~589
              // 1000 is for spring 9271K145
              // 2688 is SPEC for spring 9271K589
@@ -86,7 +82,7 @@ A_theta_zero = 90; // degrees, 90 is straight up
 // Angle ratio (288/180) = 1.6   1.6*32 = 51
 // With 360 deg servo:
 // Angle ratio (360/180) = 2.0    2 * 32 = 64
-big_gear_teeth = 66; // Printed. Used at A ang B joints
+big_gear_teeth = 64; // Printed. Used at A ang B joints
 small_gear_teeth = 32; // Servo gear from ServoCity
 // Distance between gears is the (total_teeth/2)*pitch/pi
 //gear_center_dist = (big_gear_teeth+small_gear_teeth)/2*(2.54/3.14159) - 0;
@@ -100,10 +96,10 @@ svoCtrAxial=(big_gear_rad+small_gear_rad)*cos(svoAng);
 
 // Maximum Motor Torque (gram-mm) 
 Motor_Max_Torque = 250000; 
-Geared_Max_Torque = Motor_Max_Torque * (big_gear_teeth/small_gear_teeth)*0.8;
-echo("SERVO MOTOR CAPABILITY=",Motor_Max_Torque=Motor_Max_Torque," gram-mm");
+Geared_Max_Torque = Motor_Max_Torque * (big_gear_teeth/small_gear_teeth);
+echo("MOTOR CAPABILITY=",Motor_Max_Torque=Motor_Max_Torque," gram-mm");
 echo("Big Gear teeth=",big_gear_teeth," Small Gear teeth =",small_gear_teeth);
-echo("GEARED SERVO CAPABILITY=",Geared_Max_Torque=Geared_Max_Torque," gram-mm");
+echo("GEARED CAPABILITY=",Geared_Max_Torque=Geared_Max_Torque," gram-mm");
 
 // USE LIST COMPREHENSIONS TO FILL ARRAYS
 //  A, zero = horizontal, positive rotation up
@@ -117,7 +113,7 @@ angles = [ for (a = [0 : steps-1]) sweep1(a/steps,0,160,0,-170,-90,90)];
     
 c = [ for (a = [0 : steps-1]) [get_CX(angles[a]),get_CY(angles[a]),0]];
 
-d = [ for (a = [0 : steps-1]) [c[a][0]+LEN_CD*cos(angles[a][2]),c[a][1]+LEN_CD*sin(angles[a][2]),0]];
+d = [ for (a = [0 : steps-1]) [c[a][0]+lenCD*cos(angles[a][2]),c[a][1]+lenCD*sin(angles[a][2]),0]];
     
 // COMPLIANT CLAW Length
 claw_length = 150;
@@ -271,7 +267,7 @@ module guss_profile(tube=wTube,gap=0.1,daxel=Qtr_bearing_od,dholes=3.5) {
 *guss_profile(tube=wTube,gap=armSpace,daxel=Qtr_bearing_od,dholes=3.5); // EXPORT AS SVG
 
 *translate([-wTube,0,0]) { // BC ARM MACHINING. EXPORT AS SVG, rotate 90
-    translate([-LEN_BC+wTube,0,0]) rotate([0,0,180]) svo2D(); 
+    translate([-s_BC+wTube,0,0]) rotate([0,0,180]) svo2D(); 
     rotate([0,0,90]) hole_pair_2D (x = 0,y=1.6*wTube,d=3.5); // attach holes
     circle(d=12); // wire access hole
     // ADD MANUAL HOLE 0.67 INCH FROM y=0 IN EASLE FOR servo hub bore
@@ -337,11 +333,11 @@ module claw_bracket(width=30,thk=25,len=60) {
 
 module DClaw_assy(t_D=0,assy=true){
     claw_end_w = 10; // claw interface width, mm
-    if (assy) servo_block(angle=t_D);
-    translate([0,0,28]) 
+    *if (assy) servo_block(angle=t_D);
+    translate([0,0,20]) 
         rotate([0,0,t_D]) {
-            color("blue",0.5) claw_bracket(width=claw_end_w);
-            if (assy) translate([35,0,6]) rotate([90,-90,0]) Claw(assy=true);
+            *color("blue",0.5) claw_bracket(width=claw_end_w);
+            if (assy) translate([-10,0,0]) rotate([90,-90,0]) Claw(assy=true);
         }
 }
 *DClaw_assy(t_D=0);
@@ -379,7 +375,7 @@ module BC_arm_assy(armLen = 100,t_C=0,t_D=0){
     translate([-armLen,-wTube-armSpace,-18]) rotate([0,0,180])
         CD_assy(t_C=t_C,t_D=t_D);
 }
-*BC_arm_assy(armLen=LEN_BC,t_C=0,t_D=45); // not for print
+*BC_arm_assy(armLen=s_BC,t_C=0,t_D=45); // not for print
 
 module AB_arm_assy(armLen = 100){
     // AB tube
@@ -395,11 +391,11 @@ module AB_arm_assy(armLen = 100){
     
     translate([-armLen,0,0]) rotate([0,0,180]) geared_svo_block_assy();
     
-    spring_combo();
+    *spring_combo();
 }
-*AB_arm_assy(armLen=LEN_AB); // not for print
+*AB_arm_assy(armLen=s_AB); // not for print
 
-module TA_assy(tubeLen=LEN_TA) { // Assy between Turntable and joint A
+module TA_assy(tubeLen=tube_TA) { // Assy between Turntable and joint A
     // fixed tube assy
     big_gear_guss(teeth=big_gear_teeth);
     translate([0,0,-wTube-2*armSpace]) plain_guss();
@@ -413,8 +409,8 @@ module TA_assy(tubeLen=LEN_TA) { // Assy between Turntable and joint A
 }
 *TA_assy();
 
-function get_CX (a) = (cos(a[0])*LEN_AB+cos(a[0]+a[1])*LEN_BC);
-function get_CY (a) = (sin(a[0])*LEN_AB+sin(a[0]+a[1])*LEN_BC);
+function get_CX (a) = (cos(a[0])*s_AB+cos(a[0]+a[1])*s_BC);
+function get_CY (a) = (sin(a[0])*s_AB+sin(a[0]+a[1])*s_BC);
 
 function sweep1(t=0.0,lowA=0,highA=180,lowB=0,highB=180,lowC=-20,highC=20) =
 (t<0.2) ? ([lowA,lowB,linear_interp(lowC,highC,t,0,0.2)]) : 
@@ -427,18 +423,18 @@ module CalculateMoments(display=false) {
     // Display (boolean) makes 3D column of moments magnitude (3D chart)
     // USE LIST COMPREHENSIONS TO FILL ARRAYS
     // MOMENT ON CD
-    C_mom = [ for (a = [0 : steps-1]) (PAYLOAD_MASS*LEN_CD+CD_MASS*CM_CD)*cos(angles[a][0]+angles[a][1]+angles[a][2]) ];
+    C_mom = [ for (a = [0 : steps-1]) (payload*lenCD+CDweight*cgCD)*cos(angles[a][0]+angles[a][1]+angles[a][2]) ];
     Margin_Safety2(C_mom,Motor_Max_Torque,"C moment");
         
     // MOMENT ON B, DUE TO CD AND BC
-    B_trq = [ for (a = [0 : steps-1]) (BCweight*CM_BC+(PAYLOAD_MASS+CD_MASS)*LEN_BC)*cos(angles[a][0]+angles[a][1])+C_mom[a]];
+    B_trq = [ for (a = [0 : steps-1]) (BCweight*cgBC+(payload+CDweight)*s_BC)*cos(angles[a][0]+angles[a][1])+C_mom[a]];
     Margin_Safety2(B_trq,Geared_Max_Torque,"B SERVO - GREEN");
     *if (display) draw_3d_list(c,max_range/100,"green",B_trq/400); 
     *echo(B_trq=B_trq);
     
-    B_trq_noload = [ for (a = [0 : steps-1]) (BCweight*CM_BC+(CD_MASS)*LEN_BC)*cos(angles[a][0]+angles[a][1])+CD_MASS*CM_CD*cos(angles[a][0]+angles[a][1]+angles[a][2])];
+    B_trq_noload = [ for (a = [0 : steps-1]) (BCweight*cgBC+(CDweight)*s_BC)*cos(angles[a][0]+angles[a][1])+CDweight*cgCD*cos(angles[a][0]+angles[a][1]+angles[a][2])];
 
-    A_trq_load_nospr = [ for (a = [0 : steps-1]) (ABweight*CM_AB+(BCweight+PAYLOAD_MASS+CD_MASS)*LEN_AB)*cos(angles[a][0])+ B_trq[a] ]; 
+    A_trq_load_nospr = [ for (a = [0 : steps-1]) (ABweight*cgAB+(BCweight+payload+CDweight)*s_AB)*cos(angles[a][0])+ B_trq[a] ]; 
     Margin_Safety2(A_trq_load_nospr,Geared_Max_Torque,"A SERVO - NO SPRING - BLUE");
     *if (display) draw_3d_list(c,max_range/80,"blue",A_trq_load_nospr/400); 
     *echo(A_trq_load_nospr=A_trq_load_nospr);
@@ -458,20 +454,17 @@ module CalculateMoments(display=false) {
     if (display) draw_3d_list(c,max_range/80,"blue",A_trq_load_spr/400); 
     
     // calculate max A moment with NO payload and spring (can be critical!)
-    A_trq_noload_spr = [ for (a = [0 : steps-1]) (ABweight*CM_AB+(BCweight+CD_MASS)*LEN_AB)*cos(angles[a][0])+ B_trq_noload[a]  - A_spr_torque[a] ]; 
+    A_trq_noload_spr = [ for (a = [0 : steps-1]) (ABweight*cgAB+(BCweight+CDweight)*s_AB)*cos(angles[a][0])+ B_trq_noload[a]  - A_spr_torque[a] ]; 
     Margin_Safety2(A_trq_noload_spr,Geared_Max_Torque,"A SERVO - SPRING - NO PAYLOAD - Yellow");
     if (display) draw_3d_list(c,max_range/70,"yellow",A_trq_noload_spr/400); 
     *echo(A_trq_noload_spr=A_trq_noload_spr);
         
     *rotate([-90,0,0]) for (a = [0 : steps-1]) 
-        draw_assy(angles[a][0],angles[a][1],angles[a][2],0,LEN_AB,LEN_BC,LEN_CD);
+        draw_assy(angles[a][0],angles[a][1],angles[a][2],0,s_AB,s_BC,lenCD);
 
 }
 CalculateMoments();
 
-// Draw the steps, outside of force calculation module 
-*for (a = [0 : steps-1]) draw_assy(angles[a][0],angles[a][1],angles[a][2],0,LEN_AB,LEN_BC,LEN_CD);
-    
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 // distance of shoulder plate from zero
@@ -692,17 +685,10 @@ module base_assy_make2() {
     translate([0,0,9+base_t/2]) Bearing(t=9,od=120,id=70); 
     
     // Representation of 2x4 wood
-    LENGTH = 430;  // about 17 inches
-    WIDTH = 300;   // about 12 inches
-    WOOD_T = 3.5/mm_inch;  
-    WOOD_W = 1.5/mm_inch;
-    
-    color("Khaki") {
-        translate([-WOOD_W*2,WIDTH/2-10,-base_t/2]) rotate([0,90,0]) cube([WOOD_T,WOOD_W,LENGTH]);
-        translate([-WOOD_W*2,-WIDTH/2+10-WOOD_W,-base_t/2]) rotate([0,90,0]) cube([WOOD_T,WOOD_W,LENGTH]);
-        translate([-WOOD_W,-WIDTH/2-10,-base_t/2]) rotate([0,90,90]) cube([WOOD_T,WOOD_W,WIDTH]);
-        translate([LENGTH-WOOD_W*2,-WIDTH/2-10,-base_t/2]) rotate([0,90,90]) cube([WOOD_T,WOOD_W,WIDTH]);
-
+    l_wood = 400;
+    *color("Khaki") {
+        translate([-base_x/2,base_x/2-10,-base_t/2]) rotate([0,90,0]) cube([3.5*25.4,1.5*25.4,l_wood]);
+        translate([-base_x/2,-base_x/2+10-1.5*25.4,-base_t/2]) rotate([0,90,0]) cube([3.5*25.4,1.5*25.4,l_wood]);
     }
     // Representation of electronics board
     translate([130,50,0]) rotate([0,0,-90])Electronics_Board();
@@ -720,38 +706,38 @@ module base_and_shoulder_assy(t_T=0,t_A=0,t_B=0){
     // off for thingiverse, purchased part
     translate([0,0,-shoulder_z_top-24]) 32P_Actobotics(teeth=64,bore=Qtr_bearing_od);
     // the distance between gears is the teeth*pitch/pi
-    color ("red",.5) 
+    *color ("red",.5) 
         translate([-gear_center_dist,0,base_z_top-2]){
                 servo_body();  // shoulder servo
                 // off for thingiverse, purchased part
                 32P_Actobotics(teeth=32);   // servo gear 32 tooth
         }
     // Base
-    translate([0,0,base_z_top]) rotate([0,0,180]) base_assy_make2();
+    *translate([0,0,base_z_top]) rotate([0,0,180]) base_assy_make2();
 }
 *base_and_shoulder_assy(t_T=0,t_A=0,t_B=0); // not for print
 
 module draw_assy (t_A=0,t_B=0,t_C=0,t_D=0,t_T=0) {
     // XZ = HORIZON
     // calculate b and c positions from angles
-    //b=[LEN_AB*cos(t_A),LEN_AB*sin(t_A),0];  // B location
-    //c = [(cos(t_A)*LEN_AB+cos(t_B)*LEN_BC),(sin(t_A)*LEN_AB+sin(t_B)*LEN_BC),0];
+    //b=[s_AB*cos(t_A),s_AB*sin(t_A),0];  // B location
+    //c = [(cos(t_A)*s_AB+cos(t_B)*s_BC),(sin(t_A)*s_AB+sin(t_B)*s_BC),0];
 
     // Draw Base and Shoulder assembly adjust z translation as required
     base_and_shoulder_assy(t_T=t_T,t_A=t_A,t_B=t_B);
     
-    translate([SHIFT_TA,-wTube/2,1.5*wTube+armSpace]) 
+    translate([s_TA,-wTube/2,1.5*wTube+armSpace]) 
         rotate([90,0,t_T]) {
             TA_assy();
             rotate([0,0,t_A-180]) {
-                AB_arm_assy(armLen=LEN_AB);
+                AB_arm_assy(armLen=s_AB);
                 // A joint .25 inch shaft,  LENGTH = 2.5 inch
                 translate([0,0,-10]) cylinder(h=2.5/mm_inch,d=hole_qtr_inch,center=true);
                                 // Draw the BC link and End
-                translate([-LEN_AB,0,0]) {
+                translate([-s_AB,0,0]) {
                     rotate([0,0,t_B]) 
                         rotate([0,0,0]) 
-                            BC_arm_assy(armLen=LEN_BC,t_C=t_C,t_D=t_D);
+                            BC_arm_assy(armLen=s_BC,t_C=t_C,t_D=t_D);
                     // B joint .25 inch shaft,  LENGTH = 2.5 inch
                     translate([0,0,-10]) cylinder(h=2.5/mm_inch,d=hole_qtr_inch,center=true);
                 }
