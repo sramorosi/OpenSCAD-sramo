@@ -10,7 +10,7 @@
 use <force_lib.scad> // contains forces, springs, MS modules and functions
 include <Part-Constants.scad>
 use <Robot_Arm_Parts_lib.scad>
-use <gears_involute.scad>  // Modified version of spur gears by to GregFrost
+use <gears_involute.scad>  // Modified version of spur gears by Greg Frost
 use <arduino.scad>
 
 // Number of position step in internal calculation
