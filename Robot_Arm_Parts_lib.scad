@@ -1003,7 +1003,7 @@ module P090L_pot (negative=false) {
 
         } else {         // potentiometer for difference()
             translate([0,0,-zb/2]) cube([10,12.5,zb],center=true);
-            translate([0,-12.5,-zb/2]) cube([10,15,zb],center=true);
+            translate([0,-12.5,-zb/2]) cube([10,20,zb],center=true);
         }
         
         cylinder(h=2,d=7.2,center=true,$fn=48); // ring around the shaft
@@ -1018,7 +1018,8 @@ module P090L_pot (negative=false) {
             difference () {
                 translate([0,0,L_pot_shaft/2]) 
                     cylinder(h=L_pot_shaft,d=6.2,center=true,$fn=48);
-                translate ([-5,-L_pot_shaft-1.45,5]) cube(L_pot_shaft,center=false); // key
+                // 1.55 was 1.45, increased to make assembly easier
+                translate ([-5,-L_pot_shaft-1.55,5]) cube(L_pot_shaft,center=false); // key
         }
         // pins (3)
         translate([0,7,zpin]) elect_pin();
@@ -1031,7 +1032,7 @@ module P090L_pot (negative=false) {
         rotate([90,0,0]) translate([0,0,lenPin/2]) cylinder(h=lenPin,r=.5,$fn=8);
     }
 }
-*P090L_pot(negative=true);
+P090L_pot(negative=true);
 *translate([20,0,0]) P090L_pot(negative=false);
 
 module RV112FF_pot (L=19,negative=false) {
