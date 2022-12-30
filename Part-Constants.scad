@@ -5,10 +5,18 @@
 mm_inch = 1/25.4;
 
 // 1/4 ID bearing OD if using a bearing (PART FR4-ZZ C3)
-Qtr_bearing_od=15.9512; // 0.628 inch = 15.9512 mm
-Qtr_bearing_flange_od=18.034; // .71 inch = 18.034 mm
-Qtr_bearing_flange_t=1.27; // 0.05 inch = 1.27 mm
-Qtr_bearing_t=3.937; // 0.155 inch = 3.937 mm
+Qtr_bearing_id = 0.25/mm_inch;
+Qtr_bearing_od=0.628/mm_inch; // 0.628 inch = 15.9512 mm
+Qtr_bearing_flange_od=0.71/mm_inch; // .71 inch = 18.034 mm
+Qtr_bearing_flange_t=0.05/mm_inch; // 0.05 inch = 1.27 mm
+Qtr_bearing_t=0.155/mm_inch; // 0.155 inch = 3.937 mm
+
+// 1/2 ID flanged bearing 
+Half_bearing_id=0.50/mm_inch;
+Half_bearing_od=1.125/mm_inch;
+Half_bearing_flange_od=1.23/mm_inch; 
+Half_bearing_flange_t=0.06/mm_inch; 
+Half_bearing_t=0.31/mm_inch; 
 
 M6_bearing_od=12; 
 M6_bearing_flange_od=13.6;

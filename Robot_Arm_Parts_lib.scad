@@ -889,7 +889,9 @@ module Bearing_Flanged (t=2,flange_t=1,od=3,id=1,flange_od=4) {
 }
 *Bearing_Flanged (); // default
 
-*translate([15,0,0]) Bearing_Flanged (t=Qtr_bearing_t,flange_t=Qtr_bearing_flange_t,od=Qtr_bearing_od,id=hole_qtr_inch,flange_od=Qtr_bearing_flange_od);
+*translate([15,0,0]) Bearing_Flanged (t=Qtr_bearing_t,flange_t=Qtr_bearing_flange_t,od=Qtr_bearing_od,id=Qtr_bearing_id,flange_od=Qtr_bearing_flange_od);
+
+translate([35,0,0]) Bearing_Flanged (t=Half_bearing_t, flange_t=Half_bearing_flange_t,od=Half_bearing_od,id=Half_bearing_id,flange_od=Half_bearing_flange_od);
 
 *translate([-10,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
 
@@ -905,15 +907,17 @@ module M5_RHS (length=10) {
             polygon( points=[[0,0],[4.5,0],[4.5,-2],[3,-2.9],[0,-2.9],[0,0]] );
     }
 }
-module hex (size=0.5,l=1) {
+module hex (size=20,l=10) {
     // Make a hex extrution with distance across flats = size
     // centered on xy=0 and up l from z=0
-    x = size/2;
-    y1 = x * tan(30);
-    y2 = x / cos(30);
+    // generate a list with the hex points
+    hypotenuse = (size/2.0) / cos(30);
+    hexP = [ for (i=[0:60:360]) [hypotenuse*cos(i),hypotenuse*sin(i)] ];
+    echo(hypotenuse=hypotenuse,hexP=hexP);
     linear_extrude(height=l,convexity=10) 
-        polygon( points=[[x,y1],[0,y2],[-x,y1],[-x,-y1],[0,-y2],[x,-y1],[x,y1]] );
+        polygon( points=hexP );
 }
+*hex();
 
 lenPin=7; // P090 electrical pin length constant
 L_pot_shaft = 13.1;  // P090 shaft length above the body
