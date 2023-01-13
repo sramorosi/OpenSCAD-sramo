@@ -817,6 +817,17 @@ module servo_shim_spacer(l=svo_flange_l,w=svo_w-1,t=1.5) {
 }
 *servo_shim_spacer();
 
+module half_inch_hex_hub() { // modeled after ServoCity 0.500" Hex Clamping Hub SKU 545674 
+    color("Silver")  difference() {
+        translate([0,0,0.1]) washer(d=1/mm_inch, t=0.275/mm_inch,d_pin=0.3/mm_inch,center=false);
+        rotate([0,0,45])Rotation_Pattern(number=4,radius=0.385/mm_inch,total_angle=360) 
+            cylinder(h=50,d=0.125/mm_inch,center=false,$fn=12);
+        hex (size=0.5/mm_inch,l=30);
+
+    }
+}
+half_inch_hex_hub();
+
 module servo_hub() { // modeled after ServoCity servo hub SKU: 525123
     difference() {
         translate([0,0,0.799/mm_inch]) 
@@ -913,7 +924,7 @@ module hex (size=20,l=10) {
     // generate a list with the hex points
     hypotenuse = (size/2.0) / cos(30);
     hexP = [ for (i=[0:60:360]) [hypotenuse*cos(i),hypotenuse*sin(i)] ];
-    echo(hypotenuse=hypotenuse,hexP=hexP);
+    //echo(hypotenuse=hypotenuse,hexP=hexP);
     linear_extrude(height=l,convexity=10) 
         polygon( points=hexP );
 }

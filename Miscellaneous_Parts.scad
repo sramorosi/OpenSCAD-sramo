@@ -1,8 +1,18 @@
-// Damper for vacuum cannon
-// by SrAmo  July, 2022
+// Miscellanious parts
+//    Damper for vacuum cannon
+//    Screen Door Handel for Juniper
+//    Berry Sieve 
+//    Spice Drawer Model
+//
+// by SrAmo  January, 2023
 use <Robot_Arm_Parts_lib.scad>
 
 MM = 25.4;
+// use 140 for printing, 40 for display
+FACETS = 40; // [40,140]
+
+// Spice Jar Tilt (Deg)
+TILT = 37;  // [0:1:80]
 
 module piston() {
     difference () {
@@ -78,7 +88,7 @@ module door_handle(inside=true) {
         }
     }
 }
-color("grey") door_handle(inside=true,$fn=48);
+*color("grey") door_handle(inside=true,$fn=48);
 
 module berry_sieve() {
     berryHole = 7.5; // size for berry.  7.5 is a bit small. Go to 8 mm?
@@ -98,3 +108,65 @@ module berry_sieve() {
     }
 }
 *berry_sieve();
+
+SPICE_JAR_DIA = 52;
+SPICE_JAR_HEIGHT = 115;
+xy_adjust = SPICE_JAR_DIA/2;
+z_adjust = (SPICE_JAR_DIA/2)*sin(TILT);
+y_space = SPICE_JAR_DIA + tan(TILT)*SPICE_JAR_HEIGHT/2;
+
+module spice_container() {  // Simplistic model, represents largest spice jar
+    // Max = diameter 52 mm (could be square), height 115 mm.
+    // Cap = diameter 45 mm, thk = 11 mm
+    color("cornsilk") union() {
+        cylinder(h=SPICE_JAR_HEIGHT-11,d=SPICE_JAR_DIA,$fn=FACETS);
+        translate([0,0,SPICE_JAR_HEIGHT-11]) cylinder(h=11,d=45,$fn=FACETS);
+    }
+};
+
+module drawer() {  // Simplistic model of spice drawer
+    // Inside = 384mm x 500 mm x 145 mm
+    // wall thickness = 15 mm typical
+    color("Goldenrod") difference() {
+        translate([-15+20,-15,-15]) cube([384+30,500+30,145+15], center=false);
+        cube([384+20,500,145+10], center=false);
+    };
+};
+
+module rectPattern(nx=2,x=10,ny=3,y=20) { // translate obects in rectangular pattern
+    echo("OBJECTS=",nx*ny);
+    for (i=[0:1:nx-1]) {
+        for (j=[0:1:ny-1]) {
+            translate([i*x,j*y,0]) children();
+        };
+    };
+}
+
+module spice_holder() {  // single spice holder
+    difference() {
+        cube([SPICE_JAR_DIA,SPICE_JAR_DIA+tan(TILT)*SPICE_JAR_HEIGHT/2,SPICE_JAR_HEIGHT/2]);
+        translate([xy_adjust,xy_adjust,z_adjust])
+            rotate([-TILT,0,0]) 
+                //spice_container();
+                translate([-1,-20,SPICE_JAR_HEIGHT+2]) 
+                    cube([SPICE_JAR_DIA+4,SPICE_JAR_DIA+40,SPICE_JAR_HEIGHT*2],center=true);
+        
+    };
+};
+*spice_holder();
+
+module spice_drawer_assy() { // simple assembly of spice drawer
+    drawer();
+    
+    translate([xy_adjust,xy_adjust,z_adjust+2]) 
+        rectPattern(nx=7,x=SPICE_JAR_DIA,ny=5,y=y_space) 
+            rotate([-TILT,0,0]) 
+                spice_container();
+    
+    rectPattern(nx=7,x=SPICE_JAR_DIA,ny=5,y=y_space) 
+            spice_holder();
+    
+    //rotate([-TILT,0,0]) spice_container(); // single spice container for debug
+
+};
+spice_drawer_assy();
