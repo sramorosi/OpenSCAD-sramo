@@ -51,6 +51,11 @@ function dist_line_pt (p1=[-5,5,0],p2=[0,5,0],pt=[10,0,0])=
 // removed abs
 ((p2[1]-p1[1])*pt[0]-(p2[0]-p1[0])*pt[1]+p2[0]*p1[1]-p2[1]*p1[0])/norm([(p1[0]-p2[0]),(p1[1]-p2[1]),0]);
 
+function ptpt_dist(p1=[-5,5,0],p2=[0,0,0])=
+sqrt((p1[0]-p2[0])*(p1[0]-p2[0]) + (p1[1]-p2[1])*(p1[1]-p2[1])+(p1[2]-p2[2])*(p1[2]-p2[2]));
+
+//bla = ptpt_dist();
+//echo(bla=bla);
 function rotZ_pt (a=10,p=[1,1,0]) = ([(p[0]*cos(a)+p[1]*sin(a)),(p[1]*cos(a)+p[0]*sin(a)),p[2]]);
 
 module plot_circle(rad=2,n=10,dot_r=2,center=[0,0,0]) {
@@ -74,9 +79,9 @@ module draw_3d_list(the3dlist=[],size=10,dot_color="blue",value=[],idx=0) {
     //echo(point=point);
     if (point != undef) { // not undefined means there is a point
         if (height != undef) {
-           color(dot_color) translate(point) translate([0,0,height/2]) cylinder(h=abs(height),r=size,center=true);   
+           color(dot_color) translate(point) translate([0,0,height/2]) sphere(r=size);   
         } else {
-            color(dot_color) translate(point) cylinder(h=10,r=size,center=true);   
+            color(dot_color) translate(point) sphere(r=size);  
         }
        idx=idx+1;
        draw_3d_list(the3dlist,size,dot_color,value,idx);

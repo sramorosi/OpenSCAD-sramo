@@ -98,9 +98,15 @@ big_gear_teeth = 70;
 // Small gear at Joint A and B, Servo Mount Gear from ServoCity
 small_gear_teeth = 32; 
 // Turntable big  gear (printed)
-TT_BIG_GEAR = 96;
+TT_BIG_GEAR = 64;
 // Turntable small gear (Servo Mount Gear from ServoCity)
-TT_SMALL_GEAR = 48;
+TT_SMALL_GEAR = 32;
+
+// Representation of Base 2x4 wood
+LENGTH = 430;  // about 17 inches
+WIDTH = 233;   // Inside width
+WOOD_T = 3.0/mm_inch;  
+WOOD_W = 1.75/mm_inch;
 
 // Maximum Motor Torque (gram-mm) 
 Motor_Max_Torque = 250000; 
@@ -452,10 +458,11 @@ module AB_arm_assy(armLen = 100){
 module turntable_gear(teeth = 30,thickness=6) {
     difference() {
         32P_Actobotics(teeth=teeth,thickness=thickness);   
-        translate([0,0,-1]) hex (size=0.52/mm_inch,l=thickness*2);
+        translate([0,0,-1]) hex (size=0.505/mm_inch,l=thickness*2);
         translate([0,0,-1]) rotate([0,0,45]) Rotation_Pattern(number=4,radius=0.385/mm_inch,total_angle=360) 
             cylinder(h=thickness*2,d=0.135/mm_inch,center=false,$fn=FACETS);
-        translate([0,0,thickness-3]) cylinder(h=thickness,d=2.0/mm_inch,center=false,$fn=FACETS);
+        // Counterbore for ActoBotics hex hub. D needs to be 35 mm 
+        translate([0,0,thickness-3]) cylinder(h=thickness,d=35,center=false,$fn=FACETS);
     }
 }
 *turntable_gear(teeth = TT_BIG_GEAR,thickness=8); // FOR PRINT
@@ -469,11 +476,11 @@ module TA_assy() { // Assy between Turntable and joint A
     translate([0,-wTube*3/4,0]) rotate([90,0,0])  
         color("RoyalBlue") hex (size=0.5/mm_inch,l=length);
     
-    z_offset = -A_HEIGHT-wTube-1.4/mm_inch;
+    z_offset = -A_HEIGHT-wTube-WOOD_W-5;
     rotate([-90,0,0]) translate([0,0,z_offset]) 
         turntable_gear(teeth = TT_BIG_GEAR,thickness=8);
     
-    rotate([-90,0,0]) translate([0,0,z_offset-6]) half_inch_hex_hub();
+    rotate([-90,0,0]) translate([0,0,z_offset+5]) half_inch_hex_hub();
 }
 *TA_assy();
 
@@ -572,40 +579,40 @@ module Electronics_Board (Assy=true) {
     translate([board_shift-20,-40,0]) zip_loop();// zip tie loop
 
     if (Assy) {
-        translate([board_shift,33,0]) rotate([0,0,90]) Rocker_Switch();
+        translate([board_shift,33,-5]) rotate([180,0,90]) Rocker_Switch();
         // off for thingiverse, purchased part
         translate([board_w,20,-8]) rotate([180,0,-90]) arduino(); 
     }
 }
-*Electronics_Board(Assy=false);//FOR_PRINT
+*Electronics_Board(Assy=true);//FOR_PRINT,  set Assy = false
 
 base_t = 0;   //  was 10 for old design
 
 module new_base_assy() {
-
-    // Representation of 2x4 wood
-    LENGTH = 430;  // about 17 inches
-    WIDTH = 300;   // about 12 inches
-    WOOD_T = 3.5/mm_inch;  
-    WOOD_W = 1.5/mm_inch;
+    // 2x4 dims
+    T2X4 = 3.5/mm_inch;
+    W2X4 = 1.5/mm_inch;
 
     translate([0,0,-WOOD_W]) rotate([180,0,90]) 
-        geared_svo_block_assy(big_gear_teeth=TT_BIG_GEAR,small_gear_teeth=TT_SMALL_GEAR,wbeam=WOOD_T);
+        geared_svo_block_assy(big_gear_teeth=TT_BIG_GEAR,small_gear_teeth=TT_SMALL_GEAR,wbeam=WOOD_T*2/3);
     
     color("Khaki") {
-        translate([-WOOD_T/2,WIDTH/2-10,-base_t/2]) rotate([0,90,0]) cube([WOOD_T,WOOD_W,LENGTH]);
-        translate([-WOOD_T/2,-WIDTH/2+10-WOOD_W,-base_t/2]) rotate([0,90,0]) cube([WOOD_T,WOOD_W,LENGTH]);
-        // ROBOT ARM SUPPORT BEAM
-        translate([-WOOD_T/2,-WIDTH/2-10,-base_t/2]) rotate([-90,0,0]) cube([WOOD_T,WOOD_W,WIDTH]);
-        translate([LENGTH-WOOD_T/2,-WIDTH/2-10,-base_t/2]) rotate([0,90,90]) cube([WOOD_T,WOOD_W,WIDTH]);
-
+        translate([-T2X4/2,WIDTH/2,-base_t/2]) rotate([0,90,0]) cube([T2X4,W2X4,LENGTH]);
+        translate([-T2X4/2,-WIDTH/2-W2X4,-base_t/2]) rotate([0,90,0]) cube([T2X4,W2X4,LENGTH]);
+        // BACK BEAM
+        translate([LENGTH-T2X4/2,-WIDTH/2,-base_t/2]) rotate([0,90,90]) cube([T2X4,W2X4,WIDTH]);
     }
+    color("burlywood") {    
+        // ROBOT ARM SUPPORT BEAM
+        translate([-WOOD_T*2/3,-WIDTH/2,-base_t/2]) rotate([-90,0,0]) cube([WOOD_T,WOOD_W,WIDTH]);
+    }
+    
     Bearing_Flanged (t=Half_bearing_t, flange_t=Half_bearing_flange_t,od=Half_bearing_od,id=Half_bearing_id,flange_od=Half_bearing_flange_od);
 
     translate([0,0,-WOOD_W]) rotate([180,0,0]) Bearing_Flanged (t=Half_bearing_t, flange_t=Half_bearing_flange_t,od=Half_bearing_od,id=Half_bearing_id,flange_od=Half_bearing_flange_od);
     
     // Representation of electronics board
-    translate([130,50,0]) rotate([0,0,-90]) Electronics_Board();
+    translate([0,100,0]) rotate([180,0,0]) Electronics_Board();
 }
 *new_base_assy(); // not for print
 

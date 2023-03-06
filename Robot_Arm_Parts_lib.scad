@@ -5,6 +5,13 @@ use <force_lib.scad>
 use <Pulley-GT2_2.scad>
 include <Part-Constants.scad>
 
+// a simple recursive function that adds the values of a list of floats;
+// uses tail recursion
+function add(v, i = 0, r = 0) = i < len(v) ? add(v, i + 1, r + v[i]) : r;
+//ar1 = [1,1,1,1.2,1];
+//sum1 = add(ar1);
+//echo(sum1=sum1);
+
 function law_sines_angle (C=30,a=10,c_ang=120) = 
 // law of sines, given length C, a, and C Angle, return A angle
 asin((a/C)*sin(c_ang));
@@ -16,6 +23,18 @@ C * (sin(b_ang)/sin(c_ang));
 function law_cosines (a=10,b=10,c=10) = 
 // law of cosines, find angle between sides a and b given three side lengths
 acos((a*a+b*b-c*c)/(2*a*b));
+
+// Law of Cosine to find the angle opposite C, given sides A B C
+function LawOfCosinesAngle(A=20,B=20,C=10) =
+    acos(((A*A)+(B*B)-(C*C))/(2*A*B));
+//test = LawOfCosinesAngle();
+//echo(test=test);
+
+// Law of Cosine to find the length C, given sides A B and angle between A and B
+function LawOfCosinesC(A=20,B=20,GAMMA=40) =
+    sqrt((A*A)+(B*B)-2*A*B*cos(GAMMA));
+test = LawOfCosinesC();
+echo(test=test);
 
 function rot_x (x,y,a) = x*cos(a)-y*sin(a);
 
@@ -53,12 +72,30 @@ rot_pt_z(pC4,alphaT);
 //ptsCD=anglesToC(90,-90,45,195,240);
 //echo(ptsCD=ptsCD);
 
+function ik_xy (c=[0,10,0],lenAB=100,lenBC=120,AY=0) = 
+// Simple Inverse Kinematics on the xy plane
+// Given a three body system Ground-AB-BC, where A is [0,AY,0]
+// Lengths LenAB and LenBC are specified
+// The location of c is specified. The z component is ignored
+// The joints A,B are on the xy plane
+// calculate the angles given pt C ***Inverse Kinematics***
+// returns an array with [alphaA,alphaB] 
+//    where alphaB is ABC (i.e. local, not BC global to horizontal)
+let (vxy = norm([c[0],c[1]-AY,0]))  // vector length on the xy plane
+let (vt_long = (vxy > (lenAB+lenBC) ? true : false) )
+let (sub_angle1 = atan2(c[1]-AY,c[0]))  // atan2 (Y,X)!
+let (sub_angle2 = vt_long ? 0.01 : law_cosines(vxy,lenAB,lenBC) )
+let (a_ang = sub_angle1 + sub_angle2)
+let (b_ang = vt_long ? 0.01 : law_cosines(lenBC,lenAB,vxy)-180 )
+[a_ang,b_ang] ;
+
 function inverse_arm_kinematics (c=[0,10,0],lenAB=100,lenBC=120,aOffset=0) = 
+// Inverse Kinematics on the xz plane
 // Given a three body system Ground-AB-BC, where A is [0,0,0]
 // Lengths LenAB and LenBC are specified
 //  aOffset is the X offset from the Turntable axis
 // The location of c is specified
-// The joints A,B are on a table with rotation alphaT parallel to Z through A
+// The joints A,B are on a plane with rotation alphaT parallel to Z through A
 // With alphaT = 0, then joints A & B are parallel to the Y axis
 // calculate the angles given pt C ***Inverse Kinematics***
 // returns an array with [alphaA,alphaB,alphaT] 
@@ -451,7 +488,7 @@ module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15) {
     half_claw (link_adjust=24); // modify link location this side
     mirror([1,0,0]) half_claw (link_adjust=9); 
 }
-*compliant_claw2(len=150,width=120,t1=2,t2=25,r=18,pre_angle=15);
+compliant_claw2(len=150,width=120,t1=2,t2=25,r=18,pre_angle=15);
 *translate ([0,0,40]) compliant_claw2 (len=claw_length,width=claw_width,t1=claw_t,t2=claw_height,r=claw_radius,pre_angle=15);
 
 module pulley(r=2,t=.5,d_pin=0.25,d_grv=0.25,round=true){

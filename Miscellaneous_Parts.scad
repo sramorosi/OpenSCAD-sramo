@@ -12,7 +12,7 @@ MM = 25.4;
 FACETS = 40; // [40,140]
 
 // Spice Jar Tilt (Deg)
-TILT = 37;  // [0:1:80]
+TILT = 35;  // [0:1:80]
 
 module piston() {
     difference () {
@@ -20,7 +20,6 @@ module piston() {
         cylinder(h=12,d=15,center=false,$fn=48);
     }
 }    
-*piston();
 
 module cap(shaft=false) {
     difference () {
@@ -37,10 +36,13 @@ module cap(shaft=false) {
         }
     }
 }
-*translate([0,0,50]) cap(shaft=false);
-*translate([0,0,-50]) rotate([180,0,180]) cap(shaft=true);
-
-*color("grey",0.5) washer(d=25.6,d_pin=22.6,t=100,$fn=48);
+DAMPER_LEN = 200;
+rotate([-90,0,0]) {
+    translate([0,0,DAMPER_LEN/2]) cap(shaft=false);
+    translate([0,0,-DAMPER_LEN/2]) rotate([180,0,180]) cap(shaft=true);
+    piston();
+    color("grey",0.5) washer(d=25.6,d_pin=22.6,t=DAMPER_LEN,$fn=48);
+}
 
 module trapizoid2d(h1=40,h2=30,w=20,r=5) {
     h3=(h1-h2)/2;
@@ -111,9 +113,15 @@ module berry_sieve() {
 
 SPICE_JAR_DIA = 52;
 SPICE_JAR_HEIGHT = 115;
+NX = 7;  // number of jars in x 
+NY = 5;  // number of jars in y
+echo("TOTAL JARS = ",NX*NY);
+T_WOOD = 1.75*MM;  // 1.75 INCH
 xy_adjust = SPICE_JAR_DIA/2;
 z_adjust = (SPICE_JAR_DIA/2)*sin(TILT);
-y_space = SPICE_JAR_DIA + tan(TILT)*SPICE_JAR_HEIGHT/2;
+//y_space = SPICE_JAR_DIA + tan(TILT)*SPICE_JAR_HEIGHT/2;
+y_space = T_WOOD+T_WOOD*tan(TILT)+22;
+echo(y_space=y_space);
 
 module spice_container() {  // Simplistic model, represents largest spice jar
     // Max = diameter 52 mm (could be square), height 115 mm.
@@ -123,12 +131,12 @@ module spice_container() {  // Simplistic model, represents largest spice jar
         translate([0,0,SPICE_JAR_HEIGHT-11]) cylinder(h=11,d=45,$fn=FACETS);
     }
 };
-
+*spice_container();
 module drawer() {  // Simplistic model of spice drawer
     // Inside = 384mm x 500 mm x 145 mm
     // wall thickness = 15 mm typical
     color("Goldenrod") difference() {
-        translate([-15+20,-15,-15]) cube([384+30,500+30,145+15], center=false);
+        translate([-15+20,-15,-15]) cube([384+0,500+30,145+15], center=false);
         cube([384+20,500,145+10], center=false);
     };
 };
@@ -144,29 +152,31 @@ module rectPattern(nx=2,x=10,ny=3,y=20) { // translate obects in rectangular pat
 
 module spice_holder() {  // single spice holder
     difference() {
-        cube([SPICE_JAR_DIA,SPICE_JAR_DIA+tan(TILT)*SPICE_JAR_HEIGHT/2,SPICE_JAR_HEIGHT/2]);
-        translate([xy_adjust,xy_adjust,z_adjust])
-            rotate([-TILT,0,0]) 
+        cube([SPICE_JAR_DIA,y_space,T_WOOD],center=false);
+        //translate([xy_adjust,xy_adjust,z_adjust])
                 //spice_container();
-                translate([-1,-20,SPICE_JAR_HEIGHT+2]) 
-                    cube([SPICE_JAR_DIA+4,SPICE_JAR_DIA+40,SPICE_JAR_HEIGHT*2],center=true);
+            translate([-1,0,T_WOOD*tan(TILT)]) 
+                rotate([-TILT,0,0]) 
+                    translate([0,-T_WOOD,0])
+                    cube([SPICE_JAR_DIA+4,T_WOOD/cos(TILT)+T_WOOD,T_WOOD*2],center=false);
         
     };
 };
 *spice_holder();
 
 module spice_drawer_assy() { // simple assembly of spice drawer
-    drawer();
+    color("red") drawer();
     
-    translate([xy_adjust,xy_adjust,z_adjust+2]) 
-        rectPattern(nx=7,x=SPICE_JAR_DIA,ny=5,y=y_space) 
+    translate([0,T_WOOD,0]) 
+        rectPattern(nx=NX,x=SPICE_JAR_DIA,ny=NY,y=y_space) 
             rotate([-TILT,0,0]) 
+                translate([SPICE_JAR_DIA/2,-SPICE_JAR_DIA/2,0])
                 spice_container();
     
-    rectPattern(nx=7,x=SPICE_JAR_DIA,ny=5,y=y_space) 
+    rectPattern(nx=NX,x=SPICE_JAR_DIA,ny=NY,y=y_space) 
             spice_holder();
     
     //rotate([-TILT,0,0]) spice_container(); // single spice container for debug
 
 };
-spice_drawer_assy();
+*spice_drawer_assy();
