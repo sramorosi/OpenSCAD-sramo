@@ -303,17 +303,17 @@ module big_gear_guss(teeth=10) {
 module big_gear_lollypop(teeth=10,gear_side=true) {
     // wTube
     lugT = 8; // mm
-    gear_dia = 0.97*(teeth)*(2.54/3.14159);
+    gear_dia = 0.9*(teeth)*(2.54/3.14159);
 
     color("Aqua")  // difficulty making two sides have different colors      
     difference() {
         union() {
             translate([0,0,wTube/2 + 1])
                 32P_Actobotics(teeth=teeth,thickness=8,bore=2); 
-            translate([0,0,-wTube/2 - lugT - 1])
+            translate([-4,0,-wTube/2 - lugT - 1])
                 washer(d=gear_dia,t=lugT,d_pin=2,center=false,$fn=FACETS);
             translate([0,-wTube/2,0]) linear_extrude(wTube + 2*lugT + 2,convexity=20,center=true)
-                    polygon([[wTube/4,0],[wTube/4,-wTube/4],[-wTube/4,-wTube/4],[-wTube*.8,0],[-wTube,0],[-wTube/2,-A_HEIGHT],[wTube/4,-A_HEIGHT],[wTube/4,0]]);
+            polygon([[wTube/4,0],[wTube/4,-wTube/4],[-wTube/4,-wTube/4],[-wTube*.8,0],[-wTube,0],[-wTube/2,-A_HEIGHT],[wTube/4,-A_HEIGHT],[wTube/4,0]]);
         }
         rotate([90,0,0]) hex (size=0.5/mm_inch,l=5/mm_inch); // hex shaft
         
@@ -324,9 +324,9 @@ module big_gear_lollypop(teeth=10,gear_side=true) {
 
         translate([-0.85*wTube,-wTube/2.3,0]) cylinder(h=2*wTube,d=3.1,center=true,$fn=FACETS);
 
-        rotate([0,90,0]) translate([-0.38*wTube,-.52*wTube,0]) 
+        rotate([0,90,0]) translate([-0.38*wTube,-.54*wTube,0]) 
         cylinder(h=2*wTube,d=3.1,center=true,$fn=FACETS);
-        rotate([0,90,0]) translate([0.38*wTube,-.52*wTube,0]) 
+        rotate([0,90,0]) translate([0.38*wTube,-.54*wTube,0]) 
         cylinder(h=2*wTube,d=3.1,center=true,$fn=FACETS);
         
         if (gear_side) {  // subtract one or other side
@@ -395,11 +395,13 @@ module DClaw_assy(t_D=0,assy=true){
     if (assy) servo_block(angle=t_D);
     translate([0,0,28]) 
         rotate([0,0,t_D]) {
-            color("blue",0.5) claw_bracket(width=claw_end_w);
-            if (assy) translate([35,0,6]) rotate([90,-90,0]) Claw(assy=true);
+            color("blue") claw_bracket(width=claw_end_w);
+            *if (assy) translate([35,0,6]) rotate([90,-90,0]) Claw(assy=true);
+            
+            translate([-30,-45,20]) rotate([90,0,90]) GoPro_model();
         }
 }
-*DClaw_assy(t_D=0);
+DClaw_assy(t_D=0);
 
 module CD_assy(t_C=0,t_D=0) {
     rotate([0,0,0]) {
@@ -647,7 +649,7 @@ module draw_assy (t_A=0,t_B=0,t_C=0,t_D=0,t_T=0) {
             }
         }
 } 
-difference () {
+*difference () {
     draw_assy (t_A=AA,t_B=BB,t_C=CC,t_D=DD,t_T=TT); // not for print
     //translate([-100,0,-100]) cube([1000,1000,1000]);
 }

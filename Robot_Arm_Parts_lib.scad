@@ -5,6 +5,9 @@ use <force_lib.scad>
 use <Pulley-GT2_2.scad>
 include <Part-Constants.scad>
 
+// use 140 for printing, 40 for display
+FACETS = 40; // [40,140]
+
 // a simple recursive function that adds the values of a list of floats;
 // uses tail recursion
 function add(v, i = 0, r = 0) = i < len(v) ? add(v, i + 1, r + v[i]) : r;
@@ -488,7 +491,7 @@ module compliant_claw2(len=160,width=120,t1=2,t2=38,r=18,pre_angle=15) {
     half_claw (link_adjust=24); // modify link location this side
     mirror([1,0,0]) half_claw (link_adjust=9); 
 }
-compliant_claw2(len=150,width=120,t1=2,t2=25,r=18,pre_angle=15);
+*compliant_claw2(len=150,width=120,t1=2,t2=25,r=18,pre_angle=15);
 *translate ([0,0,40]) compliant_claw2 (len=claw_length,width=claw_width,t1=claw_t,t2=claw_height,r=claw_radius,pre_angle=15);
 
 module pulley(r=2,t=.5,d_pin=0.25,d_grv=0.25,round=true){
@@ -863,7 +866,7 @@ module half_inch_hex_hub() { // modeled after ServoCity 0.500" Hex Clamping Hub 
 
     }
 }
-half_inch_hex_hub();
+*half_inch_hex_hub();
 
 module servo_hub() { // modeled after ServoCity servo hub SKU: 525123
     difference() {
@@ -939,7 +942,7 @@ module Bearing_Flanged (t=2,flange_t=1,od=3,id=1,flange_od=4) {
 
 *translate([15,0,0]) Bearing_Flanged (t=Qtr_bearing_t,flange_t=Qtr_bearing_flange_t,od=Qtr_bearing_od,id=Qtr_bearing_id,flange_od=Qtr_bearing_flange_od);
 
-translate([35,0,0]) Bearing_Flanged (t=Half_bearing_t, flange_t=Half_bearing_flange_t,od=Half_bearing_od,id=Half_bearing_id,flange_od=Half_bearing_flange_od);
+*translate([35,0,0]) Bearing_Flanged (t=Half_bearing_t, flange_t=Half_bearing_flange_t,od=Half_bearing_od,id=Half_bearing_id,flange_od=Half_bearing_flange_od);
 
 *translate([-10,0,0]) Bearing_Flanged (t=M6_bearing_t,flange_t=M6_bearing_flange_t,od=M6_bearing_od,id=hole_M6,flange_od=M6_bearing_flange_od);
 
@@ -1084,7 +1087,7 @@ module P090L_pot (negative=false) {
         rotate([90,0,0]) translate([0,0,lenPin/2]) cylinder(h=lenPin,r=.5,$fn=8);
     }
 }
-P090L_pot(negative=true);
+*P090L_pot(negative=true);
 *translate([20,0,0]) P090L_pot(negative=false);
 
 module RV112FF_pot (L=19,negative=false) {
@@ -1351,9 +1354,11 @@ module U_section(Lbase=20,Lleg=15,Tbase=2,Tleg=1) {
 *U_section();
 
 module GoPro_model() { 
-    color("grey") {
-    translate([0,0,0]) 
-    translate([0,(62-29),25]) rounded_cube([32,29,9],r=4,center=false);        
+    translate([0,22,0]) color("grey") {
+        rounded_cube([61,44,25],r=4,center=false,$fn=FACETS); // body
+        translate([(61-32),(44-28),25]) rounded_cube([32,28,9],r=4,center=false,$fn=FACETS); // lense     
+        translate([(61-16),(44-14),25]) cylinder(h=50,r=7,center=false,$fn=FACETS); // focal
+        translate([15,-22,-20]) cube([30,22,45]);
     }
 }
-*GoPro_model();
+GoPro_model();
