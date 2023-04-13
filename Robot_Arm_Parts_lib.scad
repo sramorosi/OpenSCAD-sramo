@@ -242,7 +242,7 @@ module lug (r=1,w=3,h=2,t=.2,d=0) {
     }
 }
 module simple_link (l=50,w=5,t=4,d=1,cored=2) {
-    // Simple two force link, normale to xy plane, pointing x
+    // Simple two force link, normal to xy plane, pointing x
     // l=Lenth, w=Width, t=Thickness, d=Pin bore Diameter, cored = Core diameter
     $fa=$preview ? 6 : 1; // minimum angle fragment
     difference () {
@@ -404,7 +404,7 @@ module fork (l_fork=2,d_fork=0.2) {
                 cube([d_fork,d_fork,l_fork],center=false);
     }
 }
-module servo_connection(len=100,t1=2,t2=38) {
+module servo_connection(len=100,t1=2,t2=38) {  // Sub module
     // Compliant Beam that connects Claw to Servo
     
     module subtract_1 () { // profile of links to servo
@@ -873,7 +873,7 @@ module servo_hub() { // modeled after ServoCity servo hub SKU: 525123
         translate([0,0,0.799/mm_inch]) 
             washer(d=1/mm_inch, t=0.2/mm_inch,d_pin=0.3/mm_inch,center=false);
         Rotation_Pattern(number=8,radius=0.385/mm_inch,total_angle=360) 
-            cylinder(h=50,d=0.125/mm_inch,center=false,$fn=12);
+            cylinder(h=50,d=0.135/mm_inch,center=false,$fn=12);
     }
     washer(d=0.5/mm_inch,t=0.8/mm_inch,d_pin=0.3/mm_inch,center=false);
 }
@@ -881,12 +881,12 @@ module servo_hub() { // modeled after ServoCity servo hub SKU: 525123
 
 module svo_block_ring (thk=0.2/mm_inch) { // represents side of servo block
     difference() {
-        washer(d=1/mm_inch, t=thk,d_pin=0.3/mm_inch,center=false);
+        washer(d=1.05/mm_inch, t=thk,d_pin=0.3/mm_inch,center=false);
         Rotation_Pattern(number=8,radius=0.385/mm_inch,total_angle=360) 
-            cylinder(h=thk*5,d=0.125/mm_inch,center=true,$fn=12);
+            cylinder(h=thk*5,d=0.135/mm_inch,center=true,$fn=24);
     }
 }
-*svo_block_ring(thk=25,$fn=48);
+svo_block_ring(thk=25,$fn=48);
 
 module servo_block(angle=0) { // modeled after ServoCity Hub Shaft ServoBock SKU: 637112
     color ("red",.5) servo_body(vis=true);
@@ -1354,11 +1354,25 @@ module U_section(Lbase=20,Lleg=15,Tbase=2,Tleg=1) {
 *U_section();
 
 module GoPro_model() { 
-    translate([0,22,0]) color("grey") {
+    color("grey") {
         rounded_cube([61,44,25],r=4,center=false,$fn=FACETS); // body
         translate([(61-32),(44-28),25]) rounded_cube([32,28,9],r=4,center=false,$fn=FACETS); // lense     
         translate([(61-16),(44-14),25]) cylinder(h=50,r=7,center=false,$fn=FACETS); // focal
-        translate([15,-22,-20]) cube([30,22,45]);
+        translate([15,-22,-20]) cube([30,22,45]); // base part representation
     }
 }
-GoPro_model();
+
+module GoPro_Mount_model() {  // base to which GoPro mounts to
+    color("Silver") {
+        cube([35,45,3]);  // base
+        wing();
+        translate([35,0,0]) mirror([1,0,0]) wing();
+        translate([16,5,0]) cube([2,32,5]);
+    }
+    module wing() {  // clips
+        translate([0,11,0]) cube([3,23,10]);
+        translate([0,12.5,8]) cube([5,20,2]);
+    }
+}
+translate([-12.5,25,26]) rotate([90,0,0]) GoPro_model();
+GoPro_Mount_model();

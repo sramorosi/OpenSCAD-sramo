@@ -13,6 +13,7 @@ include <Part-Constants.scad>
 use <Robot_Arm_Parts_lib.scad>
 use <gears_involute.scad>  // Modified version of spur gears by Greg Frost
 use <arduino.scad>
+use <Claw_Assembly.scad>
 
 // use 140 for printing, 40 for display
 FACETS = 40; // [40,140]
@@ -24,9 +25,9 @@ AA = 135; // [0:1:175]
 // Joint B angle
 BB = -100; // [-175:1:0]
 // Joint C angle
-CC = 10; // [-145:1:145]
+CC = -90; // [-145:1:145]
 // Joint D angle
-DD = 10; // [-145:1:145]
+DD = 0; // [-145:1:145]
 // Joint CLAW angle
 //CLAW = 20; // [-145:1:145]
 // Turntable angle
@@ -140,6 +141,8 @@ claw_radius = 18;
 // COMPLIANT CLAW thickness
 claw_t = 1.8;  
 shim_t = 7;
+// COMPLIANT CLAW mount hole spacing (TO DO, MAKE CONSTANT)
+hole_space = claw_height*0.7;
 
 module claw_servo_bracket() {
     servo_plate_t = 8;
@@ -367,10 +370,8 @@ module geared_svo_block_assy(big_gear_teeth=60,small_gear_teeth=32,wbeam=10) {
 }
 *geared_svo_block_assy(big_gear_teeth=200,small_gear_teeth=small_gear_teeth,wbeam=wTube);
 
+
 module claw_bracket(width=30,thk=25,len=60) {
-    // COMPLIANT CLAW height
-    claw_height = 25; 
-    hole_space = claw_height*0.7;
     difference () {
     union() {
         svo_block_ring(thk=thk,$fn=FACETS);
@@ -390,18 +391,30 @@ module claw_bracket(width=30,thk=25,len=60) {
 }
 *claw_bracket(width=10);  // FOR PRINT
 
+module camera_bracket(thk=3) {
+    difference () {
+    union() {
+        svo_block_ring(thk=thk,$fn=FACETS);
+        translate([0,-30,0]) rotate([0,0,90]) GoPro_Mount_model();
+
+        }
+    }
+}
+*camera_bracket(thk=3);  // FOR PRINT
+
 module DClaw_assy(t_D=0,assy=true){
     claw_end_w = 10; // claw interface width, mm
     if (assy) servo_block(angle=t_D);
     translate([0,0,28]) 
         rotate([0,0,t_D]) {
-            color("blue") claw_bracket(width=claw_end_w);
+            *color("blue") claw_bracket(width=claw_end_w);
             *if (assy) translate([35,0,6]) rotate([90,-90,0]) Claw(assy=true);
-            
-            translate([-30,-45,20]) rotate([90,0,90]) GoPro_model();
+            if (assy) translate([0,0,4]) rotate([0,-90,0]) single_claw_assy();
+            *translate([-25,-42,26]) rotate([90,0,90]) GoPro_model();
+            *camera_bracket(thk = 3);
         }
 }
-DClaw_assy(t_D=0);
+*DClaw_assy(t_D=0);
 
 module CD_assy(t_C=0,t_D=0) {
     rotate([0,0,0]) {
@@ -649,7 +662,7 @@ module draw_assy (t_A=0,t_B=0,t_C=0,t_D=0,t_T=0) {
             }
         }
 } 
-*difference () {
+difference () {
     draw_assy (t_A=AA,t_B=BB,t_C=CC,t_D=DD,t_T=TT); // not for print
     //translate([-100,0,-100]) cube([1000,1000,1000]);
 }
