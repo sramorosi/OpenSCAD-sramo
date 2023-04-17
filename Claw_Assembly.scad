@@ -34,15 +34,14 @@ D_ROD = 50; // [30:0.5:70]
 ROT_SVO = 0; // [-20:1:20]
 // Number of position steps, for arrays
 steps = 6;  // [1:1:100]
-// Bar Thickness for visulization
-BAR_T = 2; // [1:1:5]
 //  Block Size
 BLOCK = 50; 
 
 BAR_THK = 5;
 BAR_HGT = 16;
-PIN_DIA = 2.3; // this is tight fit
+PIN_DIA = 2.6; // this is for Spring Steel Slotted Spring Pin, 5/64" Diameter
 
+ROD_THK = 6;
 origin=[0,0,0];
 // conversions
 mm_inch = 1/25.4;
@@ -57,7 +56,7 @@ module rod(L=30,R=30,THK=5,HGT=10) {
             [4+HGT,-THK],[4+HGT,2.5*THK],[4,L-THK],[4,2*L],[0,2*L]]);
     }
 }
-*color("green") rod(L=D_ROD,R=D_ROD,THK=BAR_THK,HGT=BAR_HGT); // PRINT TWO
+*color("green") rod(L=D_ROD,R=D_ROD,THK=ROD_THK,HGT=BAR_HGT); // PRINT TWO
 
 module arc_link(L=30,R=30,THK=5,HGT=10) {
     ALPHA = asin((L/2)/R);  // half angle of the arc
@@ -72,21 +71,22 @@ module arc_link(L=30,R=30,THK=5,HGT=10) {
             translate([0,L,-HGT/2]) cylinder(HGT,d=THK,$fn=FACETS);  // LUG2
         }
         translate([0,0,-HGT])cylinder(2*HGT,d=PIN_DIA,$fn=FACETS);  // hole1
-        translate([0,L,-HGT]) cylinder(2*HGT,d=PIN_DIA,$fn=FACETS);  // hole2
+        translate([0,L,-HGT]) cylinder(2*HGT,d=3,$fn=FACETS);  // hole2 for bushing
     }
 }
 
 module guide() {  // BLOCK GUIDE
     THK = 2;  // guide thickness
-    SWP = 10;  // sweep
+    SWP = 14;  // sweep
     linear_extrude(BAR_HGT/2,convexity=10) {
         the_poly();
         mirror([0,1,0]) the_poly();
     }
     module the_poly() {
-        polygon([[0,0],[0,0.1+BAR_HGT/2],[-BAR_THK,0.1+BAR_HGT/2],[-1.5*BAR_THK,BAR_HGT/2.2],
-        [-1.5*BAR_THK,BAR_HGT/1.9],[0,BAR_HGT/1.5],
-        [0,BLOCK/2+THK],[BLOCK/2,BLOCK/2+SWP],[BLOCK/2,BLOCK/2+SWP-THK],
+        polygon([[0,0],[0,0.1+BAR_HGT/2],[-BAR_THK,0.1+BAR_HGT/2],
+        [-1.5*BAR_THK,BAR_HGT/2.3],
+        [-1.5*BAR_THK,BAR_HGT/1.9],[0,BAR_HGT/1.3],
+        [0,BLOCK/2+THK],[BLOCK/2,BLOCK/2+SWP],[BLOCK/2+1,BLOCK/2+SWP-THK],
         [THK,BLOCK/2],[THK,0]]);
     };
 }
@@ -111,21 +111,20 @@ module claw_bar(L=100,L_ROD=20) {
 
 module claw_assy(L=130,L_ROD) { // Combines bar and guide, Click Together!
     color("Plum") claw_bar(L,L_ROD=D_FINGER_ROD);
-    //pt_pt_bar(from=origin, to=[L,0,0], d=BAR_T); 
     translate([L-2,-BAR_THK/2,0]) rotate([90,0,-90]) guide();
 }
 *claw_assy(); // DON'T PRINT
 
 module base() {
     difference() { // cube that holds the servo
-        translate([-4,-15,-24]) cube([74,30,8],center=false);
-        translate([D_SVO_CB,0,-14]) servo_body(vis=false);
+        translate([-4,-15,-26]) cube([74,30,8],center=false);
+        translate([D_SVO_CB,0,-16]) servo_body(vis=false);
     }
     difference() {
         union() {
-            translate([-4,-D_FB_Y,-24]) cube([8,2*D_FB_Y,36],center=false);
-            translate([0,D_FB_Y,-6]) cylinder(36,d=8,center=true,$fn=FACETS);
-            translate([0,-D_FB_Y,-6]) cylinder(36,d=8,center=true,$fn=FACETS);
+            translate([-4,-D_FB_Y,-26]) cube([8,2*D_FB_Y,38],center=false);
+            translate([0,D_FB_Y,-7]) cylinder(38,d=8,center=true,$fn=FACETS);
+            translate([0,-D_FB_Y,-7]) cylinder(38,d=8,center=true,$fn=FACETS);
         }
         translate([0,D_FB_Y,0]) cube([10,10,BAR_HGT+.1],center=true);
         translate([0,-D_FB_Y,0]) cube([10,10,BAR_HGT+.1],center=true);
@@ -155,8 +154,7 @@ module draw_assy (angClaw=90,angRod=0,claw=10,rod=5,AY=0,Y2=10,L=120,RODS=0.9) {
         claw_assy(L,D_FINGER_ROD); // Claw
         
         translate([claw,0,0]) rotate([0,0,angRod]) { // Rod
-            color("Blue")  rotate([0,0,-90]) rod(L=D_ROD,R=RODS*D_ROD,THK=BAR_THK,HGT=BAR_HGT);
-            //pt_pt_bar(from=origin, to=[rod,0,0], d=BAR_T); 
+            color("Blue")  rotate([0,0,-90]) rod(L=D_ROD,R=RODS*D_ROD,THK=ROD_THK,HGT=BAR_HGT);
         }
     }
     
@@ -165,11 +163,11 @@ module draw_assy (angClaw=90,angRod=0,claw=10,rod=5,AY=0,Y2=10,L=120,RODS=0.9) {
     translate([0,AY,0]) rotate([0,0,angClaw])
     translate([L,0,0]) rotate([0,0,distalAngles[0]-180]) {
         color("PeachPuff") {
-            pt_pt_bar(from=origin, to=[N,0,0], d=BAR_T); // N
-            rotate([0,0,15]) pt_pt_bar(from=origin, to=[D_DISTAL,0,0], d=BAR_T);
+            pt_pt_bar(from=origin, to=[N,0,0], d=3); // N
+            rotate([0,0,15]) pt_pt_bar(from=origin, to=[D_DISTAL,0,0], d=3);
             }
         translate([N,0,0]) rotate([0,0,distalAngles[1]]) 
-            color("Khaki") pt_pt_bar(from=origin, to=[M,0,0], d=BAR_T); // M
+            color("Khaki") pt_pt_bar(from=origin, to=[M,0,0], d=3); // M
     } */
 }
 
@@ -228,7 +226,7 @@ module single_claw_assy() {
     draw_assy(-1.91,-88.05,claw=D_FINGER_ROD,rod=D_ROD,AY=D_FB_Y,Y2=D_FB_DL_Y,L=D_FINGER_DISTAL,RODS=-0.9);
     mirror([0,1,0]) draw_assy(-1.91,-88.05,claw=D_FINGER_ROD,rod=D_ROD,AY=D_FB_Y,Y2=D_FB_DL_Y,L=D_FINGER_DISTAL); 
     base(); 
-    color("GREY") translate([0,0,-10]) pt_pt_bar(from=leftPtHR[0], to=leftPtHR[steps], d=3); // horn
-    translate([D_SVO_CB,0,-14]) color("pink") servo_body();
+    color("GREY") translate([0,0,-12]) pt_pt_bar(from=leftPtHR[0], to=leftPtHR[steps], d=4); // horn
+    translate([D_SVO_CB,0,-16]) color("pink") servo_body();
 }
 single_claw_assy();

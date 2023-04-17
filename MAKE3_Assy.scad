@@ -109,6 +109,18 @@ WIDTH = 233;   // Inside width
 WOOD_T = 3.0/mm_inch;  
 WOOD_W = 1.75/mm_inch;
 
+// Large gear at Joint A and B, Printed
+Abig_gear_teeth = 140; 
+// Small gear at Joint A and B, Servo Mount Gear from ServoCity
+Asmall_gear_teeth = 15; 
+// Maximum Motor Torque (gram-mm) 
+AMotor_Max_Torque = 200000; 
+AGeared_Max_Torque = AMotor_Max_Torque * (Abig_gear_teeth/Asmall_gear_teeth)*0.8;
+echo("A SERVO MOTOR CAPABILITY=",AMotor_Max_Torque=AMotor_Max_Torque," gram-mm");
+echo("A Big Gear teeth=",Abig_gear_teeth," ASmall Gear teeth =",small_gear_teeth);
+echo("A GEARED SERVO CAPABILITY=",AGeared_Max_Torque=AGeared_Max_Torque," gram-mm");
+echo("A OUTPUT ANGLE=",1800*Asmall_gear_teeth/Abig_gear_teeth," DEG");
+
 // Maximum Motor Torque (gram-mm) 
 Motor_Max_Torque = 250000; 
 Geared_Max_Torque = Motor_Max_Torque * (big_gear_teeth/small_gear_teeth)*0.8;
@@ -311,8 +323,12 @@ module big_gear_lollypop(teeth=10,gear_side=true) {
     color("Aqua")  // difficulty making two sides have different colors      
     difference() {
         union() {
-            translate([0,0,wTube/2 + 1])
-                32P_Actobotics(teeth=teeth,thickness=8,bore=2); 
+            intersection() {
+                translate([0,0,wTube/2 + 1])
+                    32P_Actobotics(teeth=teeth,thickness=8,bore=2); 
+                linear_extrude(100,convexity=10) 
+                polygon([[0,-50],[100,0],[100,100],[-100,100],[-100,50],[0,-40]]);
+           }
             translate([-4,0,-wTube/2 - lugT - 1])
                 washer(d=gear_dia,t=lugT,d_pin=2,center=false,$fn=FACETS);
             translate([0,-wTube/2,0]) linear_extrude(wTube + 2*lugT + 2,convexity=20,center=true)
@@ -333,13 +349,13 @@ module big_gear_lollypop(teeth=10,gear_side=true) {
         cylinder(h=2*wTube,d=3.1,center=true,$fn=FACETS);
         
         if (gear_side) {  // subtract one or other side
-            translate([-50,-100,-100]) cube([100,200,100]);
+            translate([-100,-100,-100]) cube([200,200,100]);
         } else {
-            translate([-50,-100,0]) cube([100,200,100]);
+            translate([-100,-100,0]) cube([200,200,100]);
         }
     }
 }
-*big_gear_lollypop(teeth=big_gear_teeth,gear_side=true); // EXPORT AS STL
+*big_gear_lollypop(teeth=Abig_gear_teeth,gear_side=true); // EXPORT AS STL
 *big_gear_lollypop(teeth=big_gear_teeth,gear_side=false); // EXPORT AS STL
 
 module geared_svo_block_assy(big_gear_teeth=60,small_gear_teeth=32,wbeam=10) {
@@ -460,9 +476,10 @@ module AB_arm_assy(armLen = 100){
         cylinder(h=2*wTube,d=0.25/mm_inch,center=true,$fn=FACETS);
         translate([-armLen,0,0]) cylinder(h=2*wTube,d=0.25/mm_inch,center=true,$fn=FACETS);
     }
+    // THE A GEAR
+    geared_svo_block_assy(big_gear_teeth=Abig_gear_teeth,small_gear_teeth=Asmall_gear_teeth,wbeam=wTube);
     
-    geared_svo_block_assy(big_gear_teeth=big_gear_teeth,small_gear_teeth=small_gear_teeth,wbeam=wTube);
-    
+    // THE B GEAR
     translate([-armLen,0,0]) rotate([0,0,180]) 
         geared_svo_block_assy(big_gear_teeth=big_gear_teeth,small_gear_teeth=small_gear_teeth,wbeam=wTube);
     
@@ -484,7 +501,7 @@ module turntable_gear(teeth = 30,thickness=6) {
 
 module TA_assy() { // Assy between Turntable and joint A
     
-    big_gear_lollypop(teeth=big_gear_teeth,gear_side=true);
+    big_gear_lollypop(teeth=Abig_gear_teeth,gear_side=true);
     big_gear_lollypop(teeth=big_gear_teeth,gear_side=false);
     
     length=4/mm_inch; // length of hex shaft
