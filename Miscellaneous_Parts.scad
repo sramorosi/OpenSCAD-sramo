@@ -3,16 +3,27 @@
 //    Screen Door Handel for Juniper
 //    Berry Sieve 
 //    Spice Drawer Model
+//    Nut Covers for human turntable (June 2023)
 //
 // by SrAmo  January, 2023
-use <Robot_Arm_Parts_lib.scad>
+use <../MAKE3-Arm/openSCAD-code/Robot_Arm_Parts_lib.scad>
 
+// mm in an inch. Don't change.
 MM = 25.4;
 // use 140 for printing, 40 for display
-FACETS = 40; // [40,140]
+FACETS = 40; // [40,100]
 
-// Spice Jar Tilt (Deg)
-TILT = 35;  // [0:1:80]
+module NutCover(sphereD=MM,topH=10,nutH=4) { // for windsurf training table
+    difference() {
+        translate([0,0,-sphereD/2 + topH]) sphere(d=sphereD); // sphere
+        translate([-50,-50,-100]) cube(100); // removes eveything below z=0
+        cylinder(h=100,d=4.8,center=true); // hole for no 10 screw
+        translate([0,0,-.01]) 
+            RoundedWasher(d=11.5,t=nutH,fillet=2.7); // space for nut
+    }
+}
+NutCover(sphereD=1.1*MM,topH=12.5,nutH=5.5,$fn=FACETS); // Top
+*NutCover(sphereD=1.1*MM,topH=8.5,nutH=6.5,$fn=FACETS); // Bottom
 
 module piston() {
     difference () {
@@ -37,13 +48,15 @@ module cap(shaft=false) {
     }
 }
 DAMPER_LEN = 200;
-rotate([-90,0,0]) {
+module DamperPistonAssy() {
+    rotate([-90,0,0]) {
     translate([0,0,DAMPER_LEN/2]) cap(shaft=false);
     translate([0,0,-DAMPER_LEN/2]) rotate([180,0,180]) cap(shaft=true);
     piston();
     color("grey",0.5) washer(d=25.6,d_pin=22.6,t=DAMPER_LEN,$fn=48);
+    }
 }
-
+*DamperPistonAssy(); // for vacuum cannon (with tennis balls)
 module trapizoid2d(h1=40,h2=30,w=20,r=5) {
     h3=(h1-h2)/2;
     newh1 = h1-2*r;
@@ -110,6 +123,9 @@ module berry_sieve() {
     }
 }
 *berry_sieve();
+
+// Spice Jar Tilt (Deg)
+TILT = 35;  // [0:1:80]
 
 SPICE_JAR_DIA = 52;
 SPICE_JAR_HEIGHT = 115;

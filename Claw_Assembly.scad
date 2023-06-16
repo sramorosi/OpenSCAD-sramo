@@ -84,7 +84,7 @@ module guide() {  // BLOCK GUIDE
     }
     module the_poly() {
         polygon([[0,0],[0,0.1+BAR_HGT/2],[-BAR_THK,0.1+BAR_HGT/2],
-        [-1.5*BAR_THK,BAR_HGT/2.3],
+        [-BAR_THK,BAR_HGT/2.5],[-1.5*BAR_THK,BAR_HGT/2.5],
         [-1.5*BAR_THK,BAR_HGT/1.9],[0,BAR_HGT/1.3],
         [0,BLOCK/2+THK],[BLOCK/2,BLOCK/2+SWP],[BLOCK/2+1,BLOCK/2+SWP-THK],
         [THK,BLOCK/2],[THK,0]]);
@@ -220,7 +220,6 @@ range_ang = max(Ang_Error)-min(Ang_Error);
 //echo(offset_ang=offset_ang);
 //echo(range_ang=range_ang);
 
-translate([90,-25,-25]) color("yellow") cube(BLOCK);
 
 module single_claw_assy() {
     draw_assy(-1.91,-88.05,claw=D_FINGER_ROD,rod=D_ROD,AY=D_FB_Y,Y2=D_FB_DL_Y,L=D_FINGER_DISTAL,RODS=-0.9);
@@ -230,3 +229,5 @@ module single_claw_assy() {
     translate([D_SVO_CB,0,-16]) color("pink") servo_body();
 }
 single_claw_assy();
+
+translate([90,-25,-25]) color("yellow") cube(BLOCK);

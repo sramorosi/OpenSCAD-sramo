@@ -15,6 +15,13 @@ use <gears_involute.scad>  // Modified version of spur gears by Greg Frost
 use <arduino.scad>
 use <Claw_Assembly.scad>
 
+/* Animation Commands to create an orbital fly-around:
+$vpr = [100, 0,$t * 360];   // view point rotation (spins the part)
+$vpt = [0,0,260];    // view point translation
+$vpf = 70;          // view point field of view
+$vpd = 450;         // view point distance
+*/
+
 // use 140 for printing, 40 for display
 FACETS = 40; // [40,140]
 
@@ -110,11 +117,11 @@ WOOD_T = 3.0/mm_inch;
 WOOD_W = 1.75/mm_inch;
 
 // Large gear at Joint A and B, Printed
-Abig_gear_teeth = 140; 
+Abig_gear_teeth = 70;   // increase to 140 for make 4
 // Small gear at Joint A and B, Servo Mount Gear from ServoCity
-Asmall_gear_teeth = 15; 
+Asmall_gear_teeth = 32;   // decrease to 15 for make 4
 // Maximum Motor Torque (gram-mm) 
-AMotor_Max_Torque = 200000; 
+AMotor_Max_Torque = 250000; 
 AGeared_Max_Torque = AMotor_Max_Torque * (Abig_gear_teeth/Asmall_gear_teeth)*0.8;
 echo("A SERVO MOTOR CAPABILITY=",AMotor_Max_Torque=AMotor_Max_Torque," gram-mm");
 echo("A Big Gear teeth=",Abig_gear_teeth," ASmall Gear teeth =",small_gear_teeth);
@@ -141,7 +148,7 @@ angles = [ for (a = [0 : steps-1]) sweep1(a/steps,0,160,0,-170,-90,90)];
 c = [ for (a = [0 : steps-1]) [get_CX(angles[a]),get_CY(angles[a]),0]];
 
 d = [ for (a = [0 : steps-1]) [c[a][0]+LEN_CD*cos(angles[a][2]),c[a][1]+LEN_CD*sin(angles[a][2]),0]];
-    
+/*    
 // COMPLIANT CLAW Length
 claw_length = 150;
 // COMPLIANT CLAW width
@@ -203,12 +210,12 @@ module Claw(assy=true){
         color("green") translate([claw_servo_x,claw_height/2+shim_t,0]) claw_servo_bracket();
         
         // Remove Servo for claw print
-        color ("red",.7) translate([claw_servo_x,svo_flange_d+shim_t,0]) 
+        color ("red") translate([claw_servo_x,svo_flange_d+shim_t,0]) 
             rotate([0,90,-90]) servo_body();
     }
 }
 *Claw(assy=false); //FOR_PRINT
-
+*/
 module tube_model(t=1,wall=0.1,l=10) {
     color("grey") linear_extrude(height=l, convexity=10) difference() {
         square(t,center=false);
@@ -378,7 +385,7 @@ module geared_svo_block_assy(big_gear_teeth=60,small_gear_teeth=32,wbeam=10) {
     
         translate([-svoCtrAxial,svoCtrLateral,0]) {
             color("blue") servo_mount();
-            color ("red",.5) servo_body();  // servo
+            color ("red") servo_body();  // servo
             // turn off for thingiverse, purchased part
             32P_Actobotics(teeth=small_gear_teeth);   // servo gear 32 tooth
         }   
@@ -425,7 +432,7 @@ module DClaw_assy(t_D=0,assy=true){
         rotate([0,0,t_D]) {
             *color("blue") claw_bracket(width=claw_end_w);
             *if (assy) translate([35,0,6]) rotate([90,-90,0]) Claw(assy=true);
-            if (assy) translate([0,0,4]) rotate([0,-90,0]) single_claw_assy();
+            if (assy) translate([0,0,4]) rotate([0,-90,0])              single_claw_assy();
             *translate([-25,-42,26]) rotate([90,0,90]) GoPro_model();
             *camera_bracket(thk = 3);
         }
@@ -434,7 +441,7 @@ module DClaw_assy(t_D=0,assy=true){
 
 module CD_assy(t_C=0,t_D=0) {
     rotate([0,0,0]) {
-        color ("red",.5) servo_body();  // servo
+        color ("red") servo_body();  // servo
         servo_shim();
         servo_hub();
         // 1.31/2/mm_inch
@@ -574,7 +581,7 @@ CalculateMoments();
 
 // Draw the steps, outside of force calculation module 
 *for (a = [0 : steps-1]) draw_assy(angles[a][0],angles[a][1],angles[a][2],0,LEN_AB,LEN_BC,LEN_CD);
-    
+ 
 module zip_loop() {
     translate([0,0,-12]) rotate([90,0,0]) linear_extrude(4, convexity=10) 
         U_section(Lbase=14,Lleg=8,Tbase=4,Tleg=4);

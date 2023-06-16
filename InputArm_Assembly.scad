@@ -7,10 +7,16 @@
 
 use <Robot_Arm_Parts_lib.scad>
 
+/* Animation Commands to create an orbital fly-around:
+$vpr = [100, 0,$t * 360];   // view point rotation (spins the part)
+$vpt = [0,0,50];    // view point translation
+$vpf = 70;          // view point field of view
+$vpd = 180;         // view point distance
+*/
 // Joint A angle
 AA = 5; // [0:170.0]
 // Joint B angle
-BB = -10; // [-170:1:0.0]
+BB = 0; // [-170:1:0.0]
 // Turntable angle
 TT = 0; // [-90:90]
 // use 140 for printing, 40 for display
@@ -41,11 +47,11 @@ echo("Baby Arm lengths",SCALE=SCALE,lenAB=lenAB,lenBC=lenBC," mm");
 widthAB = 15; // mm
 
 // A joint shift Z (up), mm
-A_joint_Z = 15; 
+A_joint_Z = 25; 
 // A joint shift Y (fwd), mm, match Large Arm
 A_joint_y = 0;
 // A joint shift X (lateral), mm
-A_joint_X = 6.5;
+A_joint_X = 4;
 
 THK_TURNTABLE = 6;
 DIA_TURNTABLE = 60;
@@ -102,7 +108,7 @@ module pot_joint(lug_two = true) {
 
     }
 }
-BUMP_Y = -DIA_INNER_LUGS/3.0;  // friction bump, y location
+BUMP_Y = -DIA_INNER_LUGS/2.5;  // friction bump, y location
 BUMP_RAD = 2.5;
 BUMP_Z = 2*BUMP_RAD - 1.0;
 
@@ -114,8 +120,8 @@ module lug_joint() {
         scale([1.02,1.02,1.02]) P090L_pot(negative=true);
     }
     // bump to add some friction in the joint
-    translate([0,BUMP_Y,BUMP_Z]) rotate([90,0,0]) 
-        cylinder(h=BUMP_RAD,r=BUMP_RAD,$fn=FACETS);
+    translate([0,BUMP_Y,BUMP_Z]) rotate([90,0,0]) cylinder(h=BUMP_RAD,r=BUMP_RAD,center=true,$fn=FACETS);
+    translate([0,-BUMP_Y,BUMP_Z]) rotate([90,0,0]) cylinder(h=BUMP_RAD,r=BUMP_RAD,center=true,$fn=FACETS);
 }
 *lug_joint();  // not for print
 
@@ -140,9 +146,8 @@ module C_End_Knob_model(notch_rotation=0,KNURL_X = 12, KNURL_Y=9) {
                 rotate([0,0,notch_rotation]) P090L_pot(negative=true);
         }
         // bump to add some friction in the joint
-        translate([0,BUMP_Y,BUMP_Z]) rotate([90,0,0]) 
-            cylinder(h=BUMP_RAD,r=BUMP_RAD,$fn=FACETS);
-
+        translate([0,BUMP_Y,BUMP_Z]) rotate([90,0,0]) cylinder(h=BUMP_RAD,r=BUMP_RAD,center=true,$fn=FACETS);
+        translate([0,-BUMP_Y,BUMP_Z]) rotate([90,0,0]) cylinder(h=BUMP_RAD,r=BUMP_RAD,center=true,$fn=FACETS);
     }
 }
 *C_End_Knob_model(notch_rotation=-90,KNURL_X = 20, KNURL_Y = 6);  // FOR_PRINT
@@ -173,7 +178,7 @@ module Pot_Cover_model() {
         }
     }
 }
-*Pot_Cover_model(); // FOR_PRINT
+*translate([0,0,-THK_OUTER_LUG_TWO]) Pot_Cover_model(); // FOR_PRINT
 
 module Selector_base () {
     DETENT_R = 10;
@@ -194,13 +199,13 @@ module Selector_base () {
 module joint_visuals(cover=true,cut=true) {
     difference() { // Use for visulization of Pot Joints
         union() {
-            pot_joint(lug_two = true); 
+            color("blue") pot_joint(lug_two = true); 
             
-            pot_joint(lug_two = false); // OR SELECTOR BASE
-            //Selector_base();
+            color("green") pot_joint(lug_two = false); // OR SELECTOR BASE
+            *Selector_base();
             
-            //scale([0.98,0.98,0.98]) lug_joint();    // OR C_END_KNOB
-            scale([0.98,0.98,0.98]) C_End_Knob_model(notch_rotation=0,KNURL_X = 16, KNURL_Y = 14);
+            scale([0.98,0.98,0.98]) lug_joint();    // OR C_END_KNOB
+            *scale([0.98,0.98,0.98]) C_End_Knob_model(notch_rotation=0,KNURL_X = 16, KNURL_Y = 14);
             
             P090L_pot(negative=false); 
             if (cover) Pot_Cover_model();
@@ -237,16 +242,16 @@ module AB_Arm_model2(len=100) {
                 pot_joint(lug_two = false);
 }
 module AB_Arm_Assy(len=100){
-    AB_Arm_model(len=len); 
-    AB_Arm_model2(len=len);
+    *AB_Arm_model(len=len); 
+    *AB_Arm_model2(len=len);
     translate([len,0,-THK_OUTER_LUG_TWO]) 
-        rotate([0,0,-90]) 
-            Pot_Cover_model();
+        rotate([0,0,-90]) joint_visuals(cover=true,cut=false);
+            *Pot_Cover_model();
 }
 *AB_Arm_Assy(len=lenAB);  // Not for print
 
 *AB_Arm_model(len=lenAB);  // FOR_PRINT
-*AB_Arm_model2(len=lenAB);  // FOR_PRINT
+*rotate([0,0,90]) AB_Arm_model2(len=0);  // FOR_PRINT
 
 // Angle for add-on pot lug screws
 ang_add = 64;
@@ -256,21 +261,22 @@ module BC_Arm_model(len=100,width=10) {
         union() {
             lug_joint(); // lug
             difference() {
-                translate([-DIA_INNER_LUGS/2,0,3.2]) cube([DIA_INNER_LUGS,DIA_INNER_LUGS,THK_INNER_LUGS],center=false);
+                translate([-DIA_INNER_LUGS/2,0,3.2]) 
+                    cube([DIA_INNER_LUGS,DIA_INNER_LUGS,THK_INNER_LUGS],center=false);
                 cylinder(h=40,d=8,center=true);
             }
             // Cubes that connect the two ends
-            translate([-20,width/4+4,3.2]) cube([50,width-4,THK_INNER_LUGS],center=false);
+            translate([-20,width/4+7,3.2]) cube([50,width-4,THK_INNER_LUGS],center=false);
             translate([30,width/4,3.2]) cube([len-38,width,THK_INNER_LUGS],center=false);
-            translate([len-DIA_OUTER_LUGS/2-3,width/4,-THK_INNER_LUGS/2]) cube([8,width,THK_INNER_LUGS*1.6],center=false);
+            *translate([len-DIA_OUTER_LUGS/2-3,width/4,-THK_INNER_LUGS/2]) cube([8,width,THK_INNER_LUGS*1.6],center=false);
             
-            translate([len,width*3/4,-THK_INNER_LUGS/2-.1]) 
+            *translate([len,width*3/4,-THK_INNER_LUGS/2-.1]) 
                 rotate([0,0,-90]) pot_joint(lug_two = true);
         }
         // remove hole for wire
-        translate([len-20,5,10]) cylinder(h=20,r=2,center=true,$fn=FACETS);
+        //translate([len-20,5,10]) cylinder(h=20,r=2,center=true,$fn=FACETS);
         // screw holes to hold add-on to BC arm
-        translate([len,width*3/4,10])
+        *translate([len,width*3/4,10])
             rotate([0,0,180-ang_add/4]) 
                 Rotation_Pattern(number=2,radius=DIA_OUTER_LUGS/2.5,total_angle=ang_add)
                     cylinder(h=5,d=2.5,center=true,$fn=FACETS);
@@ -310,6 +316,8 @@ module add_on_pot_joint() {
 module BC_Assy(C_angle=0) {
     // DRAW THE BC ARM 
     color("lightblue",1) BC_Arm_model(len=lenBC,width=widthAB);
+    
+    /*
     translate([lenBC,widthAB*3/4,-4]) rotate([0,0,-90])
         Pot_Cover_model();
     
@@ -328,7 +336,7 @@ module BC_Assy(C_angle=0) {
             Pot_Cover_model();
 
         }
-    }
+    } */
 }
 *BC_Assy(90);  // Not for print
 
@@ -349,8 +357,8 @@ module base_turntable_model () {
     // Model of turntable Base, for the input arm
 
     // Potentiometer support for Joint A
-    translate([-8,A_joint_y,A_joint_Z+THK_TURNTABLE/2]) rotate([0,-90,180]) rotate([0,0,180]) pot_joint(lug_two = true);
-    translate([-1,A_joint_y,THK_TURNTABLE/2+2]) cube([24,18,4],center=true);
+    translate([-8,A_joint_y,A_joint_Z+THK_TURNTABLE/2]) rotate([90,0,90]) pot_joint(lug_two = true);
+    *translate([-1,A_joint_y,THK_TURNTABLE/2+2]) cube([24,18,4],center=true);
 
     difference() {
         cylinder(h=THK_TURNTABLE,d=DIA_TURNTABLE,center=true,$fn=FACETS); // turntable
@@ -418,7 +426,15 @@ module base_model (part_one = true) {
 *base_model(part_one=false); // FOR_PRINT
 
 module base_assy(T_angle=0) {
-    // Fixed models
+    // Fixed part
+    joint_visuals(cover=true,cut=false); // not for print
+    
+    // Moving part
+    rotate([0,0,T_angle]) {
+        translate([0,0,A_joint_Z]) rotate([0,90,0]) joint_visuals(cover=true,cut=false); // not for print
+    }
+
+    /* Fixed models
     color("blue") base_model (part_one=true);
     color("lightblue") base_model (part_one=false);
     translate([0,0,-9]) P090L_pot(negative=false);
@@ -426,11 +442,11 @@ module base_assy(T_angle=0) {
     // Moving turntable models
     rotate([0,0,T_angle]) {
         base_turntable_model ();
-        translate([-8,10,A_joint_Z+THK_TURNTABLE/2]) 
-            rotate([-90,90,-90]) P090L_pot(negative=false);
-    }
+        translate([-5,0,A_joint_Z+THK_TURNTABLE/2]) 
+            rotate([-90,180,-90])  cluster();
+    } */
 }
-*base_assy(T_angle = -90);  // not for print
+*base_assy(T_angle = 0);  // not for print
 
 *difference () { // DIFFERENCE FOR VIEWING SECTION CUT
     base_assy(T_angle = 90);
