@@ -1,4 +1,8 @@
 // Large Displacement Beam, Index Constants
+//
+// LIST DEFINITIONS
+// LDBdef (LDB definition)
+// [[beam, len, thk, width, angle]
 
 // Indexes into the DNA array start with Z
 Ztype = 0;     // first element of each list 
@@ -12,14 +16,14 @@ Ztype = 0;     // first element of each list
     QdispY = 44442;  // Y displacement contraint on a node
     Qskip = 99999;  
 
-// USED WITH Qbeam:
+// USED WITH Qbeam: [Qbeam,Zlen,Zthk,Zw,Zang,ZangLoad]
 Zlen = 1;   // beam length
 Zthk = 2;   // beam thickness
 Zw = 3;     // beam thickness
 Zang = 4;   // Unloaded Z rotation of beam relative to prior beam (local)
 ZangLoad = 5; // Estimated deflection angle with load (helps with convergence)
 
-// USED WITH Qload:
+// USED WITH Qload: [Qload,Zfx,Zfy,Zm]
 Zfx = 1;    // external force in global X
 Zfy = 2;    // external force in global Y
 Zm = 3;     // external moment about global Z 
@@ -39,6 +43,7 @@ Zdx = 1;
 Zdy = 2;
 
 // USED WITH Qresult:
+// [Qresult,bt,cr,K,theta,theta_end,a,b,stressmax,stressmin,energy,weight,ms,fx,fy,m_total] : 
 Zbeamtype = 1;  // see below
 Zrad = 2;  // characteristic radius
 ZK = 3;     // Spring Rate

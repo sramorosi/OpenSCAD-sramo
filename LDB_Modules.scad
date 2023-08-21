@@ -1,37 +1,76 @@
 // Large Displacement Beam, Modules and Functions
 include <LDB_Indexes.scad>
-use <force_lib.scad>
+//use <ME_lib.scad>
+use <../MAKE3-Arm/openSCAD-code/ME_lib.scad>
 
 // recursive module that draws the undeformed beam.
-module draw_beam_undeformed(dna,idx = 0) {
-    elem_type = dna[idx][Ztype];
+module draw_beam_undeformed(LDBdef,idx = 0) {
+// LDBdef (LDB definition)
+// [[beam, len, thk, width, angle],...]
+
+    elem_type = LDBdef[idx][Ztype];
 //echo(idx=idx,elem_type=elem_type);
-    if (elem_type == Qbeam) {
-        L = dna[idx][Zlen];
-        t = dna[idx][Zthk];
-        w = dna[idx][Zw];
-        z_ang = dna[idx][Zang];
+    if (elem_type == Qbeam) { // Note: undefined causes recursion to stop
+        L = LDBdef[idx][Zlen];
+        t = LDBdef[idx][Zthk];
+        w = LDBdef[idx][Zw];
+        z_ang = LDBdef[idx][Zang];
+        
         // draw the beam segment
-        color ("green") linear_extrude(height=w,center=true) hull() { 
-            rotate([0,0,z_ang]) translate([L,0,0]) circle(d=t,$fn=16);
-        }
+        rotate([0,0,z_ang]) translate([0,-t/2,0]) cube([L,t,w]);
+
         // Recursive call generating the next beam
         rotate([0,0,z_ang]) translate([L,0,0])
-                draw_beam_undeformed(dna,idx + 1);
+                draw_beam_undeformed(LDBdef,idx + 1);
     } else if (elem_type == Qfork ) {
         // FORK, PROCESS TWO BEAM SEGMENTS
         // Recursive call generating the first fork
-//echo (" in fork 1");
-        draw_beam_undeformed(dna[idx][1]);
+        draw_beam_undeformed(LDBdef[idx][1]);
         // Recursive call generating the second fork
-//echo (" in fork 2");
-        draw_beam_undeformed(dna[idx][2]);
-    } else if (elem_type == Qload) {
-                draw_beam_undeformed(dna,idx + 1);
+        draw_beam_undeformed(LDBdef[idx][2]);
+    } else if (elem_type == Qload) { // skip and go to next
+                draw_beam_undeformed(LDBdef,idx + 1);
     }  
-    // Note: that an undefined causes the recursion to stop
 }
+draw_beam_undeformed([[Qbeam,10,1,3,20],[Qbeam,10,1,3,-20]]);
 
+// recursive module that draws the deformed beam.
+module draw_beam_deformed(LDBdef,results,idx = 0) {
+    elem_type = LDBdef[idx][Ztype];
+    if (elem_type == Qbeam) {  // Note: undefined causes the recursion to stop
+//echo(idx=idx,elem_type=elem_type,z_ang=z_ang,end_ang=end_ang,a=a,b=b);
+        L = LDBdef[idx][Zlen];
+        t = LDBdef[idx][Zthk];
+        w = LDBdef[idx][Zw];
+        LDBdef_ang = LDBdef[idx][Zang];  // Unloaded Z rotation of beam relative to prior beam
+        cr = results[idx][Zrad];
+        babyL = L*(1-cr);
+        end_ang = results[idx][Zthetaend];
+        a = results[idx][Za];
+        b = results[idx][Zb];
+        ms = results[idx][Zms];
+        // draw the two beam segments 
+        color ([val_red(ms),val_green(ms),0.2]) linear_extrude(height=w,center=true) hull() { 
+            rotate([0,0,LDBdef_ang]) translate([babyL,0,0]) circle(d=t,$fn=16);
+            circle(d=t,$fn=16);  // ZERO,ZERO
+        }
+        color ([val_red(ms),val_green(ms),0]) linear_extrude(height=w,center=true) hull() { 
+            rotate([0,0,LDBdef_ang]) translate([babyL,0,0]) circle(d=t,$fn=16);
+            rotate([0,0,LDBdef_ang]) translate([a,b,0]) circle(d=t,$fn=16);
+        }
+        // Recursive call generating the next beam
+        rotate([0,0,LDBdef_ang]) translate([a,b,0]) rotate([0,0,end_ang]) 
+                draw_beam_deformed(LDBdef,results,idx + 1);
+    } else if (elem_type == Qfork ) {
+        // FORK, PROCESS TWO BEAM SEGMENTS
+        // Recursive call generating the first fork
+        draw_beam_deformed(LDBdef[idx][1],results[idx][1]);
+        // Recursive call generating the second fork
+        draw_beam_deformed(LDBdef[idx][2],results[idx][2]);
+    } else if (elem_type == Qload) {
+        draw_beam_deformed(LDBdef,results,idx + 1);
+    }
+}
 
 // recursive module that draws loads given beam node locations
 module draw_loads(nodes,loads,scale=1,node_color="blue",idx = 0) {
@@ -87,52 +126,52 @@ module draw_ground_reactions(results,scale=1,origin=[0,0,0],z_rot=0,out=true) {
     
 
 // recursive function to generate moment of inertia (Iz) of each beam
-function gen_Iz(dna) =
-    let (n = len(dna))
-    [ for (i=[0:1:n-1]) (dna[i][Ztype] == Qbeam ? 
-        Iz_func(dna[i][Zw],dna[i][Zthk]) : 
-    (dna[i][Ztype] == Qfork ? 
-    [Qfork, gen_Iz(dna[i][1]),gen_Iz(dna[i][2])] : Qskip ) ) ];
+function gen_Iz(LDBdef) =
+    let (n = len(LDBdef))
+    [ for (i=[0:1:n-1]) (LDBdef[i][Ztype] == Qbeam ? 
+        Iz_func(LDBdef[i][Zw],LDBdef[i][Zthk]) : 
+    (LDBdef[i][Ztype] == Qfork ? 
+    [Qfork, gen_Iz(LDBdef[i][1]),gen_Iz(LDBdef[i][2])] : Qskip ) ) ];
     
 //  simple function to calculate moment of inertia about Z axis
 function Iz_func(w=1,t=.1) = ((w*t*t*t)/12);
     
 // recursive function to generate cross section Area of each beam
-function gen_Area(dna) =
-    let (n = len(dna))
-    [ for (i=[0:1:n-1]) (dna[i][Ztype] == Qbeam ? 
-        dna[i][Zthk]*dna[i][Zw] : 
-     (dna[i][Ztype] == Qfork ? 
-    [Qfork, gen_Area(dna[i][1]),gen_Area(dna[i][2])] : Qskip )) ];
+function gen_Area(LDBdef) =
+    let (n = len(LDBdef))
+    [ for (i=[0:1:n-1]) (LDBdef[i][Ztype] == Qbeam ? 
+        LDBdef[i][Zthk]*LDBdef[i][Zw] : 
+     (LDBdef[i][Ztype] == Qfork ? 
+    [Qfork, gen_Area(LDBdef[i][1]),gen_Area(LDBdef[i][2])] : Qskip )) ];
 
 // sum angles along segments to get global angles.
-function global_angles(dna,prior_ang=0) =
-    let (n = len(dna))
-    [ for (i=[0:1:n-1]) (dna[i][Ztype] == Qbeam ? 
-    let (new_sum = sum_fwd(dna,i,Zang)) 
+function global_angles(LDBdef,prior_ang=0) =
+    let (n = len(LDBdef))
+    [ for (i=[0:1:n-1]) (LDBdef[i][Ztype] == Qbeam ? 
+    let (new_sum = sum_fwd(LDBdef,i,Zang)) 
 //echo("ANGLES",i=i,prior_ang=prior_ang, new_sum=new_sum)
     new_sum+prior_ang : 
-    (dna[i][Ztype] == Qfork ? 
-    let (new_prior_ang = sum_fwd(dna,i-1,Zang) + prior_ang)
-     [Qfork, global_angles(dna[i][1],new_prior_ang),global_angles(dna[i][2],new_prior_ang)] :
+    (LDBdef[i][Ztype] == Qfork ? 
+    let (new_prior_ang = sum_fwd(LDBdef,i-1,Zang) + prior_ang)
+     [Qfork, global_angles(LDBdef[i][1],new_prior_ang),global_angles(LDBdef[i][2],new_prior_ang)] :
     Qskip ) ) ];
     
 // recursive forward summation function to sum "thing"
 // from the start (or s'th element) to the i'th element - remember elements are zero based
-function sum_fwd(dna,i,thing,s=0) = 
-    let (val = dna[i][thing])
-    (i==s ? val : val + sum_fwd(dna,i-1,thing,s));
+function sum_fwd(LDBdef,i,thing,s=0) = 
+    let (val = LDBdef[i][thing])
+    (i==s ? val : val + sum_fwd(LDBdef,i-1,thing,s));
 
 // recursive tail summation function to sum "thing"  AND ASSUMING A TREE (NESTED VECTOR)
 // from the i'th element to the last (or n'th element)
-function sum_tail2(dna,i,thing,vec_type=Qload) = 
-    let (val = dna[i][thing])
-    let (type = dna[i][Ztype]) 
-    (type==Qfork ?  sum_tail2(dna[i][1],1,thing,vec_type) + 
-                    sum_tail2(dna[i][2],1,thing,vec_type) : 
+function sum_tail2(LDBdef,i,thing,vec_type=Qload) = 
+    let (val = LDBdef[i][thing])
+    let (type = LDBdef[i][Ztype]) 
+    (type==Qfork ?  sum_tail2(LDBdef[i][1],1,thing,vec_type) + 
+                    sum_tail2(LDBdef[i][2],1,thing,vec_type) : 
 //echo("SUM ",i=i,type=type,val=val)
         ((type==vec_type || type==Qskip) ? 
-                val + sum_tail2(dna,1+i,thing,vec_type) : 
+                val + sum_tail2(LDBdef,1+i,thing,vec_type) : 
                 (val==undef ? 0 : val )));
 
 // recursive function to find maximum "thing"  ASSUMING A TREE (NESTED VECTOR)
@@ -154,32 +193,32 @@ function min_tree(tree,i=0,thing) =
         (type==undef ? 99999999 : min(val,min_tree(tree,1+i,thing)))));
 
 // recursive function to generate DX AND DY of undeformed beam
-function gen_dxdy_undeformed(dna,angles) =
-    let (n = len(dna))
+function gen_dxdy_undeformed(LDBdef,angles) =
+    let (n = len(LDBdef))
     [ for (i=[0:1:n-1]) 
-    ( dna[i][Ztype] == Qbeam ? 
-        let (L = dna[i][Zlen])
+    ( LDBdef[i][Ztype] == Qbeam ? 
+        let (L = LDBdef[i][Zlen])
         let (ang = angles[i]) 
         let (x = L*cos(ang))
         let (y = L*sin(ang))
 //echo(i=i,L=L,ang=ang)
         [Qbeam,x,y] : 
-    (dna[i][Ztype] == Qfork ? 
-    [Qfork, gen_dxdy_undeformed(dna[i][1],angles[i][1]),gen_dxdy_undeformed(dna[i][2],angles[i][2])] : 
+    (LDBdef[i][Ztype] == Qfork ? 
+    [Qfork, gen_dxdy_undeformed(LDBdef[i][1],angles[i][1]),gen_dxdy_undeformed(LDBdef[i][2],angles[i][2])] : 
     [Qskip,0,0,0,0] )) ];  
 
 // recursive function to generate DX AND DY of deformed beam
-function gen_dxdy_deformed(dna,results,angles) =
-    let (n = len(dna))
+function gen_dxdy_deformed(LDBdef,results,angles) =
+    let (n = len(LDBdef))
     [ for (i=[0:1:n-1]) 
         let (x = results[i][Za])
         let (y = results[i][Zb])
         let (ang = angles[i]) 
-    ( dna[i][Ztype] == Qbeam ? 
+    ( LDBdef[i][Ztype] == Qbeam ? 
         [Qbeam,rot_x(x,y,ang),rot_y(x,y,ang)] : 
-    (dna[i][Ztype] == Qfork ? 
-    [Qfork, gen_dxdy_deformed(dna[i][1],results[i][1],angles[i][1]),
-        gen_dxdy_deformed(dna[i][2],results[i][2],angles[i][2])] : 
+    (LDBdef[i][Ztype] == Qfork ? 
+    [Qfork, gen_dxdy_deformed(LDBdef[i][1],results[i][1],angles[i][1]),
+        gen_dxdy_deformed(LDBdef[i][2],results[i][2],angles[i][2])] : 
     [Qskip,0,0,0,0] )) ];  
 
 // recursive function to generate global nodes
@@ -198,16 +237,16 @@ function gen_nodes(dxdy,origin=[Qbeam,0,0]) =
             gen_nodes(dxdy[i][2],origin=[Qbeam,x2,y2]) ] : 
     [Qskip,0,0,0,0] )) ];  
 
-// generate a loads tree from the dna tree, to make the programming easier to read
-function loads_to_beams(dna) =
-    let (n = len(dna))
-    [ for (i=[0:1:n-1]) (dna[i][Ztype] == Qload ? 
-        let (fx = dna[i][Zfx])
-        let (fy = dna[i][Zfy])
-        let (moment = dna[i][Zm])
+// generate a loads tree from the LDBdef tree, to make the programming easier to read
+function loads_to_beams(LDBdef) =
+    let (n = len(LDBdef))
+    [ for (i=[0:1:n-1]) (LDBdef[i][Ztype] == Qload ? 
+        let (fx = LDBdef[i][Zfx])
+        let (fy = LDBdef[i][Zfy])
+        let (moment = LDBdef[i][Zm])
         [Qskip,fx,fy,moment] :  
-    (dna[i][Ztype] == Qfork ? 
-     [Qfork, loads_to_beams(dna[i][1]),loads_to_beams(dna[i][2])] :
+    (LDBdef[i][Ztype] == Qfork ? 
+     [Qfork, loads_to_beams(LDBdef[i][1]),loads_to_beams(LDBdef[i][2])] :
        [Qload,0,0,0,0] ) ) ];
 
 // recursive function to spread the external forces and moments from tail of tree to root
@@ -246,27 +285,27 @@ function scale_int_loads(int_loads,scale=1) =
     [Qfork, scale_int_loads(int_loads[i][1],scale), scale_int_loads(int_loads[i][2],scale)] :  [Qskip,0,0,0,0] ) ) ];
 
 // calculate moments due to forces on current beam from  beam(s) down the tree
-function moments_due_to_forces(loads, dna, angles) = 
+function moments_due_to_forces(loads, LDBdef, angles) = 
     let (n = len(loads))
     [ for (i=[0:1:n-1]) (loads[i][Ztype] == Qload ? 
         (loads[i+1][Ztype] == Qfork ? 
                 // At a fork need to reach down into the tree
                 let (fy1 = loads[i+1][1][0][Zfy])
-                let (dx1 = dna[i+1][1][0][Zlen])
+                let (dx1 = LDBdef[i+1][1][0][Zlen])
                 let (fy2 = loads[i+1][2][0][Zfy])
-                let (dx2 = dna[i+1][2][0][Zlen])
+                let (dx2 = LDBdef[i+1][2][0][Zlen])
                 [Qload, fy1*dx1 + fy2*dx2 ] 
     :
                 let (fx = loads[i+1][Zfx])
                 let (fy = loads[i+1][Zfy])
                 let (ang = angles[i+1])
-                let (dx = dna[i+1][Zlen]*cos(ang))
-                let (dy = dna[i+1][Zlen]*sin(ang))
+                let (dx = LDBdef[i+1][Zlen]*cos(ang))
+                let (dy = LDBdef[i+1][Zlen]*sin(ang))
                 let (m = (fy*dx == undef ? 0 : fy*dx-fx*dy))
                 [Qload, m ] 
             ) : 
             (loads[i][Ztype] == Qfork ? 
-        [Qfork, moments_due_to_forces(loads[i][1], dna[i][1]), moments_due_to_forces(loads[i][2], dna[i][2])] :
+        [Qfork, moments_due_to_forces(loads[i][1], LDBdef[i][1]), moments_due_to_forces(loads[i][2], LDBdef[i][2])] :
     [Qskip,0,0,0,0] ) ) ];
 
 // recursive function to sum moments from tail of tree to root
@@ -302,25 +341,25 @@ function rot_x (x,y,a) = x*cos(a)-y*sin(a);
 
 function rot_y (x,y,a) = x*sin(a)+y*cos(a);
     
-function compute_results(dna,loads,I,area,E,failure_stress,density) = 
-    let (n = len(dna))
+function compute_results(LDBdef,loads,I,area,E,failure_stress,density) = 
+    let (n = len(LDBdef))
     [ for (i=[0:1:n-1]) (loads[i][Ztype] == Qload ? 
-        let (L = dna[i][Zlen])   // FUTURE, ADJUST L BASED ON X LOAD
+        let (L = LDBdef[i][Zlen])   // FUTURE, ADJUST L BASED ON X LOAD
         let (fx = loads[i][Zfx])  // axial load
         let (fy = loads[i][Zfy])  // bending load
         let (moment = loads[i][Zm])
         let (Iz = I[i])
         let (Area = area[i])
         let (bt = beam_type(fy,moment,L))
-        let (K = spring_rate(bt,Iz,L,E))       // force per radian // DEAD CODE
-        let (cr = characteristic_radius(bt))   // DEAD CODE
+        let (K = spring_rate(bt,Iz,L,E))//force per radian // DEAD CODE
+        let (cr = characteristic_radius(bt))// DEAD CODE
         let (theta = spring_angle(bt,fy,moment,L,E,Iz)) // degrees.  THETA NEEDS TO CONVERGE.
-        let (t_rad = theta * PI / 180)               // radians
-        let (theta_end = end_angle(bt,theta))           // degrees
+        let (t_rad = theta * PI / 180)      // radians
+        let (theta_end = end_angle(bt,theta)) // degrees
         let (a = a_position(L,cr,theta))
         let (b = b_position(L,cr,theta))
         let (m_total = moment - fx * b + fy * a)
-        let (c = dna[i][Zthk] / 2)              // half thickness
+        let (c = LDBdef[i][Zthk] / 2)              // half thickness
         let (stressmax = m_total*c/Iz + fx/a)
         let (stressmin = -m_total*c/Iz + fx/a)
         let (ms = (abs(stressmax) > abs(stressmin) ? failure_stress/abs(stressmax)-1 : failure_stress/abs(stressmin)-1))
@@ -329,8 +368,8 @@ function compute_results(dna,loads,I,area,E,failure_stress,density) =
 echo(i=i,theta=theta,fx=fx,fy=fy,moment=moment,a=a,b=b,m_total=m_total)
         [Qresult,bt,cr,K,theta,theta_end,a,b,stressmax,stressmin,energy,weight,ms,fx,fy,m_total] : 
     (loads[i][Ztype] == Qfork ? 
-     [Qfork, compute_results(dna[i][1],loads[i][1],I[i][1],area[i][1],E,failure_stress,density),
-             compute_results(dna[i][2],loads[i][2],I[i][2],area[i][2],E,failure_stress,density)] :
+     [Qfork, compute_results(LDBdef[i][1],loads[i][1],I[i][1],area[i][1],E,failure_stress,density),
+             compute_results(LDBdef[i][2],loads[i][2],I[i][2],area[i][2],E,failure_stress,density)] :
        [Qskip,0,0,0,0,0,0,0,0,0,0,0,0] ) ) ];
 
 // get beam type from forces 
@@ -384,46 +423,6 @@ function val_red(i) = i < .5 ? 1 : i > 1 ? 0 : 2-i*2 ;
 
 function val_green(i) = i < 0 ? 0 : i > .5 ? 1 : i*2 ;
 
-// recursive module that draws the deformed beam.
-module draw_beam_deformed(dna,angles,results,idx = 0) {
-    elem_type = dna[idx][Ztype];
-    if (elem_type == Qbeam) {
-//echo(idx=idx,elem_type=elem_type,z_ang=z_ang,end_ang=end_ang,a=a,b=b);
-        L = dna[idx][Zlen];
-        t = dna[idx][Zthk];
-        w = dna[idx][Zw];
-        dna_ang = dna[idx][Zang];
-        z_ang = angles[idx];
-        cr = results[idx][Zrad];
-        babyL = L*(1-cr);
-        end_ang = results[idx][Zthetaend];
-        a = results[idx][Za];
-        b = results[idx][Zb];
-        ms = results[idx][Zms];
-        // draw the two beam segments 
-        color ([val_red(ms),val_green(ms),0.2]) linear_extrude(height=w,center=true) hull() { 
-            rotate([0,0,dna_ang]) translate([babyL,0,0]) circle(d=t,$fn=16);
-            circle(d=t,$fn=16);  // ZERO,ZERO
-        }
-        color ([val_red(ms),val_green(ms),0]) linear_extrude(height=w,center=true) hull() { 
-            rotate([0,0,dna_ang]) translate([babyL,0,0]) circle(d=t,$fn=16);
-            rotate([0,0,dna_ang]) translate([a,b,0]) circle(d=t,$fn=16);
-        }
-        // Recursive call generating the next beam
-        rotate([0,0,dna_ang]) translate([a,b,0]) rotate([0,0,end_ang]) 
-                draw_beam_deformed(dna,angles,results,idx + 1);
-    } else if (elem_type == Qfork ) {
-        // FORK, PROCESS TWO BEAM SEGMENTS
-        // Recursive call generating the first fork
-        draw_beam_deformed(dna[idx][1],angles[idx][1],results[idx][1]);
-        // Recursive call generating the second fork
-        draw_beam_deformed(dna[idx][2],angles[idx][2],results[idx][2]);
-    } else if (elem_type == Qload) {
-        draw_beam_deformed(dna,angles,results,idx + 1);
-    }
-    // Note: that an undefined causes the recursion to stop
-}
-
 // recursive function to add deflected angles to initial angles
 function add_angles(initial,results,prior_ang = 0) =
     let (n = len(initial))
@@ -440,60 +439,60 @@ function add_angles(initial,results,prior_ang = 0) =
        Qskip ) )  ];
 
 // recursive function to count the number of branches
-function count_branches(dna,i=0,count=0) =
-    let (type = dna[i][Ztype]) 
-    (type == Qbeam || type == Qload || type == QdispX ? count_branches(dna,i+1,1)  : 
-        (type == Qfork ? ( count_branches(dna[i][1],0,1) + 
-                        count_branches(dna[i][2],0,1) + count) : count ) );
+function count_branches(LDBdef,i=0,count=0) =
+    let (type = LDBdef[i][Ztype]) 
+    (type == Qbeam || type == Qload || type == QdispX ? count_branches(LDBdef,i+1,1)  : 
+        (type == Qfork ? ( count_branches(LDBdef[i][1],0,1) + 
+                        count_branches(LDBdef[i][2],0,1) + count) : count ) );
     
 // recursive function to count the tree depth
-function tree_depth(dna,i=0,depth=0) =
-    let (type = dna[i][Ztype]) 
-    (type == Qbeam || type == Qload || type == QdispX ? tree_depth(dna,i+1,depth)  : 
-        (type == Qfork ? ( max(tree_depth(dna[i][1],0,0), 
-                        tree_depth(dna[i][2],0,0)) + 1) : depth ) );
+function tree_depth(LDBdef,i=0,depth=0) =
+    let (type = LDBdef[i][Ztype]) 
+    (type == Qbeam || type == Qload || type == QdispX ? tree_depth(LDBdef,i+1,depth)  : 
+        (type == Qfork ? ( max(tree_depth(LDBdef[i][1],0,0), 
+                        tree_depth(LDBdef[i][2],0,0)) + 1) : depth ) );
 
 // recursive function to count the number of beams and check data
-function count_beams(dna,i=0,count=0) =
-    let (type = dna[i][Ztype]) 
+function count_beams(LDBdef,i=0,count=0) =
+    let (type = LDBdef[i][Ztype]) 
     (type == Qbeam ? 
-        let (length=(dna[i][Zlen] == 0 ? echo("** FOUND ZERO LENGTH BEAM **",i=i):0))
-        let (thick=(dna[i][Zthk] == 0 ? echo("** FOUND ZERO THICKNESS BEAM **",i=i):0))
-        let (width=(dna[i][Zw] == 0 ? echo("** FOUND ZERO WIDTH BEAM **",i=i):0))
+        let (length=(LDBdef[i][Zlen] == 0 ? echo("** FOUND ZERO LENGTH BEAM **",i=i):0))
+        let (thick=(LDBdef[i][Zthk] == 0 ? echo("** FOUND ZERO THICKNESS BEAM **",i=i):0))
+        let (width=(LDBdef[i][Zw] == 0 ? echo("** FOUND ZERO WIDTH BEAM **",i=i):0))
 //echo("BEAM",i=i,count=count)
-        count_beams(dna,i+1,count+1) 
-    : (type == Qfork ?(count_beams(dna[i][1],0,1)+count_beams(dna[i][2],0,1)) 
-    : (type == undef ? count : count_beams(dna,i+1,count)) ) );
+        count_beams(LDBdef,i+1,count+1) 
+    : (type == Qfork ?(count_beams(LDBdef[i][1],0,1)+count_beams(LDBdef[i][2],0,1)) 
+    : (type == undef ? count : count_beams(LDBdef,i+1,count)) ) );
 
 // recursive function to count the number of loads and check data
-function count_loads(dna,i=0,count=0) =
-    let (type = dna[i][Ztype]) 
+function count_loads(LDBdef,i=0,count=0) =
+    let (type = LDBdef[i][Ztype]) 
     (type == Qload ? 
-        let (Fx=dna[i][Zfx])
-        let (Fy=dna[i][Zfy])
-        let (m=dna[i][Zm])
+        let (Fx=LDBdef[i][Zfx])
+        let (Fy=LDBdef[i][Zfy])
+        let (m=LDBdef[i][Zm])
         let (sum=(Fx+Fy+m == 0 ? echo("** FOUND ZERO LOAD LOAD **",i=i):0))
-        count_loads(dna,i+1,count+1)  
-    : (type == Qfork ? ( count_loads(dna[i][1],0,count) + 
-                        count_loads(dna[i][2],0,count)) 
-    : (type == undef ? count : count_loads(dna,i+1,count) ) ) );
+        count_loads(LDBdef,i+1,count+1)  
+    : (type == Qfork ? ( count_loads(LDBdef[i][1],0,count) + 
+                        count_loads(LDBdef[i][2],0,count)) 
+    : (type == undef ? count : count_loads(LDBdef,i+1,count) ) ) );
 
 // recursive function to find load target displacement and compare to actual displacement
-function check_displacement_target(dna,def_nodes,init_nodes) =
-    let (n = len(dna))
-    [ for (i=[0:1:n-1]) (dna[i][Ztype] == Qload ? 
-        let (x_targ = dna[i][Ztargetx])
+function check_displacement_target(LDBdef,def_nodes,init_nodes) =
+    let (n = len(LDBdef))
+    [ for (i=[0:1:n-1]) (LDBdef[i][Ztype] == Qload ? 
+        let (x_targ = LDBdef[i][Ztargetx])
         let (x_node = def_nodes[i][Zdx])
         let (x_err = x_targ-x_node)
-        let (fx = dna[i][Zfx])
+        let (fx = LDBdef[i][Zfx])
         let (x_init = init_nodes[i][Zdx])
         let (Kx = fx/(x_node-x_init))
         let (NEW_fx = Kx*(x_targ-x_init))
 echo(i=i,x_targ=x_targ,x_node=x_node,x_err=x_err,fx=fx,x_init=x_init,Kx=Kx,NEW_fx=NEW_fx)
-        let (y_targ = dna[i][Ztargety])
+        let (y_targ = LDBdef[i][Ztargety])
         let (y_node = def_nodes[i][Zdy])
         let (y_err = y_targ-y_node)
-        let (fy = dna[i][Zfy])
+        let (fy = LDBdef[i][Zfy])
         let (y_init = init_nodes[i][Zdy])
         let (Ky = fy/(y_node-y_init))
         let (NEW_fy = Ky*(y_targ-y_init))

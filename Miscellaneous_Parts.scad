@@ -1,17 +1,88 @@
 // Miscellanious parts
+//    Rack Support for Clara's Freezer
 //    Damper for vacuum cannon
 //    Screen Door Handel for Juniper
 //    Berry Sieve 
 //    Spice Drawer Model
 //    Nut Covers for human turntable (June 2023)
 //
-// by SrAmo  January, 2023
+// by SrAmo  July, 2023
 use <../MAKE3-Arm/openSCAD-code/Robot_Arm_Parts_lib.scad>
 
 // mm in an inch. Don't change.
 MM = 25.4;
-// use 140 for printing, 40 for display
-FACETS = 40; // [40,100]
+
+/*
+$vpr = [60, 0, -360*$t];   // view point rotation (spins the part)
+$vpt = [0,0,8];    // view point translation
+$vpf = 50;          // view point field of view
+$vpd = 90;         // view point distance
+*/
+// use large value (~100) for printing, smaller (~40) for display
+FACETS = $preview ? 40 : 100; // [40,100]
+
+// Shower Rack Bumper
+module showerClip(ID = 2, OD = 10, H = 5) {
+    linear_extrude(H,convexity=10)
+        difference() {
+            circle(d=OD);
+            circle(d=ID);
+            polygon([[-ID/2,0],[OD/1.8,ID/1.0],[OD/1.8,-ID/1.0]]);
+        }
+}
+showerClip(ID=6.4,OD=16,H=6,$fn = FACETS);
+
+// Freezer Rack Support for Clara & Adam.  Units are in MM
+RACK_WIRE_D = 7.5;  // measured 7.3.  Add 2% for shrinkage
+EXT_L = 20.0;
+EXT_T = 18.0;
+
+module rackSupport() {
+    color("lightblue")
+    difference() {
+        // Add main profile
+        linear_extrude(EXT_T,center=true,convexity=10) {
+            rackProfile2D();
+            mirror([0,1,0]) rackProfile2D();
+        }
+        
+        // Subtract z-direction wire
+        translate([EXT_L + RACK_WIRE_D/2,0,0]) 
+            cylinder(1.2*EXT_T,d=RACK_WIRE_D,center=true);
+        
+        // Subtract x-direction wire
+        translate([EXT_L + RACK_WIRE_D/2,0,0]) rotate([0,90,0])
+            cylinder(1.2*EXT_L,d=RACK_WIRE_D,center=false);
+        
+        // Subtract wire intersection triangle
+        X1 = RACK_WIRE_D/2 + 5;
+        translate([EXT_L + RACK_WIRE_D/2,0,0]) rotate([90,0,0])
+            linear_extrude(height = RACK_WIRE_D, center=true, convexity=10)
+                polygon(points=[[X1,0],[0,X1],[0,-X1]]);
+
+        // Subtract opening
+        w = RACK_WIRE_D*0.8;
+        translate([EXT_L + RACK_WIRE_D/2,-w/2,-EXT_T*0.6])
+            cube([EXT_L*2,w,EXT_T*1.2],center=false);
+        
+        // Subtract zip-tie torus
+        translate([EXT_L*2,0,0]) rotate([0,90,0])
+            simpleTorus (bigR = EXT_T/2+4, littleR = 3);
+    }
+    
+    module rackProfile2D() { // Outside profile of rack support
+        X1 = 2*EXT_L+RACK_WIRE_D;
+        polygon(points = [[0,0],[X1-RACK_WIRE_D/2,0],[X1,RACK_WIRE_D/2],[X1,EXT_T/2],[EXT_L,EXT_T/2],
+        [10,5],[2,5],[0,3]]);
+    }
+}
+//rackSupport($fn = FACETS);
+
+*difference() {
+    rackSupport($fn = FACETS);
+    translate([-10,0,-50]) cube([100,100,100]);
+}
+
 
 module NutCover(sphereD=MM,topH=10,nutH=4) { // for windsurf training table
     difference() {
@@ -22,7 +93,7 @@ module NutCover(sphereD=MM,topH=10,nutH=4) { // for windsurf training table
             RoundedWasher(d=11.5,t=nutH,fillet=2.7); // space for nut
     }
 }
-NutCover(sphereD=1.1*MM,topH=12.5,nutH=5.5,$fn=FACETS); // Top
+*NutCover(sphereD=1.1*MM,topH=12.5,nutH=5.5,$fn=FACETS); // Top
 *NutCover(sphereD=1.1*MM,topH=8.5,nutH=6.5,$fn=FACETS); // Bottom
 
 module piston() {
@@ -57,6 +128,7 @@ module DamperPistonAssy() {
     }
 }
 *DamperPistonAssy(); // for vacuum cannon (with tennis balls)
+
 module trapizoid2d(h1=40,h2=30,w=20,r=5) {
     h3=(h1-h2)/2;
     newh1 = h1-2*r;

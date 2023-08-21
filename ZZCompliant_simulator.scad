@@ -3,8 +3,9 @@
 //     from Handbook of Compliant Mechanisms by Larry L Howell
 // Started on 6/5/2020 by SrAmo
 // last modified 9/11/2020
-use <force_lib.scad>
-
+//use <ME_lib.scad>
+use <../MAKE3-Arm/openSCAD-code/ME_lib.scad>
+    
 // Pick which beam definition to use
 ACTIVE_BEAM=1; // [1:2seg+M,2:4seg+M,2.1:8seg+M(test shape),3:2seg+F,4:4seg+F,5:6seg+F,5.1:8seg+f(test shape),6:U beam,7:Compliant Claw,8:Diagonal,9:Column]
 
