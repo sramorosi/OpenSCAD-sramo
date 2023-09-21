@@ -21,6 +21,35 @@ $vpd = 90;         // view point distance
 // use large value (~100) for printing, smaller (~40) for display
 FACETS = $preview ? 40 : 100; // [40,100]
 
+// Spirograph from https://openscadsnippetpad.blogspot.com/2017/06/flower-shape-path-spirograph.html
+// r1 = planet orbit radius, r2 = moon orbit radius, r3 = point on moon surface, v1 & v2 = phase
+function flower(r1=100,r2,r3,v1,v2 ,steps=200)=
+[ for(t=[0:1/steps:1])
+let(
+x =r1* sin(t*360) +r2* sin(t*v1*360)+r3* sin(t*v2*360),  
+y =r1*cos(t*360) +r2*cos(t*v1*360)  +r3*cos(t*v2*360)   )
+[x,y] ];
+
+// function close adds a last point equal to the first
+function close(p)= concat(p,[p[0]]);
+ 
+function rnd(a = 1, b = 0, s = []) = s == [] ? 
+(rands(min(a, b), max(
+  a, b), 1)[0]) : (rands(min(a, b), max(a, b), 1, s)[0]);
+
+function un(v) = v / max(1e-15, norm(v)); // just for color
+
+// draw a random spirograph each time preview is run, with random color
+*color(un([round(rnd(3)) ,round(rnd(3))  *0.75 ,round(rnd(3))  ])) {
+    paramas=[70,rnd(30),rnd(15),round(rnd(3,17))*(round(rnd(-1,1))==1?1:-1),round(rnd(3,20)*(round(rnd(-1,1))==1?1:-1))  ,300];
+    echo(paramas);
+    p=close(flower(paramas[0],paramas[1],paramas[2],paramas[3],paramas[4],paramas[5]));
+    polygon(p);
+}
+// ECHO: [70, 21.827, 9.88683, 14, -11, 300]   nice one
+p=close(flower(70, 21.827, 9.88683, 14, -11, 300));
+polygon(p);
+
 // Shower Rack Bumper
 module showerClip(ID = 2, OD = 10, H = 5) {
     linear_extrude(H,convexity=10)
@@ -30,7 +59,7 @@ module showerClip(ID = 2, OD = 10, H = 5) {
             polygon([[-ID/2,0],[OD/1.8,ID/1.0],[OD/1.8,-ID/1.0]]);
         }
 }
-showerClip(ID=6.4,OD=16,H=6,$fn = FACETS);
+*showerClip(ID=6.4,OD=16,H=6,$fn = FACETS);
 
 // Freezer Rack Support for Clara & Adam.  Units are in MM
 RACK_WIRE_D = 7.5;  // measured 7.3.  Add 2% for shrinkage
@@ -203,13 +232,13 @@ SPICE_JAR_DIA = 52;
 SPICE_JAR_HEIGHT = 115;
 NX = 7;  // number of jars in x 
 NY = 5;  // number of jars in y
-echo("TOTAL JARS = ",NX*NY);
+//echo("TOTAL JARS = ",NX*NY);
 T_WOOD = 1.75*MM;  // 1.75 INCH
 xy_adjust = SPICE_JAR_DIA/2;
 z_adjust = (SPICE_JAR_DIA/2)*sin(TILT);
 //y_space = SPICE_JAR_DIA + tan(TILT)*SPICE_JAR_HEIGHT/2;
 y_space = T_WOOD+T_WOOD*tan(TILT)+22;
-echo(y_space=y_space);
+//echo(y_space=y_space);
 
 module spice_container() {  // Simplistic model, represents largest spice jar
     // Max = diameter 52 mm (could be square), height 115 mm.
