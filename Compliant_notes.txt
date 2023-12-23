@@ -1,6 +1,12 @@
 TO-DO List: 
 
-12/13/2020: To Do: Add reaction arrows at ground.
+12/22/2023: Moved code to LDB_Modules (from LDB_tests), where it should be.  Made new Compute Steps module.
+
+ALL OF THIS BRANCH STUFF HAS CONFUSED THE CODE.  MIGHT REMOVE IT AND CLEAN THINGS UP.
+
+MOMENTS NEED DEBUGGING.
+
+12/13/2020: To Do: Add reaction arrows at ground. - DONE
 
 12/13/2020: calculated results for test with reaction differ between Draw_Beam_Deformed and computed nodes, after reaction point. (calculated vs calculated)
 

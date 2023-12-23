@@ -10,8 +10,8 @@
     
   USES LIST COMPREHENSIONS TO FILL ARRAYS
   */
-use <Robot_Arm_Parts_lib.scad> // using inverse and other functions
-use <force_lib.scad>  // using draw_3d_list function
+use <../MAKE3-Arm/openSCAD-code/Robot_Arm_Parts_lib.scad> // using inverse and other functions
+use <../MAKE3-Arm/openSCAD-code/ME_lib.scad>  // using draw_3d_list function
 // use 140 for printing, 40 for display
 FACETS = 140; // [40,140]
 // Distance Servo Axis is along X axis (mm) 

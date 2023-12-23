@@ -59,6 +59,7 @@ Zms = 12;       // margin of safety
 ZPx = 13;      // X load on beam end, local
 ZPy = 14;      // Y load on beam end, local
 ZPm = 15;      // Total Moment on beam end, local
+ZMerror = 16;  // Difference between ZPm[i] and Zm[i+1] (from Qload)
 
 
 // USED WITH BEAM TYPE

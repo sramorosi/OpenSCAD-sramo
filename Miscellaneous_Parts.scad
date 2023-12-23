@@ -19,7 +19,162 @@ $vpf = 50;          // view point field of view
 $vpd = 90;         // view point distance
 */
 // use large value (~100) for printing, smaller (~40) for display
-FACETS = $preview ? 40 : 100; // [40,100]
+FACETS = $preview ? 120 : 100; // [40,100]
+
+// Die, by SRA, 11/24/2023
+module die(size = 18) {
+    rad=0.08*size;  // edge radius
+    flat=size-2*rad;  // account for radius
+    divotD = 0.18*size; // diameter of divot
+    d = divotD*1.3; // divot from edge
+    SphereRad = size*0.73;
+    STRANS = size/2;
+    color("white") 
+    difference() {
+        intersection() {
+            translate([rad,rad,rad]) 
+                minkowski(convexity=20) {
+                    cube([flat,flat,flat]);
+                    sphere(r=rad);
+                };
+            translate([STRANS,STRANS,STRANS]) sphere(r=SphereRad);
+            }
+            
+        translate([size/2,size/2,0]) sphere(d=divotD); // 1 
+        
+        translate([d,0,size-d]) sphere(d=divotD); // 2
+        translate([size-d,0,d]) sphere(d=divotD); // 2 
+        
+        translate([0,size/2,size/2]) sphere(d=divotD); // 3 
+        translate([0,d,size-d]) sphere(d=divotD); // 3
+        translate([0,size-d,d]) sphere(d=divotD); // 3 
+
+        translate([size,d,size-d]) sphere(d=divotD); // 4
+        translate([size,size-d,d]) sphere(d=divotD); // 4 
+        translate([size,d,d]) sphere(d=divotD); // 4
+        translate([size,size-d,size-d]) sphere(d=divotD); // 4 
+
+        translate([size/2,size,size/2]) sphere(d=divotD); // 5 
+        translate([d,size,size-d]) sphere(d=divotD); // 5
+        translate([size-d,size,d]) sphere(d=divotD); // 5 
+        translate([d,size,d]) sphere(d=divotD); // 5
+        translate([size-d,size,size-d]) sphere(d=divotD); // 5 
+
+        translate([d,size-d,size]) sphere(d=divotD); // 6
+        translate([size-d,d,size]) sphere(d=divotD); // 6 
+        translate([d,d,size]) sphere(d=divotD); // 6
+        translate([size-d,size-d,size]) sphere(d=divotD); // 6
+        translate([size/2,d,size]) sphere(d=divotD); // 6
+        translate([size/2,size-d,size]) sphere(d=divotD); // 6
+    }
+}
+die($fn=100);
+
+// Lantern Handle, by SRA, 11/20/2023
+module LanternHandle() {
+    dia1 = 12; // diameter of the cylinder
+    bendRad = 10; // radius of the bends
+    openingW = 87; // opening Width
+    secondL = 30; // second length
+    
+    module bend(rot1 = 180, radOfCurve = 20, d = 5){
+        rotate_extrude(angle=rot1,convexity = 20)
+        translate([radOfCurve, 0, 0])
+            circle(d=d); // on X,Z plane
+
+    };
+    
+    module halfHandle() {
+        translate([-bendRad,openingW/2,0]) 
+            bend(90,bendRad,dia1);
+        
+        translate([-bendRad-secondL/2,openingW/2+bendRad,0]) 
+            rotate([0,90,0]) 
+                cylinder(secondL,d=dia1,center=true);
+        
+        translate([-bendRad-secondL,openingW/2,0]) 
+        rotate([0,0,90]) bend(90,bendRad,dia1);
+        
+        translate([-2*bendRad-secondL,openingW/2,0]) 
+        rotate([-90,0,0]) clip();
+
+    };
+    
+    module clip() {
+        translate([0,0,-7]) cylinder(h=7,d=dia1,center=false);
+        translate([0,0,-11])
+        difference() {
+            union() {
+                translate([0,0,-0.7]) cylinder(h=5,d=8);
+                simpleTorus (bigR = 4, littleR = 0.7);
+            };
+            rotate([90,0,0]) 
+                rounded_cube([4,7.8,20],r=1.8);
+        }
+    };
+    
+    // Main
+    halfHandle();
+    rotate([90,0,0]) cylinder(openingW,d=dia1,center=true);
+    mirror([0,1,0]) halfHandle();
+}
+*LanternHandle($fn=80);
+
+// X-Mas Lightbulb Hook
+module C7hook() {
+    thickness = 3;
+    height = 10;
+    rotation1 = 120;
+    radius1 = 8;
+    rotation2 = -90;
+    radius2 = 6;
+    clipW = 11;
+    clipR = 2;
+    baseH = 14;
+
+    module half_hook(r1=10,r2=10) {
+        curved_beam(rot1 = rotation1, radOfCurve = r1, t1 = thickness, t2 = height);
+        rotate([0,0,rotation1-180]) // rotation1+180
+            translate([-r1-r2-thickness,0,0])
+            curved_beam(rot1 = rotation2, radOfCurve = r2, t1 = thickness, t2 = height);
+    }
+    
+    module full_hook(r1=10,r2=10) {
+        half_hook(r1,r2);
+        mirror([0,1,0]) half_hook(r1,r2);
+    }
+ 
+     module full_clip(r1=10,r2=10) {
+        translate([-r1,clipW/2,0]) half_hook(r1,r2);
+        translate([thickness/2,0,height/2]) 
+            cube([thickness,clipW,height],center=true);
+        translate([-r1,-clipW/2,0]) mirror([0,1,0]) half_hook(r1,r2);
+    }
+    union() {  
+    // C7 hook
+    translate([-radius1,0,0]) full_hook(r1=radius1,r2=radius2);
+    
+    // backside of C7 hook
+    translate([radius1,0,5])
+        rounded_cube(size=[2*radius1,1.4*radius1,10],r=3,center=true);
+    
+    // ground clip
+    translate([thickness,0,-baseH]) rotate([0,0,180]) 
+        full_clip(r1=clipR,r2=clipR);
+    
+    // C7 base tab
+    translate([-radius1/2+1,0,-baseH+2])
+        rounded_cube(size=[radius1,1.4*radius1,4],r=1,center=true);
+    
+    // connection cube
+    translate([thickness/2,0,-(baseH-height)/2]) // (baseH-height)/2
+        cube([thickness,14,baseH+height],center=true);
+    }
+}
+*C7hook($fn=80);
+
+// spacers for juniper duck wings
+*washer(d=0.8*MM,t=3,d_pin=0.65*MM,$fn=FACETS);
 
 // Spirograph from https://openscadsnippetpad.blogspot.com/2017/06/flower-shape-path-spirograph.html
 // r1 = planet orbit radius, r2 = moon orbit radius, r3 = point on moon surface, v1 & v2 = phase
@@ -48,7 +203,7 @@ function un(v) = v / max(1e-15, norm(v)); // just for color
 }
 // ECHO: [70, 21.827, 9.88683, 14, -11, 300]   nice one
 p=close(flower(70, 21.827, 9.88683, 14, -11, 300));
-polygon(p);
+*polygon(p);
 
 // Shower Rack Bumper
 module showerClip(ID = 2, OD = 10, H = 5) {
@@ -105,7 +260,7 @@ module rackSupport() {
         [10,5],[2,5],[0,3]]);
     }
 }
-//rackSupport($fn = FACETS);
+*rackSupport($fn = FACETS);
 
 *difference() {
     rackSupport($fn = FACETS);

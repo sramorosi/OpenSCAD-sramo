@@ -3,22 +3,18 @@ include <LDB_Indexes.scad>
 use <LDB_Modules.scad>
 
 // Pick which beam definition to use
-ACTIVE_BEAM=5; // [1:4seg End Moment, 1.1:8seg End Moment, 2:double 2seg End Moment, 3:2seg Normal Force, 4:4seg Normal Force, 5:6seg Normal Force, 5.05:6seg Normal Force Diagonal, 5.1:8seg Normal Force (test shape), 5.2:test (125g), 5.3:test (545g),5.4:test-reaction (545g),6.1:FORK single, 6.2:FORK single symmetric, 6.3:FORK double fork, 6.4:Tree 7 forks, 7:Compliant Claw with fork,9:Column,10:BAD DATA]
+ACTIVE_BEAM=5; // [1:1-4seg End Moment-CIRCLE, 1.1:1.1-8seg End Moment-CIRCLE, 2:2-double 2seg End Moment, 3:3-2seg Normal Force, 4:4-4seg Normal Force, 5:5-6seg Normal Force, 5.05:5.05-6seg Normal Force Diagonal, 5.1:5.1-8seg Normal Force (test shape), 5.2:5.2-test (125g), 5.3:5.3-test (545g),5.4:5.4-test-reaction (545g),6.1:6.1-FORK single, 6.2:6.2-FORK single symmetric, 6.3:6.3-FORK double fork, 6.4:6.4-Tree 7 forks, 7:7-Compliant Claw with fork,9:9-Column,10:10-BAD DATA]
 
 // Display intermediate load steps?
 Display_steps = false;
-
 // Scale of Force & Moment Display
-force_scale = .05;
-
+force_scale = 1;
 // MATERIAL PROPERTIES. 
-
 // Modulus of Elasticity (PSI), PLA=340000,PETG=300000,Polycar=320000
 E = 340000;
-// Approximate Stress level at which the part will fail (PSI)
+// ~Stress level at which the part will fail (PSI)
 Failure_Stress = 10000;
 // This could be tensile failure, compression failure, bending, etc.
-
 // material density (lb per inch^3)
 density = 0.045;
 
@@ -34,8 +30,9 @@ if (ACTIVE_BEAM == 1) {
     L = 4;
     ELEM = [[Qbeam,L,t,w,ang_fixed],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qload,0,0,30*1,0,0,0]]; // 30*$t
     
-    Do_Analysis(ELEM,force_scale*.5,Display_steps,E,Failure_Stress,density);
+    Do_Analysis(ELEM,force_scale,Display_steps,E,Failure_Stress,density,steps=4);
     
+    // The beam should roughly wrap the cylinder
     translate([0,2.55,-1]) cylinder(h=1,r=2.5,center=true,$fn=32);
 
 }
@@ -44,7 +41,7 @@ else if (ACTIVE_BEAM == 1.1) {
     L=2;
     LDB_DEF = [[Qbeam,L,t,w,ang_fixed],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,ang_fixed],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qload,0,0,30*1,0,0,0]]; // 30*$t
     
-    Do_Analysis(LDB_DEF,force_scale*.5,Display_steps,E,Failure_Stress,density);
+    Do_Analysis(LDB_DEF,force_scale,Display_steps,E,Failure_Stress,density);
     
     translate([0,2.55,-1]) cylinder(h=1,r=2.5,center=true,$fn=32);
 }
@@ -54,12 +51,12 @@ else if (ACTIVE_BEAM == 2) {
     L=2;
     LDB_DEF= [[Qbeam,L,t,w,ang_fixed],[Qbeam,L,t,w,0],[Qload,0,0,30*1]];
     
-    Do_Analysis(LDB_DEF,force_scale*.5,Display_steps,E,Failure_Stress,density,[1,0,0]);
+    Do_Analysis(LDB_DEF,force_scale,Display_steps,E,Failure_Stress,density,[1,0,0]);
     
     // multiple unique beams can run at once
     LDB_DEF2= [[Qbeam,L,t,w,ang_fixed+180],[Qbeam,L,t,w,0],[Qload,0,0,-30*1]];
     
-    Do_Analysis(LDB_DEF2,force_scale*.5,Display_steps,E,Failure_Stress,density,[-1,0,0]);
+    Do_Analysis(LDB_DEF2,force_scale,Display_steps,E,Failure_Stress,density,[-1,0,0]);
 }
 else if (ACTIVE_BEAM == 3) {
     // CANTILEVER BEAM WITH FORCE, 2 SEGMENT
@@ -90,7 +87,7 @@ LDB_DEF = [[Qbeam,SUB_LEN,THK,w,ang_fixed,0],
 }
 else if (ACTIVE_BEAM == 5.05) {
     // Straight diagonal Test Beam, 6 segment:
-    p=10*$t;
+    p=10*1;  // 10*$t
     start_ang = 45;
     LDB_DEF = [[Qbeam,.5,t,w,start_ang],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qload,-p*cos(start_ang),p*sin(start_ang),0]];
     
@@ -104,7 +101,7 @@ else if (ACTIVE_BEAM == 5.1) {
     
     for (i=[0:8]) translate([pts[i][0],pts[i][1],1]) color("black") circle(.04,$fn=8);
         
-    LDB_DEF = [[Qbeam,.5,t,w,ang_fixed],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qload,0,10*$t,0]];
+    LDB_DEF = [[Qbeam,.5,t,w,ang_fixed],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qbeam,.5,t,w,0],[Qload,0,10,0]];
     
     Do_Analysis(LDB_DEF,force_scale,Display_steps,E,Failure_Stress,density);
 }
@@ -124,7 +121,7 @@ else if (ACTIVE_BEAM == 5.2) {
         
     LDB_DEF = [[Qbeam,L,t,w,ang_fixed],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qload,0,weight,0,6,3.6,0]];
     
-    Do_Analysis(LDB_DEF,force_scale*10,Display_steps,E,Failure_Stress,density);
+    Do_Analysis(LDB_DEF,force_scale,Display_steps,E,Failure_Stress,density);
 }
 else if (ACTIVE_BEAM == 5.3) {
     // CANTILEVER BEAM WITH FORCE, 7 SEGMENT, 545 g
@@ -142,7 +139,7 @@ else if (ACTIVE_BEAM == 5.3) {
         
     LDB_DEF = [[Qbeam,L,t,w,ang_fixed],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qload,0,weight,0,3.5,5.75,0]];
     
-    Do_Analysis(LDB_DEF,force_scale*4,Display_steps,E,Failure_Stress,density);
+    Do_Analysis(LDB_DEF,force_scale,Display_steps,E,Failure_Stress,density,steps=50);
 }
 else if (ACTIVE_BEAM == 5.4) {
     // TEST BEAM WITH FORCE AND REACTION
@@ -162,7 +159,7 @@ else if (ACTIVE_BEAM == 5.4) {
         
     LDB_DEF = [[Qbeam,L,t,w,ang_fixed],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qload,0,-react,0,4.9,1],[Qbeam,L,t,w,0],[Qbeam,L,t,w,0],[Qload,0,weight,0,6.5,2.1]];
     
-    Do_Analysis(LDB_DEF,force_scale*6,Display_steps,E,Failure_Stress,density);
+    Do_Analysis(LDB_DEF,force_scale,Display_steps,E,Failure_Stress,density);
 }
 
 else if (ACTIVE_BEAM == 6.1) {
@@ -252,7 +249,7 @@ else if (ACTIVE_BEAM == 6.4) {
         ]
     ]];
     
-    Do_Analysis(tree,force_scale*10,Display_steps,E,Failure_Stress,density);
+    Do_Analysis(tree,force_scale,Display_steps,E,Failure_Stress,density);
 }
 else if (ACTIVE_BEAM == 7) {
     // Compliant Claw
@@ -303,10 +300,10 @@ else if (ACTIVE_BEAM == 7) {
     ]];
     
     echo(" RIGHT CLAW +X");
-    Do_Analysis(RightClaw,force_scale*4,Display_steps,E,Failure_Stress,density,[Origin_x,Origin_y,0]);
+    Do_Analysis(RightClaw,force_scale,Display_steps,E,Failure_Stress,density,[Origin_x,Origin_y,0]);
     
     echo(" LEFT CLAW -X");
-    Do_Analysis(LeftClaw,force_scale*4,Display_steps,E,Failure_Stress,density,[-Origin_x,Origin_y,0]);
+    Do_Analysis(LeftClaw,force_scale,Display_steps,E,Failure_Stress,density,[-Origin_x,Origin_y,0]);
     
     //Draw servo center and target point for link
     color("blue") translate([0,1.2+Origin_y,-1]) cylinder(h=.5,r=.05,center=true,$fn=16);
@@ -334,127 +331,3 @@ else if (ACTIVE_BEAM == 10 ) {
     Do_Analysis(LDB_DEF,force_scale,Display_steps,E,Failure_Stress,density);
 }
 
-module Do_Analysis(LDB_DEF,f_scale=1,Display_steps=true,E=300000,Failure_Stress=5000,density=0.05,origin=[0,0,0]) {
-    echo("**********");
-    echo("LARGE DISPLACEMENT 2D BEAM ANALYSIS BASED ON COMPLIANT MECHANISM PRBM");
-    echo("TIME $t = ",$t,E=E,Failure_Stress=Failure_Stress,density=density);
-    
-    // perform data checks
-    num_branches = count_branches(LDB_DEF);
-    if (num_branches > 0 ) {
-    
-    echo("NUMBER OF BRANCHES IS ",num_branches,"  NUMBER OF FORKS IS ",(num_branches-1)/2);
-    
-    echo("TREE DEPTH IS ",tree_depth(LDB_DEF));
-    
-    num_beams = count_beams(LDB_DEF);
-    num_loads = count_loads(LDB_DEF);
-        
-    if (num_beams > 0 && num_loads > 0) {
-    echo("NUMBER OF BEAMS IS ",num_beams," NUMBER OF LOADS IS ",num_loads);
-
-    // Generate Beam Inertias and Cross Section Areas
-    Iz = gen_Iz(LDB_DEF);
-    Area = gen_Area(LDB_DEF);
-    // Generate internal Global forces from external forces
-    // Move the external loads from the LDB_DEF to a separate loads-only vector
-    ext_loads_temp = loads_to_beams(LDB_DEF);
-    // Spread the external Global forces from the tails to the root
-    // Moments don't include force-moments at this time
-    initial_loads = spread_ext_loads(ext_loads_temp);
-    // Generate Beam GLOBAL ANGLES, undeformed
-//echo(ext_loads_temp=ext_loads_temp);
-//echo(initial_loads=initial_loads);
-    beam_angles = global_angles(LDB_DEF);
-
-    //    echo("INITIAL VECTORS, THESE DON'T CHANGE");
-    //    echo (LDB_DEF=LDB_DEF);
-    //    echo(Iz=Iz);
-    //    echo(Area=Area);
-    //    echo(initial_loads=initial_loads);
-
-// Step increase ======load application to minimize angle oscilation
-    sc0=0;
-    sc1=0.16667;
-    sc2=0.33333;
-    sc3=0.5;
-    sc4=0.66667;
-    sc5=0.83333;
-    sc6=1.0;
-    
-    results0 = compute_iteration(LDB_DEF,Iz,Area,E,Failure_Stress,density,initial_loads,beam_angles,scale=sc0); 
-    beam_nodes = compute_nodes(LDB_DEF,results0,beam_angles);
-    if(Display_steps) translate(origin) draw_loads(beam_nodes,ext_loads_temp,f_scale*sc0,"green",0);
-    
-    results1 = compute_iteration(LDB_DEF,Iz,Area,E,Failure_Stress,density,initial_loads,beam_angles,scale=sc1); 
-    beam_angles1 = add_angles(beam_angles,results1);
-    beam_nodes1 = compute_nodes(LDB_DEF,results1,beam_angles1);
-    if(Display_steps) translate(origin) draw_loads(beam_nodes1,ext_loads_temp,f_scale*sc1,"Lavender",0);
-    
-    results2 = compute_iteration(LDB_DEF,Iz,Area,E,Failure_Stress,density,initial_loads,beam_angles1,scale=sc2); 
-    beam_angles2 = add_angles(beam_angles,results2);
-    beam_nodes2 = compute_nodes(LDB_DEF,results2,beam_angles2);
-    if(Display_steps) translate(origin) draw_loads(beam_nodes2,ext_loads_temp,f_scale*sc2,"Fuchsia",0);
-    
-    results3 = compute_iteration(LDB_DEF,Iz,Area,E,Failure_Stress,density,initial_loads,beam_angles2,scale=sc3); 
-    beam_angles3 = add_angles(beam_angles,results3);
-    beam_nodes3 = compute_nodes(LDB_DEF,results3,beam_angles3);
-    if(Display_steps) translate(origin) draw_loads(beam_nodes3,ext_loads_temp,f_scale*sc3,"Aqua",0);
-
-    results4 = compute_iteration(LDB_DEF,Iz,Area,E,Failure_Stress,density,initial_loads,beam_angles3,scale=sc4); 
-    beam_angles4 = add_angles(beam_angles,results4);
-    beam_nodes4 = compute_nodes(LDB_DEF,results4,beam_angles4);
-    if(Display_steps) translate(origin) draw_loads(beam_nodes4,ext_loads_temp,f_scale*sc4,"Blue",0);
-
-    results5 = compute_iteration(LDB_DEF,Iz,Area,E,Failure_Stress,density,initial_loads,beam_angles4,scale=sc5); 
-    beam_angles5 = add_angles(beam_angles,results5);
-    beam_nodes5 = compute_nodes(LDB_DEF,results5,beam_angles5);
-    if(Display_steps) translate(origin) draw_loads(beam_nodes5,ext_loads_temp,f_scale*sc5,"red",0);
-
-    results6 = compute_iteration(LDB_DEF,Iz,Area,E,Failure_Stress,density,initial_loads,beam_angles5,scale=sc6); 
-    beam_angles6 = add_angles(beam_angles,results6);
-    beam_nodes6 = compute_nodes(LDB_DEF,results6,beam_angles6);
-    translate(origin) draw_loads(beam_nodes6,ext_loads_temp,f_scale*sc6,"yellow",0);
-
-    draw_ground_reactions(results6,f_scale*sc6,origin,LDB_DEF[0][Zang]);
-
-    translate(origin) union () draw_beam_deformed(LDB_DEF,results6);
-    //echo(beam_nodes6=beam_nodes6);
-    echo("X MAX ",max_tree(beam_nodes6,0,Zdx)+origin[0],
-         "  X MIN ",min_tree(beam_nodes6,0,Zdx)+origin[0]);
-    echo("Y MAX ",max_tree(beam_nodes6,0,Zdy)+origin[1],
-         "  Y MIN ",min_tree(beam_nodes6,0,Zdy)+origin[1]);
-    //echo(results6=results6);
-    echo("STRESS MAX ",max_tree(results6,0,Zstressmax),
-         "  STRESS MIN ",min_tree(results6,0,Zstressmin));
-    echo("MIN Margin of Safety ",min_tree(results6,0,Zms),
-         " MAX MS ",max_tree(results6,0,Zms));
-    echo("WEIGHT ",sum_tail2(results6,0,Zweight,Qresult),
-         " ENERGY ",sum_tail2(results6,0,Zenergy,Qresult));
-
-//displacements = check_displacement_target(LDB_DEF,beam_nodes6,beam_nodes);
-//echo(displacements=displacements);
-
-} else echo("**NUMBER OF BEAMS OR LOADS IS ZERO, TERMINATING**"); 
-} else echo("**NUMBER OF BRANCHES IS ZERO, TERMINATING**");
-}
-
-function compute_iteration(LDB_DEF,Iz,Area,E,Failure_Stress,density,loads,beam_angles,scale=1) =     
-// Compute an iteration (to update moments due to forces)
-    // scale internal loads
-    let (loads_scaled = scale_int_loads(loads,scale))
-    // Convert internal global forces to beam-local forces 
-    let (loads_local = rotate_int_loads(loads_scaled,beam_angles))
-    // Calculate moments due to forces
-    let (force_mom_temp = moments_due_to_forces(loads_local, LDB_DEF, beam_angles))
-    // Sum moments due to forces, starting at tail
-    let (force_moments = sum_moments(force_mom_temp))
-    // Add moments-due-to-forces with internal loads
-    let (NEW_loads_local = add_moments_to_loads(loads_local,force_moments))
-    // call function compute results
-    compute_results(LDB_DEF,NEW_loads_local,Iz,Area,E,Failure_Stress,density);
-
-function compute_nodes(LDB_DEF,results,angles) =
-// combine gen_dxdy_deformed with gen_nodes into single function
-    let (dxdy=gen_dxdy_deformed(LDB_DEF,results,angles))
-    gen_nodes(dxdy);

@@ -1,0 +1,31 @@
+ECHO: "**********"
+ECHO: "LARGE DISPLACEMENT 2D BEAM ANALYSIS BASED ON COMPLIANT MECHANISM PRBM"
+ECHO: E = 340000, Failure_Stress = 10000, density = 0.045
+ECHO: "NUMBER OF BRANCHES IS ", 1, " NUMBER OF FORKS IS ", 0
+ECHO: "TREE DEPTH IS ", 0
+ECHO: i = 0, theta = 0, fx = 0, fy = 0, moment = 0, a = 10, b = 0, m_total = 0
+ECHO: i = 1, theta = 0, fx = 0, fy = 0, moment = 0, a = 10, b = 0, m_total = 0
+ECHO: i = 2, theta = 0, fx = 0, fy = 0, moment = 0, a = 10, b = 0, m_total = 0
+ECHO: n = 4, " load scale = ", 0.25, beam_angles = [0, 0, 0, 99999]
+ECHO: i = 0, theta = 2.22259, fx = 0, fy = 25, moment = 500, a = 9.99447, b = 0.284891, m_total = 749.862
+ECHO: i = 1, theta = 0.634209, fx = 0, fy = 25, moment = 250, a = 9.99948, b = 0.0940849, m_total = 499.987
+ECHO: i = 2, theta = 0.634325, fx = 0, fy = 25, moment = 0, a = 9.99948, b = 0.0941021, m_total = 249.987
+ECHO: n = 3, " load scale = ", 0.5, beam_angles = [0, 0, 0, 99999]
+ECHO: i = 0, theta = 1.26596, fx = 0, fy = 50, moment = 994.827, a = 9.99793, b = 0.187794, m_total = 1494.72
+ECHO: i = 1, theta = 1.26531, fx = 2.93948, fy = 49.9135, moment = 495.692, a = 9.99793, b = 0.187697, m_total = 994.172
+ECHO: i = 2, theta = 1.26508, fx = 3.62428, fy = 49.8685, moment = 0, a = 9.99793, b = 0.187664, m_total = 497.901
+ECHO: n = 2, " load scale = ", 0.75, beam_angles = [0, 3.37034, 4.15676, 99999]
+ECHO: i = 0, theta = 1.89391, fx = 0, fy = 75, moment = 1480.18, a = 9.99536, b = 0.280916, m_total = 2229.83
+ECHO: i = 1, theta = 1.89197, fx = 6.45861, fy = 74.7214, moment = 732.963, a = 9.99537, b = 0.280628, m_total = 1478.02
+ECHO: i = 2, theta = 1.88666, fx = 9.52404, fy = 74.3928, moment = 0, a = 9.99539, b = 0.279841, m_total = 740.92
+ECHO: n = 1, " load scale = ", 1, beam_angles = [0, 4.94013, 7.29553, 99999]
+ECHO: i = 0, theta = 2.51639, fx = 0, fy = 100, moment = 1935.84, a = 9.9918, b = 0.373194, m_total = 2935.02
+ECHO: i = 1, theta = 2.50778, fx = 12.6867, fy = 99.192, moment = 943.924, a = 9.99186, b = 0.371917, m_total = 1930.32
+ECHO: i = 2, theta = 2.47978, fx = 20.7741, fy = 97.8184, moment = 0, a = 9.99204, b = 0.367767, m_total = 969.765
+ECHO: "NUMBER OF BEAMS IS ", 3, " NUMBER OF LOADS IS ", 1
+ECHO: "GROUND REACTIONS ", fx = 0, fy = -100, moment = -2935.02
+ECHO: "X MAX ", 29.8417, "  X MIN ", 0
+ECHO: "Y MAX ", 2.73837, "  Y MIN ", 0
+ECHO: "STRESS MAX ", 5870.05, "  STRESS MIN ", -5870.05
+ECHO: "MIN Margin of Safety ", 0.703563, " MAX MS ", 4.15037
+ECHO: "WEIGHT ", 4.05, " ENERGY ", 54.871

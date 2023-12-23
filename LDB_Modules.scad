@@ -3,6 +3,24 @@ include <LDB_Indexes.scad>
 //use <ME_lib.scad>
 use <../MAKE3-Arm/openSCAD-code/ME_lib.scad>
 
+// Display intermediate load steps?
+Display_steps = false;
+// Scale of Force & Moment Display
+force_scale = 0.2;
+// MATERIAL PROPERTIES. 
+// Modulus of Elasticity (PSI), PLA=340000,PETG=300000,Polycar=320000
+E = 340000;
+// ~Stress level at which the part will fail (PSI)
+Failure_Stress = 10000;
+// This could be tensile failure, compression failure, bending, etc.
+// material density (lb per inch^3)
+density = 0.045;
+STEPS = 4;  // A GOOD NUMBER OF STEPS IS DEPENDANT ON THE PROBLEM
+
+BEAM1 = [[Qbeam,10,1,3,0],[Qbeam,10,1,3,0],[Qbeam,10,1,3,0],[Qload,0,200,0]];
+draw_beam_undeformed(BEAM1);
+Do_Analysis(BEAM1,force_scale*.5,Display_steps,E,Failure_Stress,density,steps=STEPS);
+
 // recursive module that draws the undeformed beam.
 module draw_beam_undeformed(LDBdef,idx = 0) {
 // LDBdef (LDB definition)
@@ -32,7 +50,6 @@ module draw_beam_undeformed(LDBdef,idx = 0) {
                 draw_beam_undeformed(LDBdef,idx + 1);
     }  
 }
-draw_beam_undeformed([[Qbeam,10,1,3,20],[Qbeam,10,1,3,-20]]);
 
 // recursive module that draws the deformed beam.
 module draw_beam_deformed(LDBdef,results,idx = 0) {
@@ -71,6 +88,7 @@ module draw_beam_deformed(LDBdef,results,idx = 0) {
         draw_beam_deformed(LDBdef,results,idx + 1);
     }
 }
+
 
 // recursive module that draws loads given beam node locations
 module draw_loads(nodes,loads,scale=1,node_color="blue",idx = 0) {
@@ -120,7 +138,7 @@ module draw_ground_reactions(results,scale=1,origin=[0,0,0],z_rot=0,out=true) {
     if (abs(fmag)>0.1) color ("red") 
         translate(origin) rotate ([0,0,z_rot]) force_arrow([0,0,0],[fx,fy,0],mag=fmag*scale);
     if (abs(moment)>0.1) color ("blue")
-        translate(origin) rotate ([0,0,z_rot]) torque_arrow([0,0,0],mag=moment*scale);
+        translate(origin) rotate ([0,0,z_rot]) torque_arrow([0,0,0],mag=moment*0.008*scale);
     if (out) echo("GROUND REACTIONS ",fx=rot_x(fx,fy,z_rot),fy=rot_y(fx,fy,z_rot),moment=moment);
 }
     
@@ -298,10 +316,11 @@ function moments_due_to_forces(loads, LDBdef, angles) =
     :
                 let (fx = loads[i+1][Zfx])
                 let (fy = loads[i+1][Zfy])
-                let (ang = angles[i+1])
+                let (ang = angles[i])
                 let (dx = LDBdef[i+1][Zlen]*cos(ang))
                 let (dy = LDBdef[i+1][Zlen]*sin(ang))
                 let (m = (fy*dx == undef ? 0 : fy*dx-fx*dy))
+    //echo(i=i,ang=ang,m=m)
                 [Qload, m ] 
             ) : 
             (loads[i][Ztype] == Qfork ? 
@@ -347,7 +366,7 @@ function compute_results(LDBdef,loads,I,area,E,failure_stress,density) =
         let (L = LDBdef[i][Zlen])   // FUTURE, ADJUST L BASED ON X LOAD
         let (fx = loads[i][Zfx])  // axial load
         let (fy = loads[i][Zfy])  // bending load
-        let (moment = loads[i][Zm])
+        let (moment = loads[i][Zm])  // moment on beam
         let (Iz = I[i])
         let (Area = area[i])
         let (bt = beam_type(fy,moment,L))
@@ -359,6 +378,7 @@ function compute_results(LDBdef,loads,I,area,E,failure_stress,density) =
         let (a = a_position(L,cr,theta))
         let (b = b_position(L,cr,theta))
         let (m_total = moment - fx * b + fy * a)
+        let (m_error =  moment - m_total)   // MOMENT BALANCE CHECK
         let (c = LDBdef[i][Zthk] / 2)              // half thickness
         let (stressmax = m_total*c/Iz + fx/a)
         let (stressmin = -m_total*c/Iz + fx/a)
@@ -366,7 +386,7 @@ function compute_results(LDBdef,loads,I,area,E,failure_stress,density) =
         let (energy = 0.5* K * (t_rad*t_rad))  // PE = 1/2 * K * x ^2
         let (weight = Area*L*density)
 echo(i=i,theta=theta,fx=fx,fy=fy,moment=moment,a=a,b=b,m_total=m_total)
-        [Qresult,bt,cr,K,theta,theta_end,a,b,stressmax,stressmin,energy,weight,ms,fx,fy,m_total] : 
+        [Qresult,bt,cr,K,theta,theta_end,a,b,stressmax,stressmin,energy,weight,ms,fx,fy,m_total,m_error] : 
     (loads[i][Ztype] == Qfork ? 
      [Qfork, compute_results(LDBdef[i][1],loads[i][1],I[i][1],area[i][1],E,failure_stress,density),
              compute_results(LDBdef[i][2],loads[i][2],I[i][2],area[i][2],E,failure_stress,density)] :
@@ -498,9 +518,110 @@ echo(i=i,x_targ=x_targ,x_node=x_node,x_err=x_err,fx=fx,x_init=x_init,Kx=Kx,NEW_f
         let (NEW_fy = Ky*(y_targ-y_init))
 echo(i=i,y_targ=y_targ,y_node=y_node,y_err=y_err,fy=fy,y_init=y_init,Ky=Ky,NEW_fy=NEW_fy)
         [Qdisp,x_targ,y_targ,x_node,y_node] : 
-    (dna[i][Ztype] == Qfork ? 
+    (LDBdef[i][Ztype] == Qfork ? 
      [Qfork, 
-    check_displacement_target(dna[i][1],def_nodes[i+1][1],init_nodes[i+1][1]),
-    check_displacement_target(dna[i][2],def_nodes[i+1][2],init_nodes[i+1][2])] :
+    check_displacement_target(LDBdef[i][1],def_nodes[i+1][1],init_nodes[i+1][1]),
+    check_displacement_target(LDBdef[i][2],def_nodes[i+1][2],init_nodes[i+1][2])] :
        [Qskip,0,0,0,0] ) ) ];
 
+module Do_Analysis(LDB_DEF,f_scale=1,Display_steps=true,E=300000,Failure_Stress=5000,density=0.05,origin=[0,0,0],steps=4) {
+    echo("**********");
+    echo("LARGE DISPLACEMENT 2D BEAM ANALYSIS BASED ON COMPLIANT MECHANISM PRBM");
+    echo(E=E,Failure_Stress=Failure_Stress,density=density);
+    
+    // perform data checks
+    num_branches = count_branches(LDB_DEF);
+    if (num_branches > 0 ) {
+        echo("NUMBER OF BRANCHES IS ",num_branches," NUMBER OF FORKS IS ",(num_branches-1)/2);
+        echo("TREE DEPTH IS ",tree_depth(LDB_DEF));
+        num_beams = count_beams(LDB_DEF);
+        num_loads = count_loads(LDB_DEF);
+        if (num_beams > 0 && num_loads > 0) {
+            echo("NUMBER OF BEAMS IS ",num_beams," NUMBER OF LOADS IS ",num_loads);
+    
+            // Generate Beam Inertias and Cross Section Areas
+            Iz = gen_Iz(LDB_DEF);
+            Area = gen_Area(LDB_DEF);
+            // Generate internal Global forces from external forces
+            // Move external loads from the LDB_DEF to a separate loads-only vector
+            ext_loads_temp = loads_to_beams(LDB_DEF);
+            // Spread the external Global forces from the tails to the root
+            // Moments don't include force-moments at this time
+            initial_loads = spread_ext_loads(ext_loads_temp);
+            // Generate Beam GLOBAL ANGLES, undeformed
+            //echo(ext_loads_temp=ext_loads_temp);
+            //echo(initial_loads=initial_loads);
+            beam_angles = global_angles(LDB_DEF);
+            //    echo("INITIAL VECTORS, THESE DON'T CHANGE");
+            //    echo (LDB_DEF=LDB_DEF);
+            //    echo(Iz=Iz);
+            //    echo(Area=Area);
+            //    echo(initial_loads=initial_loads);
+
+            // This is only needed to create a results array for the next step
+            results0 = compute_iteration(LDB_DEF,Iz,Area,E,Failure_Stress,density,initial_loads, beam_angles ,scale=0); 
+            InitialNodes = compute_nodes(LDB_DEF,results0,beam_angles);
+            
+            FinalResults = compute_steps(LDB_DEF,Iz,Area,E,Failure_Stress,density,initial_loads, beam_angles,results0,STEPS,n=steps);
+            
+            //echo("TOTAL MOMENT ERROR = ",totalMomentError(FinalResults,3));
+            
+            FinalBeamAngles = add_angles(beam_angles,FinalResults);
+            FinalNodes = compute_nodes(LDB_DEF,FinalResults,FinalBeamAngles);
+            echo(FinalNodes = FinalNodes);
+            translate(origin) draw_loads(FinalNodes,ext_loads_temp,f_scale,"yellow",0);
+
+            draw_ground_reactions(FinalResults ,f_scale,origin ,LDB_DEF[0][Zang]);
+
+            translate(origin) union () draw_beam_deformed(LDB_DEF,FinalResults);
+            //echo(FinalNodes=FinalNodes);
+            echo("X MAX ",max_tree(FinalNodes,0,Zdx)+origin[0],
+                 "  X MIN ",min_tree(FinalNodes,0,Zdx)+origin[0]);
+            echo("Y MAX ",max_tree(FinalNodes,0,Zdy)+origin[1],
+                 "  Y MIN ",min_tree(FinalNodes,0,Zdy)+origin[1]);
+            //echo(FinalResults=FinalResults);
+            echo("STRESS MAX ",max_tree(FinalResults,0,Zstressmax),
+                 "  STRESS MIN ",min_tree(FinalResults,0,Zstressmin));
+            echo("MIN Margin of Safety ",min_tree(FinalResults,0,Zms),
+                 " MAX MS ",max_tree(FinalResults,0,Zms));
+            echo("WEIGHT ",sum_tail2(FinalResults,0,Zweight,Qresult),
+                 " ENERGY ",sum_tail2(FinalResults,0,Zenergy,Qresult));
+
+        } else echo("**NUMBER OF BEAMS OR LOADS IS ZERO, TERMINATING**"); 
+    } else echo("**NUMBER OF BRANCHES IS ZERO, TERMINATING**");
+}
+
+// Recursive function to perform analysis in steps (n)
+function compute_steps(LDB_DEF,Iz,Area,E,Failure_Stress,density,loads,beam_angles,results,STEPS=4,n=4) =
+    let (newAngleVec = add_angles(beam_angles,results))
+echo(n=n," load scale = ",(((STEPS+1)-n)/STEPS),newAngleVec=newAngleVec)
+    let (newResults = compute_iteration(LDB_DEF,Iz,Area,E,Failure_Stress,density,loads,newAngleVec,((STEPS+1)-n)/STEPS))
+    ( n==1 ? newResults : compute_steps(LDB_DEF,Iz,Area,E,Failure_Stress,density,loads,newAngleVec,newResults,STEPS,n-1) );
+
+function compute_iteration(LDB_DEF,Iz,Area,E,Failure_Stress,density,loads,beam_angles,scale=1) =     
+    // Compute an iteration (to update moments due to forces)
+    // scale internal loads
+    let (loads_scaled = scale_int_loads(loads,scale))
+    // Convert internal global forces to beam-local forces 
+    let (loads_local = rotate_int_loads(loads_scaled,beam_angles))
+//echo(beam_angles=beam_angles)
+    // Calculate moments due to forces
+    let (force_mom_temp = moments_due_to_forces(loads_local, LDB_DEF, beam_angles))
+    // Sum moments due to forces, starting at tail
+    let (force_moments = sum_moments(force_mom_temp))
+    // Add moments-due-to-forces with internal loads
+    let (NEW_loads_local = add_moments_to_loads(loads_local,force_moments))
+    //let (INTERNALMOMENTS = sum_moments(loads,FinalResults,STEPS))
+    //        echo(INTERNALMOMENTS=INTERNALMOMENTS);
+    // call function compute results
+    compute_results(LDB_DEF,NEW_loads_local,Iz,Area,E,Failure_Stress,density);
+
+function compute_nodes(LDB_DEF,results,angles) =
+// combine gen_dxdy_deformed with gen_nodes into single function
+    let (dxdy=gen_dxdy_deformed(LDB_DEF,results,angles))
+    gen_nodes(dxdy);
+    
+// recursive function to sum moments in the beam
+function totalMomentError(results,n) =
+    echo(n=n," loads Error ",results[n-1][ZMerror])
+    ( n==1 ? 0 : (results[n-1][ZMerror] + totalMomentError(results,n-1)));
