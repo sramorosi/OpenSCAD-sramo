@@ -14,7 +14,7 @@ Zlen = 1;   // beam length
 Zthk = 2;   // beam thickness
 Zw = 3;     // beam thickness
 Zang = 4;   // Unloaded Z rotation of beam relative to prior beam (local)
-ZangLoad = 5; // Estimated deflection angle with load (helps with convergence)
+//ZangLoad = 5; // Estimated deflection angle with load (helps with convergence)
 
 // USED WITH Load Array: [Zfx,Zfy,Zm]
 Zfx = 0;    // external force in global X
@@ -49,6 +49,10 @@ Zstressmin = 6;
 Zstressmax = 7;
 Zenergy = 8;
 Zweight = 9;   // beam segment weight
+ZNewThk = 10;
+ZReactx = 11;
+ZReacty = 12;
+ZReactm = 13;
 
 //ZPx = 13;      // X load on beam end, local
 //ZPy = 14;      // Y load on beam end, local

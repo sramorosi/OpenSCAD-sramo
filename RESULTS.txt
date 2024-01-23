@@ -1,52 +1,100 @@
  
 Parsing design (AST generation)...
+Saved backup file: C:/Users/SrAmo/Documents/OpenSCAD/backups/LDB_Modules-backup-OGkeSLSK.scad
 Compiling design (CSG Tree generation)...
-ECHO: BEAM1 = [[11111, 1, 0.062, 1.06, 0], [11111, 1, 0.062, 1.06, 0], [11111, 1, 0.062, 1.06, 0], [11111, 1, 0.062, 1.06, 0], [11111, 1, 0.062, 1.06, 0], [11111, 1, 0.062, 1.06, 0], [11111, 1, 0.062, 1.06, 0]]
-ECHO: LOADS1 = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0.278, 0]]
+ECHO: new_pts = [[0, 0], [0, 0.5], [0, 1], [0, 1.5], [0, 2], [0, 2.5], [0, 3], [0, 3.5], [0, 4], [0, 4.5], [0, 5], [0, 5.5], [0, 6]]
+ECHO: BEAM1 = [[11111, 0.5, 0.06, 0.5, 90], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0]], " n=", 12
+ECHO: LOADS1 = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0.8, 0, 2.18182]], " n=", 13
+ECHO: "STEP ", n = 1, " GROUND REACTIONS: Fx=", 0, " Fy=", 0, " M=", 0
 ECHO: "******* LARGE DISPLACEMENT 2D BEAM ANALYSIS BASED ON COMPLIANT MECHANISM PRBM *******"
-ECHO: E = 340000, Failure_Stress = 10000, density = 0.043
-ECHO: "NUMBER OF BEAMS IS ", 7
-ECHO: " TOTAL LOAD IS ", 0.278
-ECHO: "SPREAD EXT LOADS", n = 8
-ECHO: 5, loads_local = [[0, 0.0556, 0], [0, 0.0556, 0], [0, 0.0556, 0], [0, 0.0556, 0], [0, 0.0556, 0], [0, 0.0556, 0], [0, 0.0556, 0], [0, 0.0556, 0]]
-ECHO: 5, force_mom_temp = [0.0556, 0.0556, 0.0556, 0.0556, 0.0556, 0.0556, 0.0556]
-ECHO: 5, beam_moments = [0.3892, 0.3336, 0.278, 0.2224, 0.1668, 0.1112, 0.0556]
-ECHO: 5, NEW_loads_local = [[0, 0.0556, 0.3892], [0, 0.0556, 0.3336], [0, 0.0556, 0.278], [0, 0.0556, 0.2224], [0, 0.0556, 0.1668], [0, 0.0556, 0.1112], [0, 0.0556, 0.0556], [0, 0.0556, 0]]
-ECHO: n = 5, " load scale = ", 0.2, newAngleVec = [1.50927, 4.40907, 6.86382, 8.87351, 10.4381, 11.5577, 12.159]
-ECHO: 4, loads_local = [[0, 0.1112, 0], [0.00292885, 0.111161, 0], [0.0085487, 0.110871, 0], [0.0132895, 0.110403, 0], [0.017153, 0.109869, 0], [0.0201465, 0.10936, 0], [0.0222795, 0.108945, 0], [0.0234216, 0.108705, 0]]
-ECHO: 4, force_mom_temp = [0.111161, 0.110871, 0.110403, 0.109869, 0.10936, 0.108945, 0.108705]
-ECHO: 4, beam_moments = [0.769315, 0.658153, 0.547283, 0.43688, 0.32701, 0.217651, 0.108705]
-ECHO: 4, NEW_loads_local = [[0, 0.1112, 0.769315], [0.00292885, 0.111161, 0.658153], [0.0085487, 0.110871, 0.547283], [0.0132895, 0.110403, 0.43688], [0.017153, 0.109869, 0.32701], [0.0201465, 0.10936, 0.217651], [0.0222795, 0.108945, 0.108705], [0.0234216, 0.108705, 0]]
-ECHO: n = 4, " load scale = ", 0.4, newAngleVec = [2.98353, 8.71048, 13.5488, 17.5014, 20.5724, 22.202, 22.6095]
-ECHO: 3, loads_local = [[0, 0.1668, 0], [0.00868176, 0.166574, 0], [0.0252605, 0.164876, 0], [0.0390767, 0.162158, 0], [0.0501617, 0.159079, 0], [0.058612, 0.156163, 0], [0.0630293, 0.154433, 0], [0.0641261, 0.153981, 0]]
-ECHO: 3, force_mom_temp = [0.166574, 0.164876, 0.162158, 0.159079, 0.156163, 0.154433, 0.153981]
-ECHO: 3, beam_moments = [1.11726, 0.95069, 0.785814, 0.623656, 0.464577, 0.308414, 0.153981]
-ECHO: 3, NEW_loads_local = [[0, 0.1668, 1.11726], [0.00868176, 0.166574, 0.95069], [0.0252605, 0.164876, 0.785814], [0.0390767, 0.162158, 0.623656], [0.0501617, 0.159079, 0.464577], [0.058612, 0.156163, 0.308414], [0.0630293, 0.154433, 0.153981], [0.0641261, 0.153981, 0]]
-ECHO: n = 3, " load scale = ", 0.6, newAngleVec = [4.33344, 12.6305, 19.6008, 25.262, 29.6372, 31.9543, 32.5333]
-ECHO: 2, loads_local = [[0, 0.2224, 0], [0.0168047, 0.221764, 0], [0.0486305, 0.217018, 0], [0.0746075, 0.209512, 0], [0.0949112, 0.201131, 0], [0.109978, 0.193304, 0], [0.117704, 0.1887, 0], [0.119604, 0.187501, 0]]
-ECHO: 2, force_mom_temp = [0.221764, 0.217018, 0.209512, 0.201131, 0.193304, 0.1887, 0.187501]
-ECHO: 2, beam_moments = [1.41893, 1.19717, 0.980148, 0.770636, 0.569505, 0.376201, 0.187501]
-ECHO: 2, NEW_loads_local = [[0, 0.2224, 1.41893], [0.0168047, 0.221764, 1.19717], [0.0486305, 0.217018, 0.980148], [0.0746075, 0.209512, 0.770636], [0.0949112, 0.201131, 0.569505], [0.109978, 0.193304, 0.376201], [0.117704, 0.1887, 0.187501], [0.119604, 0.187501, 0]]
-ECHO: n = 2, " load scale = ", 0.8, newAngleVec = [5.50423, 16.0016, 24.7424, 31.7754, 37.164, 40.0091, 40.7194]
-ECHO: 1, loads_local = [[0, 0.278, 0], [0.0266655, 0.276718, 0], [0.0766346, 0.267229, 0], [0.116354, 0.252479, 0], [0.146392, 0.236333, 0], [0.167939, 0.221541, 0], [0.178729, 0.212932, 0], [0.181355, 0.2107, 0]]
-ECHO: 1, force_mom_temp = [0.276718, 0.267229, 0.252479, 0.236333, 0.221541, 0.212932, 0.2107]
-ECHO: 1, beam_moments = [1.67793, 1.40121, 1.13398, 0.881506, 0.645173, 0.423632, 0.2107]
-ECHO: 1, NEW_loads_local = [[0, 0.278, 1.67793], [0.0266655, 0.276718, 1.40121], [0.0766346, 0.267229, 1.13398], [0.116354, 0.252479, 0.881506], [0.146392, 0.236333, 0.645173], [0.167939, 0.221541, 0.423632], [0.178729, 0.212932, 0.2107], [0.181355, 0.2107, 0]]
-ECHO: n = 1, " load scale = ", 1, newAngleVec = [6.50985, 18.8668, 29.0459, 37.1435, 43.2829, 46.5124, 47.3179]
-ECHO: initial_loads = [[0, 0.278, 0], [0, 0.278, 0], [0, 0.278, 0], [0, 0.278, 0], [0, 0.278, 0], [0, 0.278, 0], [0, 0.278, 0], [0, 0.278, 0]]
-ECHO: "INITIAL ", beam_angles = [0, 0, 0, 0, 0, 0, 0]
-ECHO: FinalNodes = [[0, 0, 0], [0.99124, 0.11311], [1.93598, 0.435954], [2.80928, 0.920947], [3.60589, 1.52437], [4.33362, 2.20974], [5.02181, 2.93526], [5.69973, 3.67038]]
-ECHO: "X MAX ", 5.69973, "  X MIN ", 0
-ECHO: "Y MAX ", 3.67038, "  Y MIN ", 0
-ECHO: "STRESS MAX ", 2876.57, "  STRESS MIN ", -2876.57
-ECHO: "MIN Margin of Safety ", 2.47637, " MAX MS ", 15.091
-ECHO: "WEIGHT ", 0.0197817, " ENERGY ", 0.129696
+ECHO: E = 340000, Failure_Stress = 10000, density = 0.043, fscale = 0.3
+ECHO: LDB_DEF = [[11111, 0.5, 0.06, 0.5, 90], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0], [11111, 0.5, 0.06, 0.5, 0]]
+ECHO: NODE_LOADS = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0.8, 0, 2.18182]]
+ECHO: "NUMBER OF BEAMS IS ", 12, " NUMBER OF NODES IS ", 13
+ECHO: " TOTAL LOAD IS ", 2.98182
+ECHO: "INITIAL ", beam_angles = [90, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+ECHO: "STEP ", n = 4, " GROUND REACTIONS: Fx=", 0, " Fy=", 0, " M=", 0
+ECHO: index = 1, x = 0, y = 0.5, y_past = 0, beamAng = 90
+ECHO: index = 2, x = 0, y = 1, y_past = 0.5, beamAng = 90
+ECHO: index = 3, x = 0, y = 1.5, y_past = 1, beamAng = 90
+ECHO: index = 4, x = 0, y = 2, y_past = 1.5, beamAng = 90
+ECHO: index = 5, x = 0, y = 2.5, y_past = 2, beamAng = 90
+ECHO: index = 6, x = 0, y = 3, y_past = 2.5, beamAng = 90
+ECHO: index = 7, x = 0, y = 3.5, y_past = 3, beamAng = 90
+ECHO: index = 8, x = 0, y = 4, y_past = 3.5, beamAng = 90
+ECHO: index = 9, x = 0, y = 4.5, y_past = 4, beamAng = 90
+ECHO: index = 10, x = 0, y = 5, y_past = 4.5, beamAng = 90
+ECHO: index = 11, x = 0, y = 5.5, y_past = 5, beamAng = 90
+ECHO: index = 12, x = 0, y = 6, y_past = 5.5, beamAng = 90
+ECHO: n = 4, " load scale = ", 0, " σ MAX ", 0, " σ MIN ", 0, " MIN MS ", 1e+8, " MAX MS ", inf, " ENERGY ", 0, " WEIGHT ", 0.000645
+ECHO: "STEP ", n = 3, " GROUND REACTIONS: Fx=", 0.2, " Fy=", 0, " M=", -0.654545
+ECHO: index = 1, x = 0.0258847, y = 0.499097, y_past = 0, beamAng = 87.0311
+ECHO: index = 2, x = 0.100998, y = 0.993246, y_past = 0.499097, beamAng = 81.3569
+ECHO: index = 3, x = 0.216686, y = 1.47956, y_past = 0.993246, beamAng = 76.6188
+ECHO: index = 4, x = 0.364378, y = 1.95717, y_past = 1.47956, beamAng = 72.8169
+ECHO: index = 5, x = 0.535775, y = 2.42684, y_past = 1.95717, beamAng = 69.9512
+ECHO: index = 6, x = 0.71965, y = 2.8918, y_past = 2.42684, beamAng = 68.4231
+ECHO: index = 7, x = 0.907065, y = 3.35535, y_past = 2.8918, beamAng = 67.9861
+ECHO: index = 8, x = 1.09801, y = 3.81745, y_past = 3.35535, beamAng = 67.5491
+ECHO: index = 9, x = 1.29247, y = 4.27808, y_past = 3.81745, beamAng = 67.1121
+ECHO: index = 10, x = 1.47905, y = 4.74193, y_past = 4.27808, beamAng = 68.0879
+ECHO: index = 11, x = 1.64314, y = 5.21417, y_past = 4.74193, beamAng = 70.8394
+ECHO: index = 12, x = 1.7765, y = 5.69594, y_past = 5.21417, beamAng = 74.5272
+ECHO: n = 3, " load scale = ", 0.25, " σ MAX ", 1151.8, " σ MIN ", -1151.8, " MIN MS ", 3.58425, " MAX MS ", 64.9977, " ENERGY ", 0.0230836, " WEIGHT ", 0.000645
+ECHO: "STEP ", n = 2, " GROUND REACTIONS: Fx=", 0.4, " Fy=", 0, " M=", -1.1878
+ECHO: index = 1, x = 0.0468844, y = 0.497015, y_past = 0, beamAng = 84.6111
+ECHO: index = 2, x = 0.181217, y = 0.97806, y_past = 0.497015, beamAng = 74.3975
+ECHO: index = 3, x = 0.384088, y = 1.43467, y_past = 0.97806, beamAng = 66.0445
+ECHO: index = 4, x = 0.637547, y = 1.86544, y_past = 1.43467, beamAng = 59.5281
+ECHO: index = 5, x = 0.92559, y = 2.27403, y_past = 1.86544, beamAng = 54.8172
+ECHO: index = 6, x = 1.23135, y = 2.66965, y_past = 2.27403, beamAng = 52.3013
+ECHO: index = 7, x = 1.5427, y = 3.06088, y_past = 2.66965, beamAng = 51.4861
+ECHO: index = 8, x = 1.85956, y = 3.44766, y_past = 3.06088, beamAng = 50.675
+ECHO: index = 9, x = 2.18185, y = 3.82994, y_past = 3.44766, beamAng = 49.8665
+ECHO: index = 10, x = 2.48967, y = 4.22376, y_past = 3.82994, beamAng = 51.9877
+ECHO: index = 11, x = 2.75646, y = 4.64631, y_past = 4.22376, beamAng = 57.7322
+ECHO: index = 12, x = 2.96577, y = 5.09989, y_past = 4.64631, beamAng = 65.2293
+ECHO: n = 2, " load scale = ", 0.5, " σ MAX ", 2351.01, " σ MIN ", -2350.49, " MIN MS ", 1.52915, " MAX MS ", 98.3921, " ENERGY ", 0.0760171, " WEIGHT ", 0.000645
+ECHO: "STEP ", n = 1, " GROUND REACTIONS: Fx=", 0.6, " Fy=", 0, " M=", -1.42514
+ECHO: index = 1, x = 0.0561864, y = 0.495707, y_past = 0, beamAng = 83.5333
+ECHO: index = 2, x = 0.214221, y = 0.969321, y_past = 0.495707, beamAng = 71.5473
+ECHO: index = 3, x = 0.446364, y = 1.41172, y_past = 0.969321, beamAng = 62.3126
+ECHO: index = 4, x = 0.727921, y = 1.82471, y_past = 1.41172, beamAng = 55.7155
+ECHO: index = 5, x = 1.03422, y = 2.21991, y_past = 1.82471, beamAng = 52.2224
+ECHO: index = 6, x = 1.34799, y = 2.60922, y_past = 2.21991, beamAng = 51.1328
+ECHO: index = 7, x = 1.66882, y = 2.99273, y_past = 2.60922, beamAng = 50.0848
+ECHO: index = 8, x = 1.9965, y = 3.37041, y_past = 2.99273, beamAng = 49.0554
+ECHO: index = 9, x = 2.30655, y = 3.76239, y_past = 3.37041, beamAng = 51.6564
+ECHO: index = 10, x = 2.56586, y = 4.18941, y_past = 3.76239, beamAng = 58.7316
+ECHO: index = 11, x = 2.75302, y = 4.65233, y_past = 4.18941, beamAng = 67.9862
+ECHO: index = 12, x = 2.84367, y = 5.14299, y_past = 4.65233, beamAng = 79.5326
+ECHO: n = 1, " load scale = ", 0.75, " σ MAX ", 3650.87, " σ MIN ", -3649.58, " MIN MS ", 1.1111, " MAX MS ", 51.1402, " ENERGY ", 0.109435, " WEIGHT ", 0.000645
+ECHO: "STEP ", n = 0, " GROUND REACTIONS: Fx=", 0.8, " Fy=", 0, " M=", -1.9361
+ECHO: index = 1, x = 0.0760788, y = 0.492074, y_past = 0, beamAng = 81.2112
+ECHO: index = 2, x = 0.287677, y = 0.94362, y_past = 0.492074, beamAng = 64.8918
+ECHO: index = 3, x = 0.593603, y = 1.33816, y_past = 0.94362, beamAng = 52.21
+ECHO: index = 4, x = 0.959234, y = 1.6787, y_past = 1.33816, beamAng = 42.9649
+ECHO: index = 5, x = 1.35276, y = 1.98716, y_past = 1.6787, beamAng = 38.0911
+ECHO: index = 6, x = 1.7537, y = 2.28592, y_past = 1.98716, beamAng = 36.6907
+ECHO: index = 7, x = 2.16166, y = 2.57502, y_past = 2.28592, beamAng = 35.3234
+ECHO: index = 8, x = 2.57631, y = 2.85445, y_past = 2.57502, beamAng = 33.9764
+ECHO: index = 9, x = 2.97533, y = 3.15525, y_past = 2.85445, beamAng = 37.0112
+ECHO: index = 10, x = 3.32491, y = 3.51185, y_past = 3.15525, beamAng = 45.5689
+ECHO: index = 11, x = 3.59522, y = 3.93116, y_past = 3.51185, beamAng = 57.1924
+ECHO: index = 12, x = 3.74793, y = 4.40538, y_past = 3.93116, beamAng = 72.1495
+ECHO: n = 0, " load scale = ", 1, " σ MAX ", 4672.52, " σ MIN ", -4671.31, " MIN MS ", 0.557069, " MAX MS ", 18.4124, " ENERGY ", 0.201974, " WEIGHT ", 0.000645
+ECHO: "MODULE TORQUE_ARROW; small mag = ", 0.0462717
+ECHO: "MODULE TORQUE_ARROW; small mag = ", -0.0471689
+WARNING: abs() parameter could not be converted in file LDB_Modules.scad, line 288 
+WARNING: undefined operation (undefined > number) in file LDB_Modules.scad, line 288 
+ECHO: "X MAX ", 3.74793, "  X MIN ", 0
+ECHO: "Y MAX ", 4.40538, "  Y MIN ", 0
 Compiling design (CSG Products generation)...
-Geometries in cache: 247
-Geometry cache size in bytes: 372640
+Geometries in cache: 114
+Geometry cache size in bytes: 643048
 CGAL Polyhedrons in cache: 0
 CGAL cache size in bytes: 0
 Compiling design (CSG Products normalization)...
-Normalized tree has 37 elements!
+Normalized tree has 159 elements!
 Compile and preview finished.
-Total rendering time: 0:00:00.230GY ", 0.0201009
+Total rendering time: 0:00:00.346
