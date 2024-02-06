@@ -61,5 +61,7 @@ ZReactm = 13;
 
 
 // USED WITH BEAM TYPE
-Zvertforce = 12; // use A.1.2 vertical force PRBM constants
-Zendmoment = 15; // use A.1.5 end moment PRBM constants
+Zvertforce = 12; // use A.1.2 vertical force PRBM constants, characteristic radius = 0.85
+ZvertfReverse = 13;  // use A.1.2, except reverse
+Zendmoment = 15; // use A.1.5 end moment PRBM constants, characteristic radius = 0.735
+ZendmReverse = 16; // use A.1.5, except reverse

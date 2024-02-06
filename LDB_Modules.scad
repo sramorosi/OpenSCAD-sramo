@@ -11,19 +11,18 @@ force_scale = 0.3; // [0.001:.025:10.0]
 // Modulus of Elasticity (PSI), PLA=340000,PETG=300000,Polycar=320000
 E = 340000;  // GLOBAL VARIABLE USED IN MANY FUNCTIONS AND MODULES
 // ~Stress level at which the part will fail (PSI)
-Failure_Stress = 10000;
+FAILURE_STRESS = 10000;
 // This could be tensile failure, compression failure, bending, etc.
 // material density (lb per inch^3)
-density = 0.043;
+DENSITY = 0.043;
 Load_Steps = 3;  // A GOOD NUMBER OF STEPS IS DEPENDENT ON THE PROBLEM
 
+/*
     // beam from points
     t=.06;  
     w=0.5;
     HGT = 6;  // height of overall beam
-    //pts=[for (i=[0:NumberBeams]) [X*cos(180*(i/NumberBeams))-X,Y*sin(180*(i/NumberBeams))] ]; // sine shape
-    //
-    pts=[[0,0],[0,HGT]];  // frame shape
+    pts=[[0,0],[0,HGT]];  // shape
     new_pts = addPoints(pts,.5);
     echo(new_pts=new_pts);
     //draw_points(new_pts,dia=0.1);
@@ -34,20 +33,73 @@ Load_Steps = 3;  // A GOOD NUMBER OF STEPS IS DEPENDENT ON THE PROBLEM
     echo(BEAM1=BEAM1," n=", len(BEAM1));
         
     Fx = .8;
-    Mz = Fx*HGT/2.2;
-
+    Mz = Fx*HGT/2;
+echo(Mz=Mz);
     LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[Fx,0,Mz]]);
     //LOADS1 = concat ( concat(concat([for (i=[1:(NumberBeams/2)-1]) [0,0,0]],[[Fx,0,Fx*HGT/2]]),[for (j=[1:(NumberBeams/2)]) [0,0,0]]),[[0,0,0]]); // << last load is back solved to hold node in location  [-.4,.1,2.4]
        
     echo(LOADS1=LOADS1," n=", len(LOADS1));
 
-    ORIGIN = [2,0,0];
+    ORIGIN = [1,0,0];
 
     translate(ORIGIN) draw_beam_undeformed(BEAM1); 
     
-    Do_Analysis(BEAM1,LOADS1,force_scale,Display_steps,Failure_Stress,density,ORIGIN,steps=4);
+    Do_Analysis(BEAM1,LOADS1,force_scale,Display_steps,FAILURE_STRESS,DENSITY,ORIGIN,steps=4);
+*/
 
-module Do_Analysis(LDB_DEF,NODE_LOADS,fscale,Display_steps,Failure_Stress,density,Origin,steps) {
+
+ // SINGLE BEAM ANALYSIS, TO CHECK THE FUNCTIONS
+LEN = 2;
+t=0.1;  
+w=0.5;
+
+// loads on the right are given
+FX2 = 0;
+FY2 = -4;
+M2 = 9;
+
+// loads on the left are solved
+FX1 = -FX2;
+FY1 = -FY2;
+M1 = FY2*LEN+M2;
+
+// ROARK SOLUTIONS (TRANSVERSE SHEAR AND MOMENT AT FREE END)
+I=((w*t*t*t)/12);
+echo(I=I);
+ThetaEndRoark = (180/PI)*((FY2*LEN*LEN)/(2*E*I) + M2*LEN/(E*I));
+YRoark = (FY2*LEN*LEN*LEN)/(3*E*I) + M2*LEN*LEN/(2*E*I);
+NP=4;
+RoarkPts = [for (i=[1:NP+3]) 
+    let (x = ((i-1)/NP)*LEN)
+    let (y = (FY2*x*x*x)/(3*E*I) + M2*x*x/(2*E*I))
+    [x,y]]; 
+color("red") draw_points(RoarkPts,dia=0.03);   
+
+pts=[[0,0],[LEN,0]];  // shape
+BEAM1 = beamFromNodes(pts,t,w);
+//draw_beam_undeformed(BEAM1); 
+LOADS1 = [[FX1,FY1,M1],[FX2,FY2,M2]];
+echo(LOADS1=LOADS1);
+
+RESULTS = compute_iteration(BEAM1,LOADS1,FAILURE_STRESS,DENSITY);
+echo("[theta,theta_end,a,b,cr,ms,stressmin,stressmax,energy,weight,newTHK,-Fx,-Fy,-m_total]");
+echo(RESULTS=RESULTS);
+NODES = concat([[0,0,0]],getNodeFromResults(RESULTS,[0]));
+echo(NODES=NODES);
+draw_beam_deformed(BEAM1,RESULTS,displayHinge=true);      
+draw_loads(nodes=NODES, loads=LOADS1, torques=LOADS1,scale=force_scale);
+
+translate([RESULTS[0][Za],RESULTS[0][Zb],0]) 
+    rotate([0,0,RESULTS[0][Zthetaend]]) 
+        translate([LEN/4,0,0]) cube([LEN/2,t/2,w*1.2],center=true);
+
+echo(ThetaEndRoark=ThetaEndRoark," EndLDB = ",RESULTS[0][Zthetaend]);
+echo(YRoark=YRoark," Y LDB = ",RESULTS[0][Zb]);
+
+
+
+
+module Do_Analysis(LDB_DEF,NODE_LOADS,fscale,Display_steps,Failure_Stress,density,Origin=[0,0,0],steps) {
     echo("******* LARGE DISPLACEMENT 2D BEAM ANALYSIS BASED ON COMPLIANT MECHANISM PRBM *******");
     echo(E=E,Failure_Stress=Failure_Stress,density=density,fscale=fscale);
     echo(LDB_DEF=LDB_DEF);
@@ -65,10 +117,10 @@ module Do_Analysis(LDB_DEF,NODE_LOADS,fscale,Display_steps,Failure_Stress,densit
 
         // Generate GLOBAL Beam ANGLES, undeformed
         beam_angles = global_angles(LDB_DEF);
-        echo("INITIAL ",beam_angles=beam_angles);
+        //echo("INITIAL ",beam_angles=beam_angles);
 
         // MAIN ANALYSIS (MODULE)
-        computeStepsModule(f_scale=fscale,LDB_DEF=LDB_DEF,Failure_Stress=Failure_Stress,density=density,loads=initial_loads,NODE_LOADS=NODE_LOADS, beam_angles=beam_angles,original_angles=beam_angles,Origin=ORIGIN,STEPS=steps,n=steps,displaySteps=Display_steps); 
+        computeStepsModule(f_scale=fscale,LDB_DEF=LDB_DEF,Failure_Stress=Failure_Stress,density=density,loads=initial_loads,NODE_LOADS=NODE_LOADS, beam_angles=beam_angles,original_angles=beam_angles,Origin=Origin,STEPS=steps,n=steps,displaySteps=Display_steps); 
         
     } else echo("**NUMBER OF BEAMS OR LOADS IS ZERO, TERMINATING**"); 
 }
@@ -89,16 +141,33 @@ module computeStepsModule(f_scale=1,LDB_DEF,Failure_Stress,density,loads,NODE_LO
     loadScale = (((STEPS)-n)/STEPS);
     // scale internal loads
     loads_scaled = scale_int_loads(loads,loadScale);
+
+//echo(beam_angles=beam_angles," NUMBER IS ",len(beam_angles));
     
-    newResults = compute_iteration(LDB_DEF,Failure_Stress,density,loads_scaled,beam_angles,n);
+    // Convert internal global forces to beam-local forces 
+    loads_local = rotate_int_loads(loads_scaled,beam_angles);
+//echo(loads_local=loads_local," NUMBER IS ",len(loads_local));
+    // Calculate moments due to forces
+    force_mom_temp = momentsDueToForce(loads_local, LDB_DEF, beam_angles);
+//echo(force_mom_temp=force_mom_temp," NUMBER IS ",len(force_mom_temp));
+    // Sum moments due to forces, so that each beam has correct moment
+    beam_moments = sum_moments(force_mom_temp);
+//echo(beam_moments=beam_moments," NUMBER IS ",len(beam_moments));
+    // Add moments-due-to-forces with internal loads
+    NEW_loads_local = add_moments_to_loads(loads_local,beam_moments);
+//echo(NEW_loads_local=NEW_loads_local," NUMBER IS ",len(NEW_loads_local));
+    
+    newResults = compute_iteration(LDB_DEF,NEW_loads_local,Failure_Stress,density);
     
     Nodes = concat([Origin],getNodeFromResults(newResults,original_angles, x_past=Origin[0], y_past=Origin[1]));
-    newAngleVec = getAnglesFromNodes(Nodes); // update the beam_angles array
+    newAngleVec = getAnglesFromNodes(Nodes,Origin[0],Origin[1]); // update the beam_angles array
 //echo(newAngleVec=newAngleVec);
        
     output_STRESS_MS_Energy(n,loadScale,newResults);
     
     if ( n>0 ) { // recursion.  Counts down.
+        //echo("STEP ",n=n," GROUND REACTIONS: Fx=",NEW_loads_local[0][0]," Fy=",NEW_loads_local[0][1]," M=",NEW_loads_local[0][2])
+
         computeStepsModule(f_scale,LDB_DEF,Failure_Stress,density,loads,NODE_LOADS,newAngleVec,original_angles, Origin, STEPS, n-1 , displaySteps);
         
         if (displaySteps) { color("red",loadScale) draw_points(Nodes,dia=0.05); }
@@ -107,46 +176,40 @@ module computeStepsModule(f_scale=1,LDB_DEF,Failure_Stress,density,loads,NODE_LO
         
         if (displaySteps) { color("red",loadScale) draw_points(Nodes,dia=0.05); }
 
-        translate(Origin) union () draw_beam_deformed(LDB_DEF,newResults);
+        translate(Origin) union () draw_beam_deformed(LDB_DEF,newResults,displayHinge=true);
         
-        draw_loads(nodes=Nodes, loads=loads_scaled, results=newResults,scale=f_scale);
+        draw_loads(nodes=Nodes, loads=loads_scaled, torques=NEW_loads_local,scale=f_scale);
 
-        echo("X MAX ",max_tree(Nodes,Nx)+Origin[0],
-             "  X MIN ",min_tree(Nodes,Nx)+Origin[0]);
-        echo("Y MAX ",max_tree(Nodes,Ny)+Origin[1],
-             "  Y MIN ",min_tree(Nodes,Ny)+Origin[1]);
+        echo("X DISPLACEMENT MAX ",max_tree(Nodes,Nx),
+             "  X DISPLACEMENT MIN ",min_tree(Nodes,Nx));
+        echo("Y DISPLACEMENT MAX ",max_tree(Nodes,Ny),
+             "  Y DISPLACEMENT MIN ",min_tree(Nodes,Ny));
     }
 }
 
-function compute_iteration(LDB_DEF,Failure_Stress,density,loads,beam_angles,n=0) =    
-    // Compute an iteration (to update moments due to forces)
-    // Returns a Results array
-    // Convert internal global forces to beam-local forces 
-    let (loads_local = rotate_int_loads(loads,beam_angles))
-//echo(n=n,loads_local=loads_local)
-    // Calculate moments due to forces
-    let (force_mom_temp = momentsDueToForce(loads_local, LDB_DEF, beam_angles))
-//echo(n=n,force_mom_temp=force_mom_temp)
-    // Sum moments due to forces, so that each beam has correct moment
-    let (beam_moments = sum_moments(force_mom_temp))
-//echo(n=n,beam_moments=beam_moments)
-    // Add moments-due-to-forces with internal loads
-    let (NEW_loads_local = add_moments_to_loads(loads_local,beam_moments))
-//echo(n=n,NEW_loads_local=NEW_loads_local)
-echo("STEP ",n=n," GROUND REACTIONS: Fx=",NEW_loads_local[0][0]," Fy=",NEW_loads_local[0][1]," M=",NEW_loads_local[0][2])
-    // Loop thru all beam elements and compute angular deflections
+function compute_iteration(LDB_DEF,Internal_Loads,Failure_Stress,density) =    
+    // Loop thru all beam elements and compute beam type, then angular deflections
+    // NOTE: length of loads = length of LDB + 1
     let (n = len(LDB_DEF))
     [ for (i=[0:1:n-1]) 
-        getBeamAngleFromLoads(LEN=LDB_DEF[i][Zlen] ,THK=LDB_DEF[i][Zthk] ,W=LDB_DEF[i][Zw], Fx=NEW_loads_local[i][Zfx], Fy=NEW_loads_local[i][Zfy], M=NEW_loads_local[i][Zm], BEAM_NO = i) ];
+        let (m1 = Internal_Loads[i][Zm])
+        let (m2 = Internal_Loads[i+1][Zm])
+        let (reverseBeam = (abs(m2) > abs(m1) ? true : false))
+        let (Fx = Internal_Loads[i+1][Zfx])
+        let (Fy = Internal_Loads[i+1][Zfy])
+        let (M = m2) // CHANGED TO M2 ALWAYS
+        let (LEN = LDB_DEF[i][Zlen])
+        let (BT = beam_type(Fy,M,LEN,reverseBeam))
+echo("BEAM",i=i,Fx=Fx,Fy=Fy,M=M,reverseBeam=reverseBeam)
+    getBeamAngleFromLoads(LEN=LEN ,THK=LDB_DEF[i][Zthk] ,W=LDB_DEF[i][Zw], Fx=Fx, Fy=Fy, M=M,BT=BT,Failure_Stress=Failure_Stress,density=density, BEAM_NO = i) ];
 
 // Given a Beam Element and Loads, Calculate the deflection
-function getBeamAngleFromLoads(LEN=2,THK=0.15,W=0.8,Fx=0,Fy=10,M=0, BEAM_NO) = 
+function getBeamAngleFromLoads(LEN=2,THK=0.15,W=0.8,Fx=0,Fy=10,M=0,BT=Zvertforce,Failure_Stress,density, BEAM_NO) = 
     let (Iz = ((W*THK*THK*THK)/12))
     let (AREA = THK*W)
-    let (BT = beam_type(Fy,M,LEN))
     let (Krotate = spring_rate(BT,Iz,LEN,E))//force per radian, Only used for energy calc
     let (cr = characteristic_radius(BT))
-    let (theta = spring_angle(BT,Fy,M,LEN,E,Iz)) // degrees. 
+    let (theta = spring_angle(BT,Fy,M,LEN,Krotate,cr)) // degrees. 
     let (t_rad = theta * PI / 180)      // radians
     let (theta_end = end_angle(BT,theta)) // degrees
     let (Kaxial = E*AREA/LEN)   // Axial spring rate
@@ -165,7 +228,7 @@ function getBeamAngleFromLoads(LEN=2,THK=0.15,W=0.8,Fx=0,Fy=10,M=0, BEAM_NO) =
     let (EnergyAxial = 0.5 * Kaxial * (Fx / Kaxial)*(Fx / Kaxial))
     let (energy = EnergyRotate + EnergyAxial)
     let (weight = AREA*LEN*density)
-//echo(BT=BT,cr=cr,theta=theta,theta_end=theta_end,a=a,b=b,bLinear=bLinear, bRR=bRR,ms=ms)
+echo(BT=BT,cr=cr,theta=theta,theta_end=theta_end,a=a,b=b,bLinear=bLinear, bRR=bRR,ms=ms)
 //echo(Krotate=Krotate,Kaxial=Kaxial,LEN=LEN,NEW_LEN=NEW_LEN)
 //echo(EnergyRotate=EnergyRotate,EnergyAxial=EnergyAxial,energy=energy)
     // QUALITY CHECKING HERE:
@@ -190,42 +253,38 @@ function checkMS(ms,thk,BEAMNO) =
 // get beam type from forces 
 // PE = 1/2 * K * x ^2
 // check energy of both?
-function beam_type(fy=1,m=.2,L=1) = 
-    ((abs(fy*L)>(abs(m)/2) )? Zvertforce : Zendmoment );  // 0 use A.1.2 vertical force constants,  1 use A.1.5 moment
+function beam_type(fy=1,m=.2,L=1,reverseBeam=false) = 
+    ((abs(fy*L)>(abs(m)/2) ) ? 
+    (reverseBeam ? ZvertfReverse: Zvertforce) : // use A.1.2 vertical force constants
+    (reverseBeam ? ZendmReverse: Zendmoment ) ) ; // use A.1.5 moment
     
 function characteristic_radius(bt) = 
-    (bt == Zvertforce ? 0.85 : 0.7346);
+    (bt == Zvertforce ? 0.85 : 
+     (bt == Zendmoment ? 0.7346 : 
+       (bt == ZvertfReverse? 1-0.85 : 1-0.7346) ) );
     
 function spring_rate(bt,i,len,E) = 
-    (bt == Zvertforce ? 2.258*E*i/len : 1.5164*E*i/len);
+    (bt == Zvertforce ? 2.258*E*i/len : 1.5164*E*i/len);  // NEED TO ACCOUNT FOR REVERSE
     
-function spring_angle(bt,fy,moment,L,E,inertia) =
+function spring_angle(bt,fy,moment,L,K,CR) =
 // RETURE THE ANGLE GIVEN THE LOAD (DEGREES)
-// Theta is a function of  COSINE THETA.  Need to iterate a few times to decrease the error.
+// TWO CASES DEPENDING ON LDB TYPE. 
+// FOR DOMINANT MOMENT, ANGLE = M/K
+// ELSE ANGLE = FORCE/K*CR*L*COS(ANGLE)
+// ANGLE is a function of  COSINE ANGLE.  iterate to decrease the error.
     let (rad_deg = 180/PI)
     let (fm = moment/L)
     let (force = fm + fy)
-    let (Kforce = 2.258*E*inertia/L)
-    let (Kmoment = 1.5164*E*inertia/L)
-    let (CRforce = 0.85)
-    let (CRmoment = 0.7346)
-    let (angle0 = rad_deg*(moment/(Kforce)))
-    let (angle1 = rad_deg*(force/Kforce)*CRforce*L*cos(angle0))
-    let (angle2 = rad_deg*(force/Kforce)*CRforce*L*cos(angle1))
-    let (angle3 = rad_deg*(force/Kforce)*CRforce*L*cos(angle2))
-    //let (angle4 = rad_deg*(force/Kforce)*CRforce*L*cos(angle3))
-    let (check_ang = (abs(angle3) > 15) ? echo("###BEAM ANGLE LIMIT EXCEEDED###",angle3=angle3) : angle3)
-//echo(bt=bt,angle0=angle0,angle1=angle1,angle2=angle2,angle3=angle3)
-    //let (error1 = angle1-ang_est)
-    //let (error2 = angle2-angle1)
-    //let (error3 = angle3-angle2)
-    //let (error4 = angle4-angle3)
-//echo(bt=bt,error1=error1,error2=error2,error3=error3,error4=error4)
-    (bt == Zvertforce ? rad_deg*(fy/Kforce)*CRforce*L*cos(angle3) : 
-                  rad_deg*(fm/Kmoment)*L ); 
+    let (angle0 = rad_deg*(force/(K)))
+    let (angle1 = rad_deg*(force/K)*CR*L*cos(angle0))
+    let (angle2 = rad_deg*(force/K)*CR*L*cos(angle1))
+    let (angle3 = rad_deg*(force/K)*CR*L*cos(angle2))
+    let (check_ang = (abs(angle3) > 30) ? echo("###BEAM ANGLE LIMIT EXCEEDS 30 DEG ###",angle3=angle3) : angle3)
+echo(force=force,fm=fm,fy=fy,bt=bt,angle0=angle0,angle1=angle1,angle2=angle2,angle3=angle3)
+    (bt == Zendmoment) ? rad_deg*moment/K : angle3;
 
 function end_angle(bt,angle) = 
-    (bt == Zvertforce ? angle*1.24 : angle*1.5164);
+    (bt == Zvertforce ? angle*1.24 : angle*1.5164);  // NEED TO ACCOUNT FOR REVERSE
 
 function a_position(L,cr,theta) = L*(1-cr*(1-cos(theta)));
 function b_position(L,cr,theta) = cr*L*sin(theta);
@@ -234,15 +293,15 @@ function b_position(L,cr,theta) = cr*L*sin(theta);
 module draw_beam_undeformed(LDBdef) {
     // LDBdef (LDB definition).  All else is derived
     ZEROLOADS = concat([for (i=[1:len(LDBdef)]) [0,0,0]],[[0,0,0]]);
-    beam_angles = global_angles(LDBdef);
+    //beam_angles = global_angles(LDBdef);
     //echo(beam_angles=beam_angles);
-    results = compute_iteration(LDBdef,Failure_Stress,density,ZEROLOADS,beam_angles,1);
+    results = compute_iteration(LDBdef,ZEROLOADS,Failure_Stress=1,density=1);
     //echo(results=results);
     draw_beam_deformed(LDBdef,results); 
 }
 
 // recursive module that draws the deformed beam.
-module draw_beam_deformed(LDBdef,results,idx = 0,prior_ang=0) {
+module draw_beam_deformed(LDBdef,results,displayHinge=false,idx = 0,prior_ang=0) {
     elem_type = LDBdef[idx][Ztype];
     if (elem_type == Qbeam) {  // Note: undefined causes the recursion to stop
         L = LDBdef[idx][Zlen];
@@ -257,29 +316,36 @@ module draw_beam_deformed(LDBdef,results,idx = 0,prior_ang=0) {
         ms = results[idx][Zms]; 
 //echo(idx=idx,elem_type=elem_type,LDBdef_ang=LDBdef_ang,end_ang=end_ang,cr=cr,a=a,b=b);
         // draw the two beam segments 
-        color ([val_red(ms),val_green(ms),0.2]) linear_extrude(height=w,center=true) hull() { 
-            rotate([0,0,LDBdef_ang]) translate([babyL,0,0]) circle(d=t,$fn=16);
-            circle(d=t,$fn=16);  // ZERO,ZERO
+        color ([val_red(ms),val_green(ms),0.2]) linear_extrude(height=w,center=true) 
+            hull() { 
+                rotate([0,0,LDBdef_ang]) translate([babyL,0,0]) circle(d=t,$fn=16);
+                circle(d=t,$fn=16);  // ZERO,ZERO
         }
-        color ([val_red(ms),val_green(ms),0]) linear_extrude(height=w,center=true) hull() { 
-            rotate([0,0,LDBdef_ang]) translate([babyL,0,0]) circle(d=t,$fn=16);
-            rotate([0,0,LDBdef_ang]) translate([a,b,0]) circle(d=t,$fn=16);
+        color ([val_red(ms),val_green(ms),0]) linear_extrude(height=w,center=true) 
+            hull() { 
+                rotate([0,0,LDBdef_ang]) translate([babyL,0,0]) circle(d=t,$fn=16);
+                rotate([0,0,LDBdef_ang]) translate([a,b,0]) circle(d=t,$fn=16);
         }
+        
+        if(displayHinge) color("black") rotate([0,0,LDBdef_ang]) translate([babyL,0,0]) cylinder(h=w*1.2,d=t/2,$fn=16);
+            
         // Recursive call generating the next beam
         rotate([0,0,LDBdef_ang]) translate([a,b,0]) rotate([0,0,end_ang]) 
-                draw_beam_deformed(LDBdef,results,idx + 1,LDBdef_ang+prior_ang);
+                draw_beam_deformed(LDBdef,results,displayHinge,idx + 1,LDBdef_ang+prior_ang);
     } 
 }
 
 // module that draws the loads 
-module draw_loads(nodes,loads,results,scale=1,z_rot=0) {
+module draw_loads(nodes,loads,torques,scale=1,z_rot=0) {
     //echo("DRAW ",nodes=nodes,loads=loads);
+    N=len(loads)-1;
     rotate ([0,0,z_rot]) {
-        for (i=[0:len(loads)-1]) {
+        for (i=[0:N]) {
             fx = loads[i][Zfx];
             fy = loads[i][Zfy];
-            moment = results[i][ZReactm];
+            moment = torques[i][Zm];
             fmag = sqrt(fx*fx + fy*fy);
+//echo(i=i,fx=fx,fy=fy,moment=moment);
             // draw forces and torques
             if (abs(fmag)>0.1) color ("red") 
                 translate([nodes[i][0],nodes[i][1],0]) 
@@ -340,7 +406,7 @@ function rotate_int_loads(int_loads,beam_angles) =
     [ for (i=[0:1:n-1]) (
         let (fx = int_loads[i][Zfx])
         let (fy = int_loads[i][Zfy])
-        let (ang = (i==0? 0 :-beam_angles[i-1])) // special case
+        let (ang = (i==0? beam_angles[i] :-beam_angles[i-1])) // special Ground case
 //echo(i=i,fx=fx,f=fy,ang=ang)
         [rot_x(fx,fy,ang) , rot_y(fx,fy,ang) ,int_loads[i][Zm] ])];
 
@@ -427,14 +493,14 @@ function getNodeFromResults(resultsArray,initAngles,x_past=0,y_past=0,ang_past=0
         getNodeFromResults(resultsArray, initAngles, x_new , y_new , sum_ang, index + 1) ) 
     :  [] ;  // Return nothing when all points are processed
 
-function getAnglesFromNodes(NodesArray, index=1,x_past=0,y_past=0) = 
+function getAnglesFromNodes(NodesArray,x_past=0,y_past=0, index=1) = 
     index < len(NodesArray) ?
         let (x = NodesArray[index][Nx])
         let (y = NodesArray[index][Ny])
         let (beamAng = atan2(y-y_past,x-x_past))
- //echo(index=index,x=x,y=y,y_past=y_past,beamAng=beamAng)
+ //echo(index=index,x=x,x_past=x_past,y=y,y_past=y_past,beamAng=beamAng)
         concat([ beamAng ],
-           getAnglesFromNodes(NodesArray, index + 1, x , y ) ) 
+           getAnglesFromNodes(NodesArray, x , y , index + 1) ) 
     :  [] ;  // Return nothing when all points are processed
 
 function beamFromNodes(nodes,t,w,MIN_LEN = 1,index=0,prior_ang=0) =

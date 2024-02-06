@@ -3,14 +3,14 @@ include <LDB_Indexes.scad>
 use <LDB_Modules.scad>
 
 // Pick which beam definition to use
-ACTIVE_BEAM=11; // [1:1-CANTILEVER BEAM w End Moment-CIRCLE, 2:2-CANTILEVER BEAM w Force & Moment, 3:3-SINE WAVE BEAM, 4:4-CANTILEVER BEAM w Distributed Force, 5:5-8seg Normal Force (test shape), 6:6-test (125g), 7:7-test (545g),8:8-test-reaction (545g) TBD,9:9-Column,10:10-BAD DATA,11:11-Parallel Flex]
+ACTIVE_BEAM=11; // [1:1-CANTILEVER BEAM w End Moment-CIRCLE, 2:2-CANTILEVER BEAM w Force & Moment, 3:3-SINE WAVE BEAM, 4:4-CANTILEVER BEAM w Distributed Force, 5:5-8seg Normal Force (test shape), 6:6-test (125g), 7:7-test (545g),8:8-test-reaction (545g) TBD,9:9-Column,10:10-FRAME,11:11-Parallel Flex AIRPLANE LAUNCHER,99:99-BAD DATA]
 
 // Display intermediate load steps?
 Display_steps = true;
 // Load Steps
 Load_Steps = 4; // [1:1:20]
 // Scale of Force & Moment Display
-force_scale = 0.1; // [0.05:.05:2.0]
+force_scale = 0.5; // [0.05:.05:2.0]
 // MATERIAL PROPERTIES. 
 // Modulus of Elasticity (PSI), PLA=340000,PETG=300000,Polycar=320000
 E = 320000; // MUST MODIFY IN MODULES 
@@ -33,17 +33,17 @@ ang_fixed = 0; // [-90:10:90]
 if (ACTIVE_BEAM == 1) {
     // CANTILEVER BEAM WITH MOMENT 
     t=0.1;
-    L = 31.415;  // circle len = pi()*d  (d=10 or r=5)
+    L = 30;  // circle len = pi()*d  
     LN = L/NumberBeams;
     ELEM = [for (i=[1:NumberBeams]) [Qbeam,LN,t,w,0]];
     echo(ELEM=ELEM);
-    LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[0,0,4.5]]);
+    LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[0,0,5]]);
     echo(LOADS1=LOADS1);
 
-    Do_Analysis(ELEM,LOADS1,force_scale,Display_steps,Failure_Stress,density,steps=Load_Steps);
+    Do_Analysis(ELEM,LOADS1,force_scale,Display_steps,Failure_Stress,density,Origin=[0,0,0],steps=Load_Steps);
     
     // The beam should roughly wrap the cylinder
-    translate([0,5,-1]) cylinder(h=1,r=5,center=true,$fn=32);
+    translate([0,L/(2*PI),-1]) cylinder(h=1,r=L/(2*PI),center=true,$fn=32);
 }
 else if (ACTIVE_BEAM == 2) {
     // CANTILEVER BEAM WITH FORCE
@@ -64,7 +64,7 @@ else if (ACTIVE_BEAM == 2) {
    
     draw_beam_undeformed(BEAM1);
 
-    Do_Analysis(BEAM1,LOADS1,force_scale*0.01,Display_steps,Failure_Stress,density,steps=Load_Steps);
+    Do_Analysis(BEAM1,LOADS1,force_scale*0.5,Display_steps,Failure_Stress,density,steps=Load_Steps);
     }
 else if (ACTIVE_BEAM == 3) {
     // Sinewave beam
@@ -191,7 +191,6 @@ else if (ACTIVE_BEAM == 8) {
     draw_points(pts,dia=0.05);
         
 }
-
 else if (ACTIVE_BEAM == 9) {
     // Compression Test Column, 6 segment:
     //  Euler Column Load Limit is about 3 lb for t = 0.05,  L = 3
@@ -208,15 +207,47 @@ else if (ACTIVE_BEAM == 9) {
     draw_beam_undeformed(BEAM1);
 
     Do_Analysis(BEAM1,LOADS1,force_scale,Display_steps,Failure_Stress,density,steps=10);
-}
+} if (ACTIVE_BEAM == 10) {
+    // FRAME OF BEAMS from points
+    t=.06;  
+    w=0.5;
+    HGT = 6;  // height of overall frame
+    WIDTH = 2; // width of frame
+    ORIGIN = [0,0,0];
 
-else if (ACTIVE_BEAM == 10 ) {
-    // Junk case
-    LDB_DEF = 5;
-    echo("JUNK TEST CASE");
-    Do_Analysis(LDB_DEF,force_scale,Display_steps,Failure_Stress,density);
-} if (ACTIVE_BEAM == 11) {
-    // PARALLEL FLEXTURE SYSTEM
+    pts=[ORIGIN,[0,HGT],[WIDTH,HGT],[WIDTH,0]];  // frame shape
+    //pts=[ORIGIN,[WIDTH,HGT],[0,HGT],[WIDTH,0]];  // CROSSING frame shape
+    new_pts = addPoints(pts,0.5);  // add points at spacing of second parameter
+    echo(new_pts=new_pts);
+    //draw_points(new_pts,dia=0.1);
+    
+    BEAM1 = beamFromNodes(new_pts,t,w);  // creates the beam elements
+    NumberBeams = len(BEAM1);
+    //echo(BEAM1=BEAM1," n=", len(BEAM1));
+        
+    Fx = .5;
+    Mz = 0; // Fx*HGT/2;
+    //echo(Mz=Mz);
+    //LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[Fx,0,Mz]]);
+    LOADS1 = concat ( concat (
+    concat([for (i=[1:(NumberBeams/2)-1]) [0,0,0]],[[Fx,0,Fx*HGT/2]]), // first leg & top load
+        [for (j=[1:(NumberBeams/2)]) [0,0,0]]), // second leg
+            [[-Fx/2.1,0,Fx*HGT/4]]); // << last load is back solved to hold
+       
+    //echo(LOADS1=LOADS1," n=", len(LOADS1));
+
+    translate(ORIGIN) draw_beam_undeformed(BEAM1); 
+    
+    // ~Stress level at which the part will fail (PSI)
+    FAILURE_STRESS = 10000;
+    // This could be tensile failure, compression failure, bending, etc.
+    // material density (lb per inch^3)
+    DENSITY = 0.043;
+
+    Do_Analysis(BEAM1,LOADS1,force_scale,Display_steps,FAILURE_STRESS,DENSITY,ORIGIN,steps=4);
+}
+if (ACTIVE_BEAM == 11) {
+    // PARALLEL FLEXTURE SYSTEM, PAPER AIRPLANE LAUNCHER
     t=.06;  // individual beam thickness, minimum
     w=0.5;  // width of beam (3d printing thickness
     L=5;  // total length of beams
@@ -277,8 +308,14 @@ else if (ACTIVE_BEAM == 10 ) {
         cube([L-.05,CAP_X,w]); // upright for fixed latch
 
     // ANALYSIS, DON'T INCLUDE IN PRINT
-    *translate([0,-START_Y,0]) Do_Analysis(BEAM1,LOADS1,force_scale,Display_steps,Failure_Stress,density,steps=Load_Steps);
-}
+    translate([0,-START_Y,0]) Do_Analysis(BEAM1,LOADS1,force_scale,Display_steps,Failure_Stress,density,steps=Load_Steps);
+} 
+else if (ACTIVE_BEAM == 99 ) {
+    // Junk case
+    LDB_DEF = 5;
+    echo("JUNK TEST CASE");
+    Do_Analysis(LDB_DEF,force_scale,Display_steps,Failure_Stress,density);
+} 
 
 module VEE_SLOT(X=1,Y=1,LEN=10) {
     X_TIP = X/14;
