@@ -26,10 +26,10 @@ Zm = 2;     // external moment about global Z
 // USED WITH QDisp:
 // Zfx = 1;    // Estimated external force in global X to meet displacement
 // Zfy = 2;    // Estimated external force in global Y to meet displacement
-Ztarget = 3; // Target value for the displacement (X or Y)
-ZdFdx = 4; // Estimate spring rate
-Zgreater = 5;
-Zless = 6;
+//Ztarget = 3; // Target value for the displacement (X or Y)
+//ZdFdx = 4; // Estimate spring rate
+//Zgreater = 5;
+//Zless = 6;
 
 // USED WITH NODES ARRAY [Nx,Ny,Nang]
 Nx = 0;
@@ -48,11 +48,10 @@ Zms = 5;       // margin of safety
 Zstressmin = 6;
 Zstressmax = 7;
 Zenergy = 8;
-Zweight = 9;   // beam segment weight
-ZNewThk = 10;
-ZReactx = 11;
-ZReacty = 12;
-ZReactm = 13;
+ZNewThk = 9;
+ZReactx = 10;
+ZReacty = 11;
+ZReactm = 12;
 
 //ZPx = 13;      // X load on beam end, local
 //ZPy = 14;      // Y load on beam end, local
@@ -61,7 +60,7 @@ ZReactm = 13;
 
 
 // USED WITH BEAM TYPE
-Zvertforce = 12; // use A.1.2 vertical force PRBM constants, characteristic radius = 0.85
-ZvertfReverse = 13;  // use A.1.2, except reverse
-Zendmoment = 15; // use A.1.5 end moment PRBM constants, characteristic radius = 0.735
-ZendmReverse = 16; // use A.1.5, except reverse
+//Zvertforce = 12; // use A.1.2 vertical force PRBM constants, characteristic radius = 0.85
+//ZvertfReverse = 13;  // use A.1.2, except reverse
+//Zendmoment = 15; // use A.1.5 end moment PRBM constants, characteristic radius = 0.735
+//ZendmReverse = 16; // use A.1.5, except reverse
