@@ -21,6 +21,16 @@ $vpd = 90;         // view point distance
 // use large value (~100) for printing, smaller (~40) for display
 FACETS = $preview ? 120 : 100; // [40,100]
 
+// Bike Bag Support
+module BikeBagU () {
+    T=2;
+    translate([-100,10,0]) cube([100,T,100]);
+    curved_beam(rot1 = 90, radOfCurve = 10, t1 = T, t2 = 100,$fn=80);
+    translate([10,-105,0]) cube([T,105,100]);
+    translate([0,-105,0]) rotate([0,0,-90]) curved_beam(rot1 = 90, radOfCurve = 10, t1 = T, t2 = 100,$fn=80);
+    translate([-100,-115-T,0]) cube([100,T,100]);    
+}
+BikeBagU();
 // Die, by SRA, 11/24/2023
 module die(size = 18) {
     rad=0.08*size;  // edge radius
@@ -68,7 +78,7 @@ module die(size = 18) {
         translate([size/2,size-d,size]) sphere(d=divotD); // 6
     }
 }
-die($fn=100);
+//die($fn=100);
 
 // Lantern Handle, by SRA, 11/20/2023
 module LanternHandle() {

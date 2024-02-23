@@ -3,7 +3,7 @@ include <LDB_Indexes.scad>
 use <LDB_Modules.scad>
 
 // Pick which beam definition to use
-ACTIVE_BEAM=11; // [1:1-CANTILEVER BEAM w End Moment-CIRCLE, 2:2-CANTILEVER BEAM w Force & Moment, 3:3-SINE WAVE BEAM, 4:4-CANTILEVER BEAM w Distributed Force, 5:5-8seg Normal Force (test shape), 6:6-test (125g), 7:7-test (545g),8:8-test-reaction (545g) TBD,9:9-Column,10:10-FRAME,11:11-Parallel Flex AIRPLANE LAUNCHER,99:99-BAD DATA]
+ACTIVE_BEAM=12; // [1:1-CANTILEVER BEAM w End Moment-CIRCLE, 2:2-CANTILEVER BEAM w Force & Moment, 3:3-SINE WAVE BEAM, 4:4-CANTILEVER BEAM w Distributed Force, 5:5-8seg Normal Force (test shape), 6:6-test (125g), 7:7-test (545g),8:8-test-reaction (545g) TBD,9:9-Column,10:10-FRAME,11:11-Parallel Flex AIRPLANE LAUNCHER,12:12-CROSS FRAME,99:99-BAD DATA]
 
 // Display intermediate load steps?
 Display_steps = true;
@@ -205,32 +205,42 @@ else if (ACTIVE_BEAM == 9) { // Compression Test Column, 6 segment:
     draw_beam_undeformed(BEAM1);
 
     Do_Analysis(BEAM1,LOADS1,force_scale*0.5,Display_steps,Failure_Stress,E_PSI,density,steps=10);
-} if (ACTIVE_BEAM == 10) {
-    // FRAME OF BEAMS from points
+} if (ACTIVE_BEAM == 10) {  // FRAME OF BEAMS from points
     t=.06;  
     w=0.5;
     HGT = 6;  // height of overall frame
     WIDTH = 2; // width of frame
     ORIGIN = [0,0,0];
 
-    pts=[ORIGIN,[0,HGT],[WIDTH,HGT],[WIDTH,0]];  // frame shape
-    //pts=[ORIGIN,[WIDTH,HGT],[0,HGT],[WIDTH,0]];  // CROSSING frame shape
-    new_pts = addPoints(pts,0.5);  // add points at spacing of second parameter
-    echo(new_pts=new_pts);
-    //draw_points(new_pts,dia=0.1);
-    
-    BEAM1 = beamFromNodes(new_pts,t,w);  // creates the beam elements
+    pts_UP=[[0,0],[0,HGT]]; 
+    pts_UP_ADD = addPoints(pts_UP,0.5);  // add points at spacing of second parameter
+    BEAM_UP = beamFromNodes(pts_UP_ADD,t,w,true);  // creates the beam elements
+    *color("blue") draw_points(pts_UP_ADD,dia=0.1);
+    *draw_beam_undeformed(BEAM_UP); 
+
+    pts_OVER =[[0,0],[0,-WIDTH]];  // HAVE TO ROTATE -90 TO GET STARTING ANGLE = -90
+    pts_OVER_ADD = addPoints(pts_OVER,0.5);  // add points at spacing of second parameter
+    BEAM_OVER = beamFromNodes(pts_OVER_ADD,t*4,w,false);  // creates the beam elements
+    *color("yellow") draw_points(pts_OVER_ADD,dia=0.08);
+    *draw_beam_undeformed(BEAM_OVER); 
+
+    pts_DOWN=[[WIDTH,HGT],[WIDTH,0]]; 
+    pts_DOWN_ADD = addPoints(pts_DOWN,0.5);  // add points at spacing of second parameter
+    BEAM_DOWN = beamFromNodes(pts_DOWN_ADD,t,w,true);  // creates the beam elements
+    *color("purple") draw_points(pts_DOWN_ADD,dia=0.07);
+
+    BEAM1 = concat(BEAM_UP,concat(BEAM_OVER,BEAM_DOWN));
     NumberBeams = len(BEAM1);
-    //echo(BEAM1=BEAM1," n=", len(BEAM1));
+    echo(BEAM1=BEAM1," n=", len(BEAM1));
         
-    Fx = .5;
+    Fx = 1;
     Mz = 0; // Fx*HGT/2;
     //echo(Mz=Mz);
     //LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[Fx,0,Mz]]);
     LOADS1 = concat ( concat (
     concat([for (i=[1:(NumberBeams/2)-1]) [0,0,0]],[[Fx,0,Fx*HGT/2]]), // first leg & top load
         [for (j=[1:(NumberBeams/2)]) [0,0,0]]), // second leg
-            [[-Fx/2.,0,Fx*HGT/4]]); // << last load is back solved to hold
+            [[-Fx*0.515,-0.04,Fx*HGT*.245]]); // << last load is back solved to hold
        
     //echo(LOADS1=LOADS1," n=", len(LOADS1));
 
@@ -243,6 +253,15 @@ else if (ACTIVE_BEAM == 9) { // Compression Test Column, 6 segment:
     DENSITY = 0.043;
 
     Do_Analysis(BEAM1,LOADS1,force_scale,Display_steps,FAILURE_STRESS,E_PSI,DENSITY,ORIGIN,steps=4);
+        
+    // FUNCTION CALLS TO GET FINAL NODES:
+    StartingNodes = getNodesFromBeams(BEAM1,ORIGIN[0],ORIGIN[1]);  // DOES NOT MATCH NEW POINTS
+    initial_loads = spread_ext_loads(LOADS1); // Spread Loads
+    beam_angles = global_angles(BEAM1); // Generate GLOBAL Beam ANGLES, undeformed
+    FinalNodes = getFinalNodes(BEAM1,FAILURE_STRESS,E_PSI,DENSITY,initial_loads,beam_angles,beam_angles, ORIGIN, STEPS=4,index=4);
+    NODE_NUM = NumberBeams-12;
+    THING(StartingNodes,NODE_NUM);
+    TranslateChildren(StartingNodes,FinalNodes,NODE_NUM) THING(StartingNodes,NODE_NUM);
 }
 if (ACTIVE_BEAM == 11) {
     // PARALLEL FLEXTURE SYSTEM, PAPER AIRPLANE LAUNCHER
@@ -257,13 +276,13 @@ if (ACTIVE_BEAM == 11) {
     
     //BEAM1 = [[Qbeam,LN,t,w,ang_fixed], for (i=[1:NumberBeams-1]) [Qbeam,LN,t,w,0]];
     
-    BEAM1 = [[11111, 0.3125, t*1.15, w, START_ANG], 
-    [11111, 0.3125, t*1.06, w, 0], 
+    BEAM1 = [[11111, 0.3125, t*1.0, w, START_ANG], 
+    [11111, 0.3125, t*1.0, w, 0], 
     [11111, 0.3125, t, w, 0], 
     [11111, 0.3125, t, w, 0], [11111, 0.3125, t, w, 0], [11111, 0.3125, t, w, 0], [11111, 0.3125, t, w, 0], [11111, 0.3125, t, w, 0], [11111, 0.3125, t, w, 0], [11111, 0.3125, t, w, 0], [11111, 0.3125, t, w, 0], [11111, 0.3125, t, w, 0], [11111, 0.3125, t, w, 0], 
     [11111, 0.3125, t, w, 0], 
-    [11111, 0.3125, t*1.06, w, 0], 
-    [11111, 0.3125, t*1.15, w, 0]] ;
+    [11111, 0.3125, t*1.0, w, 0], 
+    [11111, 0.3125, t*1.0, w, 0]] ;
     
     LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[Fx,Fy,Mz]]);
    
@@ -277,7 +296,7 @@ if (ACTIVE_BEAM == 11) {
     
     LATCH_H = 0.3;
     
-    ORIGIN = [0,-START_Y,0];
+    ORIGIN = [0,0,0]; // [0,-START_Y,0];
 
     // Three flex beams
     FLEX_BEAM_FILLETED(BEAM1,ORIGIN,L,BEAM_T=t,BEAM_W=w,BEAM_ANG=START_ANG,R=0.15);
@@ -298,8 +317,9 @@ if (ACTIVE_BEAM == 11) {
     translate([-.7,CAP_Y-CAP_X-START_Y,-w/2]) 
         cube([L-.05,CAP_X-.1,w]); // upright for fixed latch
 
-    /* // ANALYSIS, DON'T INCLUDE ANYTHING BELOW THIS LINE IN PRINT 
-    translate(ORIGIN) Do_Analysis(BEAM1,LOADS1,force_scale,false,Failure_Stress,E_PSI,density,steps=Load_Steps) {launcher(CAP_X,CAP_LEN,w,LATCH_H);} ;
+    // // ANALYSIS, DON'T INCLUDE ANYTHING BELOW THIS LINE IN PRINT 
+    Load_Steps = 6;
+    translate(ORIGIN) Do_Analysis(BEAM1,LOADS1,force_scale,true,Failure_Stress,E_PSI,density,steps=Load_Steps) {launcher(CAP_X,CAP_LEN,w,LATCH_H);} ;
     
     // THREE FUNCTION CALLS TO GET FINAL NODES:
     initial_loads = spread_ext_loads(LOADS1); // Spread Loads
@@ -311,8 +331,67 @@ if (ACTIVE_BEAM == 11) {
     TranslateChildren(StartingNodes,FinalNodes,16) {
         translate([L+START_X_ANG,CAP_Y+START_Y,-w/2]) 
             color("yellow",0.5) launcher(CAP_X,CAP_LEN,w,LATCH_H); };
-*/
-} 
+//
+} if (ACTIVE_BEAM == 12) {  // CROSS FRAME OF BEAMS from points
+    t=.06;  
+    w=0.5;
+    HGT = 6;  // height of overall frame
+    WIDTH = 2; // width of frame
+    ORIGIN = [0,0,0];
+
+    pts_UP=[[0,0],[WIDTH,HGT]]; 
+    pts_UP_ADD = addPoints(pts_UP,0.5);  // add points at spacing of second parameter
+    BEAM_UP = beamFromNodes(pts_UP_ADD,t,w,true);  // creates the beam elements
+    *color("blue") draw_points(pts_UP_ADD,dia=0.1);
+    *draw_beam_undeformed(BEAM_UP); 
+
+    CROSS_ANG = atan2(WIDTH,HGT) + 90;
+    pts_OVER =[[0,0],[WIDTH*cos(CROSS_ANG),WIDTH*sin(CROSS_ANG)]];  // HAVE TO ROTATE 
+    pts_OVER_ADD = addPoints(pts_OVER,0.5);  // add points at spacing of second parameter
+    BEAM_OVER = beamFromNodes(pts_OVER_ADD,t*4,w,false);  // creates the beam elements
+    *color("yellow") draw_points(pts_OVER_ADD,dia=0.08);
+    *draw_beam_undeformed(BEAM_OVER); 
+
+    pts_DOWN=[[0,0],[-WIDTH,HGT]]; 
+    pts_DOWN_ADD = addPoints(pts_DOWN,0.5);  // add points at spacing of second parameter
+    BEAM_DOWN = beamFromNodes(pts_DOWN_ADD,t,w,true);  // creates the beam elements
+    *color("purple") draw_points(pts_DOWN_ADD,dia=0.07);
+
+    BEAM1 = concat(BEAM_UP,concat(BEAM_OVER,BEAM_DOWN));
+    NumberBeams = len(BEAM1);
+    echo(BEAM1=BEAM1," n=", len(BEAM1));
+        
+    Fx = 0.5;
+    Mz = 0; // Fx*HGT/2;
+    //echo(Mz=Mz);
+    //LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[Fx,0,Mz]]);
+    LOADS1 = concat ( concat (
+    concat([for (i=[1:(NumberBeams/2)-1]) [0,0,0]],[[Fx,0,0]]), // first leg & top load
+        [for (j=[1:(NumberBeams/2)]) [0,0,0]]), // second leg
+            [[-Fx*.245,Fx*.47,0.88]]); // << last load is back solved to hold
+       
+    //echo(LOADS1=LOADS1," n=", len(LOADS1));
+
+    translate(ORIGIN) draw_beam_undeformed(BEAM1); 
+    
+    // ~Stress level at which the part will fail (PSI)
+    FAILURE_STRESS = 10000;
+    // This could be tensile failure, compression failure, bending, etc.
+    // material density (lb per inch^3)
+    DENSITY = 0.043;
+
+    Do_Analysis(BEAM1,LOADS1,force_scale,Display_steps,FAILURE_STRESS,E_PSI,DENSITY,ORIGIN,steps=4);
+        
+    // FUNCTION CALLS TO GET FINAL NODES AND TRANSFORM THING:
+    StartingNodes = getNodesFromBeams(BEAM1,ORIGIN[0],ORIGIN[1]);  // DOES NOT MATCH NEW POINTS
+    initial_loads = spread_ext_loads(LOADS1); // Spread Loads
+    beam_angles = global_angles(BEAM1); // Generate GLOBAL Beam ANGLES, undeformed
+    FinalNodes = getFinalNodes(BEAM1,FAILURE_STRESS,E_PSI,DENSITY,initial_loads,beam_angles,beam_angles, ORIGIN, STEPS=4,index=4);
+    NODE_NUM = NumberBeams-17;
+    THING(StartingNodes,NODE_NUM);
+    TranslateChildren(StartingNodes,FinalNodes,NODE_NUM) THING(StartingNodes,NODE_NUM);  //
+}
+
 else if (ACTIVE_BEAM == 99 ) {  // Junk case
     LDB_DEF = 5;
     echo("JUNK TEST CASE");
