@@ -12,6 +12,8 @@ force_scale = 0.1; // [0.05:.05:2.0]
 // Units
 UNITS = "METRIC, LENGTH = MM, FORCE = NEWTONS";
 
+TITLE = "AIRPLANE LAUNCHER 3-9-24"; // UPDATE DATE BEFORE EXPORTING
+
 // The build volume of a Prusa MINI printer is 180x180x180 mm
 
 // MATERIAL PROPERTIES
@@ -51,7 +53,7 @@ Rfillet = 3.0; // mm
 //START_Y = L*sin(START_ANG)/2;
 //START_X_ANG = L*cos(START_ANG) - L;
 
-CAP_LEN = 100; // mm, Length of rigid beams, USED IN MANY PLACES
+CAP_LEN = 140; // mm, Length of rigid beams, USED IN MANY PLACES
 CAP_X = 18; // mm, Thickness of rigid beams, USED IN MANY PLACES
 
 module SOLVE_STARTING_SHAPE () {
@@ -112,7 +114,7 @@ module AIRPLANE_LAUNCHER (PRINT = false) {
     // Launcher, Deformed, DON'T INCLUDE IN PRINT 
     if(!PRINT) TranslateChildren(StartingNodes,FinalNodes,NumberBeams) 
         translate(end_point)  color("yellow",0.5) 
-            LAUNCHER(CAP_X,CAP_LEN,w,LATCH_H,-CAP_LEN*.7); 
+            LAUNCHER(CAP_X,CAP_LEN,w,LATCH_H,-CAP_LEN*.78); 
 
     // Four flex beams, not deformed
     FLEX_BEAM_FILLETED(BEAM1,ORIGIN,BEAM_T=t,BEAM_W=w,BEAM_ANG=START_ANG,R=Rfillet, NODES=STEP_1_PTS, SPACE = BEAM_SPACE,CYL=true);
@@ -124,7 +126,7 @@ module AIRPLANE_LAUNCHER (PRINT = false) {
     FLEX_BEAM_FILLETED(BEAM1,[0,BEAM_SPACE*3,0],BEAM_T=t,BEAM_W=w,BEAM_ANG=START_ANG,R=Rfillet, NODES=STEP_1_PTS, SPACE = BEAM_SPACE,CYL=false);
 
     // Launcher, Not deformed
-    translate(end_point) LAUNCHER(CAP_X,CAP_LEN,w,LATCH_H,-CAP_LEN*.7);
+    translate(end_point) LAUNCHER(CAP_X,CAP_LEN,w,LATCH_H,-CAP_LEN*.78);
     
     Base();
 
@@ -155,18 +157,22 @@ module Base() {
         
     // upright for latch
     translate([R_ARC,Y-CAP_X,-w/2]) 
-        cube([X+t-R_ARC,CAP_X,w]); 
+        difference() {
+            UP_X = X+t-R_ARC;
+            cube([X+t-R_ARC,CAP_X,w]); 
+            translate([UP_X*.8,-UP_X*.42,0]) cylinder(h=3*w,d=UP_X*.9,center=true,$fn=100);
+        }
         
     // ADD TEXT 
     color("yellow") {
-    SZ = 5;
+    SZ = 5;  // Text height
     translate([0,3*BEAM_SPACE,w/2]) 
         rotate([0,0,-90])
         linear_extrude(1) {
-            translate([0,-SZ-2,0]) 
-                text("AIRPLANE LAUNCHER 3-3-24",size=SZ);
-            translate([0,-2*SZ-4,0]) 
-                text(str("MATERIAL IS ",MATERIAL),size=SZ);
+            translate([0,-SZ-3,0]) 
+                text(str(TITLE),size=SZ);
+            translate([0,-2*SZ-5,0]) 
+                text(str("MATERIAL: ",MATERIAL),size=SZ);
         }
     }
 }
@@ -212,21 +218,21 @@ module LAUNCHER(CAPX=0.7,CAPLEN=4,W=0.5,HLATCH=0.3,YSHIFT=0) {
             translate([CAPX,0,-W/2]) rotate([0,0,6]) 
                 cube([CAPX,CAPLEN*2,W*2]);  // remove top angle
         }
-        translate([-HLATCH,CAPLEN/2,0]) 
+        translate([-HLATCH,CAPLEN/2+21,0]) 
             LATCH(HLATCH,HLATCH,W); // moving latch
     }
 }
-*LAUNCHER(CAP_X,CAP_LEN,w,LATCH_H);
+*LAUNCHER(CAP_X,CAP_LEN,w,LATCH_H,-CAP_LEN*.78);
 
 module VEE_SLOT(X=1,Y=1,LEN=10) {
-    X_TIP = X/14;
+    X_TIP = X/30;
     translate([X/1.5,LEN,-Y/2]) rotate([90,0,0]) linear_extrude(LEN,convexity=10) {
         polygon([[0,Y/2-X_TIP],[X,0],[X,Y],[0,Y/2+X_TIP]]);
     }
     
     //translate([X,0,-Y]) rotate([0,0,6]) cube([X,LEN*1.5,2*Y]);
 };
-*VEE_SLOT();
+*VEE_SLOT(CAP_X-.075,w,CAP_LEN);
 
 module LATCH(X=1,Y=1,LEN=2) {
     translate([0,0,0]) linear_extrude(LEN,convexity=10) {
@@ -249,13 +255,13 @@ module FLEX_BEAM_FILLETED(BEAM,ORG,BEAM_T,BEAM_W,BEAM_ANG,R,NODES,SPACE,CYL=fals
 
     NEW_D = SPACE-BEAM_T*0.9;    
     if (CYL) {
-       HOOP(floor(1*NB/6));
-       HOOP(floor(2*NB/6));
-       HOOP(floor(3*NB/6));
-       HOOP(floor(4*NB/6));
-       HOOP(floor(5*NB/6));
+       HOOP(floor(1*NB/6),NEW_D*1.14);
+       HOOP(floor(2*NB/6),NEW_D*1.06);
+       HOOP(floor(3*NB/6),NEW_D);
+       HOOP(floor(4*NB/6),NEW_D*1.06);
+       HOOP(floor(5*NB/6),NEW_D*1.14);
     }
-    module HOOP(NODE_NUM) {
+    module HOOP(NODE_NUM,DIA_HOOP) {
         T_HOOP = 0.8;  // mm (2 x nozzle dia)
         POINT = [NODES[NODE_NUM][Nx],NODES[NODE_NUM][Ny],0];
         ROTANG = atan2(NODES[NODE_NUM][Ny]-NODES[NODE_NUM-1][Ny],NODES[NODE_NUM][Nx]-NODES[NODE_NUM-1][Nx]);
@@ -264,8 +270,8 @@ module FLEX_BEAM_FILLETED(BEAM,ORG,BEAM_T,BEAM_W,BEAM_ANG,R,NODES,SPACE,CYL=fals
             rotate([0,0,ROTANG]) 
             translate([0,SPACE/2-BEAM_T*.75,0]) 
             difference() {
-                cylinder(d=NEW_D,h=BEAM_W,center=true,$fn=64);
-                cylinder(d=NEW_D-2*T_HOOP,h=2*BEAM_W,center=true,$fn=64);
+                cylinder(d=DIA_HOOP,h=BEAM_W,center=true,$fn=64);
+                cylinder(d=DIA_HOOP-2*T_HOOP,h=2*BEAM_W,center=true,$fn=64);
         }
     }
 }
@@ -274,13 +280,13 @@ module BEAM_FILLETS(BEAM_T,BEAM_W,BEAM_ANG,R) {
     Y_FILR = R + BEAM_T/2;
     Y_ANG = R*sin(BEAM_ANG);
     X_FILR = R;
-    TRAPIZOID = [[X_FILR,Y_FILR+Y_ANG] , [-X_FILR,Y_FILR-Y_ANG] , [-X_FILR,-Y_FILR-Y_ANG] , [X_FILR,-Y_FILR+Y_ANG]];
+    TRAPIZOID = [[X_FILR,Y_FILR+Y_ANG] , [-X_FILR/2,Y_FILR-Y_ANG] , [-X_FILR/2,-Y_FILR-Y_ANG] , [X_FILR,-Y_FILR+Y_ANG]];
     
     translate([0,0,-BEAM_W/2]) difference() {
         linear_extrude(BEAM_W,convexity=10)
             polygon(TRAPIZOID);
-        translate([X_FILR,Y_FILR+Y_ANG,BEAM_W/2]) cylinder(h=2*BEAM_W,r=R,center=true,$fn=32);
-        translate([X_FILR,-Y_FILR+Y_ANG,BEAM_W/2]) cylinder(h=2*BEAM_W,r=R,center=true,$fn=32);
+        translate([X_FILR,Y_FILR+Y_ANG,BEAM_W/2]) cylinder(h=2*BEAM_W,r=R,center=true,$fn=48);
+        translate([X_FILR,-Y_FILR+Y_ANG,BEAM_W/2]) cylinder(h=2*BEAM_W,r=R,center=true,$fn=48);
     }
 }
-//translate([-2,0,0]) BEAM_FILLETS(BEAM_T=0.1,BEAM_W=1,BEAM_ANG=15,R=0.1);
+*translate([-2,0,0]) BEAM_FILLETS(BEAM_T=0.1,BEAM_W=1,BEAM_ANG=15,R=0.1);
