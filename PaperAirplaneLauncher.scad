@@ -1,8 +1,12 @@
 // Paper Airplane Launcher Model, by SrAmo 2024
 // One piece.  No rubber bands.
 // Can be printed on a Mini 3d printer (180x180 mm bed)
+//    The build volume of a Prusa MINI printer is 180x180x180 mm
 // Note: Import .STL into MS 3D Builder, REPAIR, AND ROTATE IN YAW 84 DEGREES, before slicing
-// Designed for PLA or PETG filament.  PETG is a better material for this application.
+// Designed for PLA or PETG filament.  
+// For this design, when latched:
+// PETG has greater margin to failure than PLA
+// PLA has greater potential energy (35 N-mm) than PETG (30.4 N-mm)
 include <LDB_Indexes.scad>
 use <LDB_Modules.scad>
 use <../MAKE3-Arm/openSCAD-code/Robot_Arm_Parts_lib.scad>
@@ -13,25 +17,23 @@ force_scale = 0.1; // [0.05:.05:2.0]
 // Units
 UNITS = "METRIC, LENGTH = MM, FORCE = NEWTONS";
 
-TITLE = "AIRPLANE LAUNCHER 3-23-24"; // UPDATE DATE BEFORE EXPORTING
-
-// The build volume of a Prusa MINI printer is 180x180x180 mm
+TITLE = "AIRPLANE LAUNCHER 4/6/24"; // UPDATE DATE BEFORE EXPORTING
 
 // MATERIAL PROPERTIES
-//MATERIAL = "PLA";
-MATERIAL = "PETG";
+MATERIAL = "PLA";
+//MATERIAL = "PETG";
 
 echo(str("UNITS ARE ",UNITS,", MATERIAL IS ",MATERIAL));
 
-//E_NSMM = 2344;  // Modulus of Elasticity (NEWTONS PER mm^2), PLA
-E_NSMM = 2068;  // Modulus of Elasticity (NEWTONS PER mm^2), PETG
+E_NSMM = 2344;  // Modulus of Elasticity (NEWTONS PER mm^2), PLA = 2344
+//E_NSMM = 2068;  // Modulus of Elasticity (NEWTONS PER mm^2), PETG = 2068
 
-//FAILURE_STRESS_METRIC = 50;  // ~Stress level at which PLA will fail (NEWTONS per mm^2)
-FAILURE_STRESS_METRIC = 60;  // ~Stress level at which PETG will fail (NEWTONS per mm^2)
+FAILURE_STRESS_METRIC = 50;  // ~Stress level at which PLA will fail (NEWTONS per mm^2)
+//FAILURE_STRESS_METRIC = 60;  // ~Stress level at which PETG will fail (NEWTONS per mm^2)
 // This could be tensile failure, compression failure, bending, etc.
 
-//DENSITY_METRIC = 0.0012318;  // material density (gram per mm^3) PLA
-DENSITY_METRIC = 0.0012733;  // material density (gram per mm^3) PETG
+DENSITY_METRIC = 0.0012318;  // material density (gram per mm^3) PLA
+//DENSITY_METRIC = 0.0012733;  // material density (gram per mm^3) PETG
 
 // PARALLEL FLEXTURE SYSTEM, PAPER AIRPLANE LAUNCHER
 t=1.5;  // individual beam thickness, minimum
@@ -39,7 +41,9 @@ w=15.0;  // width of beam (3d printing z-direction)
 L=150;  // total length of beams
 
 Fx=0;
-Fy=-4.8; // Newtons.  For PETG use -4.45, for PLA use -4.0
+// Force to pull launcher to trigger for PETG is 19.2 Newtons, for PLA is 22 N
+Fy=-5.5; // Newtons.  For PETG use -5.5, for PLA use -4.8
+// measured 24 (/4) = 6 Newtons per beam
 Mz = -Fy*L*.95/2;
 ORIGIN = [0,0,0];  // USED IF BEAM DOES NOT START AT 0,0,0
 
@@ -136,18 +140,18 @@ module AIRPLANE_LAUNCHER (PRINT = false) {
     // END OF MAIN
     //
 }
-AIRPLANE_LAUNCHER(PRINT = true);
+AIRPLANE_LAUNCHER(PRINT = false);
 
 module Base() {
     // Base constants
     R_ARC = 25; // inside radius
 
     // ADJUST TRIGGER X Y TO GET GOOD ENGAGEMENT (TO YELLOW PART)
-    X=128;
+    X=129;
     Y=-80;
 
     translate([X,Y,-w/2]) 
-        Trigger(LATCH_H,w,t,FLEX_LEN);
+        Trigger(LATCH_H,w,t*1.3,FLEX_LEN);
 
     // left cap
     translate([-CAP_X,Y+R_ARC,-w/2]) 
@@ -168,15 +172,18 @@ module Base() {
         
     // ADD TEXT 
     color("yellow") {
-    SZ = 5;  // Text height
-    translate([0,3*BEAM_SPACE,w/2]) 
+    SZ = 5.5;  // Text height
+    translate([0,3.7*BEAM_SPACE,w/2]) 
         rotate([0,0,-90])
         linear_extrude(1) {
-            translate([0,-SZ-3,0]) 
-                text(str(TITLE),size=SZ);
-            translate([0,-2*SZ-5,0]) 
-                text(str("MATERIAL: ",MATERIAL),size=SZ);
+            translate([0,-SZ-4,0]) 
+                text(str(TITLE),size=SZ,font="Liberation Sans:style=Bold Italic");
         }
+        *translate([0,0,w/2]) linear_extrude(1) {
+            translate([20,-90,0]) 
+                text("for Ilvy",size=6,font="Liberation Sans:style=Bold Italic");
+        }
+
     }
 }
 *Base();
@@ -211,7 +218,7 @@ module Trigger(HLATCH,W,T,FLEXL) {
         }
     }
 }
-*Trigger(LATCH_H,w,t,FLEX_LEN);
+*Trigger(LATCH_H,w,t*1.3,FLEX_LEN);
 
 module LAUNCHER(CAPX=0.7,CAPLEN=4,W=0.5,HLATCH=0.3,YSHIFT=0) {
     translate([0,YSHIFT,-W/2]) {
