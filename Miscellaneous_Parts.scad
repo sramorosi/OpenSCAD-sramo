@@ -19,7 +19,7 @@ $vpf = 50;          // view point field of view
 $vpd = 90;         // view point distance
 */
 // use large value (~100) for printing, smaller (~40) for display
-FACETS = $preview ? 120 : 100; // [40,100]
+FACETS = $preview ? 100 : 150; // [40,100]
 
 // Bike Bag Support
 module BikeBagU () {
@@ -30,7 +30,8 @@ module BikeBagU () {
     translate([0,-105,0]) rotate([0,0,-90]) curved_beam(rot1 = 90, radOfCurve = 10, t1 = T, t2 = 100,$fn=80);
     translate([-100,-115-T,0]) cube([100,T,100]);    
 }
-BikeBagU();
+*BikeBagU();
+
 // Die, by SRA, 11/24/2023
 module die(size = 18) {
     rad=0.08*size;  // edge radius
@@ -215,16 +216,17 @@ function un(v) = v / max(1e-15, norm(v)); // just for color
 p=close(flower(70, 21.827, 9.88683, 14, -11, 300));
 *polygon(p);
 
-// Shower Rack Bumper
-module showerClip(ID = 2, OD = 10, H = 5) {
+// C shaped clip for Shower Rack Bumper, or sink rack bumper
+module cClip(ID = 2, OD = 10, H = 5) {
     linear_extrude(H,convexity=10)
         difference() {
             circle(d=OD);
             circle(d=ID);
-            polygon([[-ID/2,0],[OD/1.8,ID/1.0],[OD/1.8,-ID/1.0]]);
+            polygon([[-ID/2,0],[OD/1.8,ID/1.3],[OD/1.8,-ID/1.3]]);
         }
 }
-*showerClip(ID=6.4,OD=16,H=6,$fn = FACETS);
+*cClip(ID=6.4,OD=16.0,H=6,$fn = FACETS);  // Shower Rack Bumper
+cClip(ID=4.45,OD=9.0,H=18.6,$fn = FACETS);  // Sink Rack Bumper
 
 // Freezer Rack Support for Clara & Adam.  Units are in MM
 RACK_WIRE_D = 7.5;  // measured 7.3.  Add 2% for shrinkage

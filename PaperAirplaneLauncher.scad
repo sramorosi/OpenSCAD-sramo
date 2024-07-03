@@ -17,7 +17,7 @@ force_scale = 0.1; // [0.05:.05:2.0]
 // Units
 UNITS = "METRIC, LENGTH = MM, FORCE = NEWTONS";
 
-TITLE = "AIRPLANE LAUNCHER 4/6/24"; // UPDATE DATE BEFORE EXPORTING
+TITLE = "AIRPLANE LAUNCHER May 2 24"; // UPDATE DATE BEFORE EXPORTING
 
 // MATERIAL PROPERTIES
 MATERIAL = "PLA";
@@ -140,7 +140,7 @@ module AIRPLANE_LAUNCHER (PRINT = false) {
     // END OF MAIN
     //
 }
-AIRPLANE_LAUNCHER(PRINT = false);
+AIRPLANE_LAUNCHER(PRINT = true);
 
 module Base() {
     // Base constants
@@ -172,11 +172,11 @@ module Base() {
         
     // ADD TEXT 
     color("yellow") {
-    SZ = 5.5;  // Text height
-    translate([0,3.7*BEAM_SPACE,w/2]) 
-        rotate([0,0,-90])
+    SZ = 5.4;  // Text height
+    translate([0,3.8*BEAM_SPACE,w/2]) 
+        rotate([0,0,-85])
         linear_extrude(1) {
-            translate([0,-SZ-4,0]) 
+            translate([0,-SZ-9,0]) 
                 text(str(TITLE),size=SZ,font="Liberation Sans:style=Bold Italic");
         }
         *translate([0,0,w/2]) linear_extrude(1) {
@@ -265,14 +265,14 @@ module FLEX_BEAM_FILLETED(BEAM,ORG,BEAM_T,BEAM_W,BEAM_ANG,R,NODES,SPACE,CYL=fals
 
     NEW_D = SPACE-BEAM_T*0.9;    
     if (CYL) {
-       HOOP(floor(2*NB/12),NEW_D*1.13);
-       HOOP(floor(3.2*NB/12),NEW_D*1.1);
-       HOOP(floor(4.5*NB/12),NEW_D*1.03);
-       //HOOP(floor(4*NB/6),NEW_D*1.06);
-       //HOOP(floor(5*NB/6),NEW_D*1.14);
+       RING(floor(2*NB/12),NEW_D*1.13);
+       RING(floor(3.2*NB/12),NEW_D*1.1);
+       RING(floor(4.5*NB/12),NEW_D*1.03);
+       //RING(floor(4*NB/6),NEW_D*1.06);
+       //RING(floor(5*NB/6),NEW_D*1.14);
     }
-    module HOOP(NODE_NUM,DIA_HOOP) {
-        T_HOOP = 0.8;  // mm (2 x nozzle dia)
+    module RING(NODE_NUM,DIA_RING) {
+        T_RING = 0.8;  // mm (2 x nozzle dia)
         POINT = [NODES[NODE_NUM][Nx],NODES[NODE_NUM][Ny],0];
         ROTANG = atan2(NODES[NODE_NUM][Ny]-NODES[NODE_NUM-1][Ny],NODES[NODE_NUM][Nx]-NODES[NODE_NUM-1][Nx]);
         translate(ORG) 
@@ -280,8 +280,8 @@ module FLEX_BEAM_FILLETED(BEAM,ORG,BEAM_T,BEAM_W,BEAM_ANG,R,NODES,SPACE,CYL=fals
             rotate([0,0,ROTANG]) 
             translate([0,SPACE/2-BEAM_T*.7,0]) 
             difference() {
-                cylinder(d=DIA_HOOP,h=BEAM_W,center=true,$fn=64);
-                cylinder(d=DIA_HOOP-2*T_HOOP,h=2*BEAM_W,center=true,$fn=64);
+                cylinder(d=DIA_RING,h=BEAM_W,center=true,$fn=64);
+                cylinder(d=DIA_RING-2*T_RING,h=2*BEAM_W,center=true,$fn=64);
         }
     }
 }

@@ -203,7 +203,7 @@ module output_STRESS_MS_Energy(n,loadScale,Results) {
              ",ENERGY=",sum_fwd(Results,0,Zenergy)));
 }
 
-// Recursive Module to perform analysis in steps (n)
+// Recursive Module to perform analysis in (STEPS) steps 
 module computeStepsModule(f_scale=1,LDB_DEF,Failure_Stress,E,density,loads,beam_angles,original_angles, Origin, STEPS=1,index=99,displaySteps=true) {
     
     loadScale = (((STEPS)-index)/STEPS);
@@ -220,28 +220,30 @@ module computeStepsModule(f_scale=1,LDB_DEF,Failure_Stress,E,density,loads,beam_
     output_STRESS_MS_Energy(index,loadScale,newResults);
     MIN_MS = min_tree(newResults,Zms);
     
+    // Determine Node Display Diameter from the overall model node size
+    NODE_DISPLAY_DIA = max(abs(max_tree(Nodes,Nx)),abs(max_tree(Nodes,Ny))) * 0.005;
+
     if ( index>0 ) { // recursion.  Counts down.
 
         computeStepsModule(f_scale,LDB_DEF,Failure_Stress,E,density,loads,newAngleVec,original_angles, Origin, STEPS, index-1 , displaySteps);
         
-        if (displaySteps) { color("red",loadScale+.1) draw_points(Nodes,dia=0.05); }
-    }
-    if (index==0) {  // last iteration
+        if (displaySteps) { 
+            color("red",loadScale+.1) 
+                draw_points(Nodes,dia=NODE_DISPLAY_DIA); 
+            } 
+    } if (index==0) {  // last iteration
         
         if (displaySteps) { 
-            color("red",loadScale) draw_points(Nodes,dia=0.05); 
+            color("red",loadScale) draw_points(Nodes,dia=NODE_DISPLAY_DIA); 
             //echo("FINAL_NODES,",Nodes);
             
             draw_loads(nodes=Nodes, loads=loads_scaled, torques=NEW_loads_local,scale=f_scale);
-
         }
+        translate(Origin) union () 
+            draw_beam_deformed(LDB_DEF,newResults,displayHinge=true,SUBMS=MIN_MS);
 
-        translate(Origin) union () draw_beam_deformed(LDB_DEF,newResults,displayHinge=true,SUBMS=MIN_MS);
-
-        echo(str("NODES: X MAX=",max_tree(Nodes,Nx),
-             ", X MIN=",min_tree(Nodes,Nx)));
-        echo(str("NODES: Y MAX=",max_tree(Nodes,Ny),
-             ", Y MIN=",min_tree(Nodes,Ny)));
+        echo(str("NODES: X MAX=",max_tree(Nodes,Nx),", X MIN=",min_tree(Nodes,Nx)));
+        echo(str("NODES: Y MAX=",max_tree(Nodes,Ny),", Y MIN=",min_tree(Nodes,Ny)));
     }
 }
 
@@ -637,13 +639,13 @@ function getAnglesFromNodes(NodesArray,x_start=0,y_start=0, index=1) =
            getAnglesFromNodes(NodesArray, x , y , index + 1) ) 
     :  [] ;  // Return nothing when all points are processed
 
-function beamFromNodes(nodes,t,w,THICKEN_ENDS=false,index=0,prior_ang=0) =
+function beamFromNodes(nodes,t,w,THICKEN_ENDS=false,TUP = 1.03,S=9,index=0,prior_ang=0) =
     // beam stresses at the fix endS can be larger than reported, due to stress concentrations
     // THICKEN_ENDS option will gradually increase thickenss of the ends
+    // TUP is scaler for thickening up the ends
+    // S is the number of nodes from each end to thicken
     // More nodes, increase S, decrease TUP
     let (n = len(nodes)-1)
-    let (S = 9) // number of nodes from each end to thicken
-    let (TUP = 1.03) // scaler for thickening up the ends
     index < n ? 
     let (T_NEW_1 = index < S ? t*TUP^(S-index) : t) // Thicken Start End
     let (T_NEW_2 = index > n-S ? t*TUP^(index-(n-S)) : T_NEW_1) // Thicken End End
@@ -653,7 +655,7 @@ function beamFromNodes(nodes,t,w,THICKEN_ENDS=false,index=0,prior_ang=0) =
     let (dy=nodes[index+1][1]-nodes[index][1])
     let (ang = atan2((nodes[index+1][1]-nodes[index][1]),(nodes[index+1][0]-nodes[index][0])))
 //echo(index=index,ang=ang,prior_ang=prior_ang,dx=dx,dy=dy)
-    concat([[Qbeam,length,T_NEW,w,ang-prior_ang]],beamFromNodes(nodes,t,w,THICKEN_ENDS,index+1,ang))  : [] ;
+    concat([[Qbeam,length,T_NEW,w,ang-prior_ang]],beamFromNodes(nodes,t,w,THICKEN_ENDS,TUP,S,index+1,ang))  : [] ;
 
 function addPoints(points, minDistance) = flatten([
     [points[0]], // copy initial point
