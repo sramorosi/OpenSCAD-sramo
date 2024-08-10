@@ -1,25 +1,25 @@
 // Large Displacement Beam, Modules and Functions
-include <LDB_Indexes.scad>
+include <NEW_LDB_Indexes.scad>
 //use <ME_lib.scad>
 use <../MAKE3-Arm/openSCAD-code/ME_lib.scad>
 
 // Display intermediate load steps?
-Display_steps = false;
+Display_steps = true;
 // Scale of Force & Moment Display
 force_scale = 0.3; // [0.001:.025:10.0]
 // MATERIAL PROPERTIES. 
 // Modulus of Elasticity (PSI)
-//E_PLA_PSI = 320000;  // USED IN MANY FUNCTIONS AND MODULES
+E_PLA_PSI = 320000;  // USED IN MANY FUNCTIONS AND MODULES
 //E_PLA_NSMM = 2344;  // Modulus of Elasticity (NEWTONS PER mm^2), PLA
 E_PETG_NSMM = 2068;  // Modulus of Elasticity (NEWTONS PER mm^2), PETG
 
 // ~Stress level at which the material will fail
-//FAILURE_STRESS = 6600;  // PLA, IN PSI
+FAILURE_STRESS = 6600;  // PLA, IN PSI
 //FAILURE_STRESS_PLA_METRIC = 45;  // ~Stress level at which PLA will fail (NEWTONS per mm^2)
 FAILURE_STRESS_PETG_METRIC = 60;  // ~Stress level at which PETG will fail (NEWTONS per mm^2)
 // This could be tensile failure, compression failure, bending, etc.
 
-//DENSITY_PLA_IMPERIAL = 0.045;  // material density (lb per inch^3)
+DENSITY_PLA_IMPERIAL = 0.045;  // material density (lb per inch^3)
 //DENSITY_PLA_METRIC = 0.0012318;  // material density (gram per mm^3)
 DENSITY_PETG_METRIC = 0.0012733;  // material density (gram per mm^3)
 
@@ -37,7 +37,7 @@ Load_Steps = 6;  // THE NUMBER OF STEPS IS DEPENDENT ON THE PROBLEM
     //echo(new_pts=new_pts);
     //color("blue") draw_points(new_pts,dia=0.03);
    
-    BEAM1 = beamFromNodes(new_pts,t,w,true,true);
+    BEAM1 = beamFromNodes(new_pts,t,w,true);
     NumberBeams = len(BEAM1);
     
     Fy = 2.25;
@@ -71,7 +71,7 @@ Load_Steps = 6;  // THE NUMBER OF STEPS IS DEPENDENT ON THE PROBLEM
 */
 
 
-/*    // SINGLE BEAM ANALYSIS, TO CHECK THE FUNCTIONS
+//    // SINGLE BEAM ANALYSIS, TO CHECK THE FUNCTIONS
     LEN = 3;
     t=0.1;  
     w=0.5;
@@ -114,23 +114,31 @@ Load_Steps = 6;  // THE NUMBER OF STEPS IS DEPENDENT ON THE PROBLEM
     echo(NL_Beam_Pts=NL_Beam_Pts);
         
     pts=[[0,0],[LEN,0]];  // shape
-    BEAM1 = beamFromNodes(pts,t,w,false);
+    pts2 = addPoints(pts,LEN/2);  // SUBDIVIDE points
+    BEAM0 = beamFromNodes(pts2,t,w,false);
+    BEAM = concat([[Qbeam,LEN/2,t*5,w,0]] ,BEAM0); // Starting invisible beam, THICKER
+    //BEAM = concat(BEAM2, [[Qbeam,LEN/2,t*5,w,0]]); // Final invisible beam
+    echo(BEAM=BEAM);
 
     // compute weight
-    Weight = computeWeight(BEAM1,DENSITY_PLA_IMPERIAL,START=0,END=len(BEAM1));
+    Weight = computeWeight(BEAM,DENSITY_PLA_IMPERIAL,START=1,END=len(BEAM));
     echo(Weight=Weight);
 
-    draw_beam_undeformed(BEAM1); 
+    draw_beam_undeformed(BEAM); 
 
-    LOADS1 = [[FX1,FY1,M1],[FX2,FY2,M2]];
+    LOADS1 = [[0,0,0],[0,0,0],[FX2,FY2,M2]];  // ADD NUM_BEAMS VARIABLE
     echo(LOADS1=LOADS1);
 
-    RESULTS = computeBeamChain(BEAM1,LOADS1,FAILURE_STRESS,E_PLA_PSI);
+    RESULTS = computeBeamChain(BEAM,LOADS1,FAILURE_STRESS,E_PLA_PSI);
     echo("[theta,theta_end,a,b,cr,ms,stressmin,stressmax,energy,weight,newTHK,-Fx,-Fy,-m_total]");
     echo(RESULTS=RESULTS);
+    draw_beam_deformed(BEAM,RESULTS,displayHinge=true); // ERRORS HERE   
+    
+    Do_Analysis(BEAM,LOADS1,force_scale,Display_steps,FAILURE_STRESS,E_PLA_PSI,DENSITY_PLA_IMPERIAL,ORIGIN,steps=2);
+
+/*
     NODES = concat([[0,0,0]],getNodeFromResults(RESULTS,[0]));
     echo(NODES=NODES);
-    draw_beam_deformed(BEAM1,RESULTS,displayHinge=true);      
     draw_loads(nodes=NODES, loads=LOADS1, torques=LOADS1,scale=force_scale);
 
     // Draw tangent line at the end point
@@ -257,8 +265,7 @@ function SetBeamMinMS(BEAM_CHAIN,loads, MS_FLOOR=1, Failure_Stress,E,density, Or
     let (beam_angles = global_angles(BEAM_CHAIN)) // Generate GLOBAL Beam ANGLES, undeformed
     GetBeamMinMS_Step2(BEAM_CHAIN,initial_loads,MS_FLOOR,Failure_Stress,E,density,beam_angles,beam_angles, Origin, STEPS=STEPS,index=STEPS);
 
-// Step 2 Recursive function to perform analysis return Beam Chain
-//  with updated thicknesses
+// Step 2 Recursive function to perform analysis and return Beam with updated thicknesses
 function GetBeamMinMS_Step2(BEAM_CHAIN ,loads, MS_FLOOR, Failure_Stress,E,density,beam_angles,original_angles, Origin, STEPS=1,index=99) =
     let (loadScale = (((STEPS)-index)/STEPS))
     let (loads_scaled = scale_int_loads(loads,loadScale))
@@ -328,9 +335,9 @@ module TranslateChildren(StartNodes,FinalNodes,N) {
 
 function computeWeight(LDB_DEF,density,START=0,END=1) = 
     // Loop thru all beam elements and sum weight off each beam
-    let (LEN = LDB_DEF[START][Zlen])
-    let (THK=LDB_DEF[START][Zthk])
-    let (W=LDB_DEF[START][Zw])
+    let (LEN = LDB_DEF[START][Blen])
+    let (THK=LDB_DEF[START][Bthk])
+    let (W=LDB_DEF[START][Bw])
     let (AREA = THK*W)
     let (WEIGHT = AREA*LEN*density)
 //echo("BEAM",START=START,density=density,LEN=LEN,AREA=AREA,WEIGHT=WEIGHT)
@@ -338,47 +345,46 @@ function computeWeight(LDB_DEF,density,START=0,END=1) =
     
 function computeBeamChain(LDB_DEF,Internal_Loads,Failure_Stress,E) =    
     // NEW METHOD
-    // Loop thru all beam elements and compute beam type, then angular deflections
-    // NOTE: length of loads = length of LDB + 1
+    // Loop thru all beam elements and compute results
     let (n = len(LDB_DEF))
-    [ for (i=[0:1:n-1]) 
-        let (m2 = Internal_Loads[i+1][Zm])
-        let (Fx = Internal_Loads[i+1][Zfx])
-        let (Fy = Internal_Loads[i+1][Zfy])
-        let (LEN = LDB_DEF[i][Zlen])
-//echo("BEAM",i=i,Fx=Fx,Fy=Fy,m2=m2)
-    NewBeamAngleFromLoads(LEN=LEN ,THK=LDB_DEF[i][Zthk] ,W=LDB_DEF[i][Zw], Fx=Fx, Fy=Fy, M=m2,Failure_Stress=Failure_Stress, E=E,BEAM_NO = i) ];
+    [ for (i=[1:1:n-1]) 
+        let (m2 = Internal_Loads[i][Im])
+        let (Fx = Internal_Loads[i][Ifx])
+        let (Fy = Internal_Loads[i][Ify])
+        let (LEN = LDB_DEF[i][Blen])
+echo("BEAM",i=i,LEN=LEN,Fx=Fx,Fy=Fy,m2=m2)
+    NewBeamAngleFromLoads(LEN=LEN ,THK=LDB_DEF[i][Bthk] ,W=LDB_DEF[i][Bw], Fx=Fx, Fy=Fy, M=m2,Failure_Stress=Failure_Stress, E=E,BEAM_NO = i) ];
 
 // Given a Beam Element and Loads, Calculate the deflection
 function NewBeamAngleFromLoads(LEN,THK,W,Fx,Fy,M,Failure_Stress,E, BEAM_NO) = 
+    let (c = THK / 2)              // half thickness
     let (Iz = ((W*THK^3)/12))
     let (AREA = THK*W)
-    let (cr = 0.7)  // constant characteristic radius, for now
+    let (Krotate = E*Iz/LEN) //moment per radian
+    let (m_total = M + Fy * LEN)
+    let (stressmax = m_total*c/Iz + Fx/LEN)
+    let (stressmin = -m_total*c/Iz + Fx/LEN)
+    let (ms = getSafetyMargin(stressmax,stressmin,Failure_Stress))
+    //let (cr = 0.7)  // constant characteristic radius, for now
     let (Kaxial = E*AREA/LEN)   // Axial spring rate
     let (NEW_LEN = (Fx / Kaxial) + LEN)  // Axial displacement
     let (y_end = Y_EndRoark(Fy,M,NEW_LEN,E,Iz))  // new method
-    let (theta = (abs(y_end) < cr*NEW_LEN*0.9) ? asin(y_end/(cr*LEN)) : 0 ) // degrees 
-    let (theta_end = ThetaEndRoark(Fy,M,NEW_LEN,E,Iz)) // new method
-    let (a = a_position(NEW_LEN,cr,theta))  // non linear displacement
-    let (b = b_position(NEW_LEN,cr,theta))  // non linear displacement
-    let (c = THK / 2)              // half thickness
-    let (m_total = M - Fx * b + Fy * a)
-    let (stressmax = m_total*c/Iz + Fx/a)
-    let (stressmin = -m_total*c/Iz + Fx/a)
-    let (ms = getSafetyMargin(stressmax,stressmin,Failure_Stress))
+    let (theta = m_total/Krotate) // degrees?
+    //let (theta_end = ThetaEndRoark(Fy,M,NEW_LEN,E,Iz)) // new method
+    let (a = LEN*cos(theta))  // non linear displacement
+    let (b = LEN*sin(theta))  // non linear displacement
     let (newTHK = checkMS(ms,THK,BEAM_NO))  // GIVES MESSAGE TO GAUGE UP
     let (t_rad = theta * PI / 180)      // radians
-    let (Krotate = E*Iz/LEN) //force per radian, Only used for energy calc
     let (EnergyRotate = 0.5* Krotate * (t_rad*t_rad))  // PE = 1/2 * K * x ^2
     let (EnergyAxial = 0.5 * Kaxial * (Fx / Kaxial)*(Fx / Kaxial))
     let (energy = EnergyRotate + EnergyAxial)
 //echo(BEAM_NO=BEAM_NO,cr=cr,y_end=y_end,theta=theta,theta_end=theta_end,a=a,b=b,ms=ms)
     // QUALITY CHECKING HERE:
-    ((abs(y_end) > cr*LEN*0.9) ? 
+    (/*(abs(y_end) > cr*LEN*0.9) ? 
         echo("***** IMPOSSIBLE BEAM SOLUTION *****",BEAM_NO=BEAM_NO) 
     [theta,theta_end,a,b,cr,ms,stressmin,stressmax,energy,newTHK,-Fx,-Fy,-m_total] 
-       : // no quality problems
-    [theta,theta_end,a,b,cr,ms,stressmin,stressmax,energy,newTHK,-Fx,-Fy,-m_total]);
+       : */ //no quality problems
+    [theta,a,b,ms,stressmin,stressmax,energy,newTHK,-Fx,-Fy,-m_total]);
 
 
 function getSafetyMargin(stressMax,stressMin,FailureStress) = 
@@ -396,14 +402,14 @@ function a_position(L,cr,theta) = L*(1-cr*(1-cos(theta)));
 function b_position(L,cr,theta) = cr*L*sin(theta);
 
 // Draws the undeformed beam in the default color
-module draw_beam_undeformed(LDBdef,idx = 0) {
+module draw_beam_undeformed(LDBdef,idx = 1) {
     // Parameter idx is hidden for module
     elem_type = LDBdef[idx][Ztype];
     if (elem_type == Qbeam) {  // Note: undefined causes the recursion to stop
-        L = LDBdef[idx][Zlen];
-        t = LDBdef[idx][Zthk];
-        w = LDBdef[idx][Zw];
-        LDBdef_ang = LDBdef[idx][Zang];  // Z rotation of beam
+        L = LDBdef[idx][Blen];
+        t = LDBdef[idx][Bthk];
+        w = LDBdef[idx][Bw];
+        LDBdef_ang = 0; //LDBdef[idx][Zang];  // Z rotation of beam
 //echo("UNDEFORMED BEAM",idx=idx,LDBdef_ang=LDBdef_ang);
         // draw the beam segment
         linear_extrude(height=w,center=true) 
@@ -417,33 +423,26 @@ module draw_beam_undeformed(LDBdef,idx = 0) {
 }
 
 // recursive module that draws the deformed beam.
-module draw_beam_deformed(LDBdef,results,displayHinge=false,SUBMS=0.0,idx = 0,prior_ang=0) {
+module draw_beam_deformed(LDBdef,results,displayHinge=false,SUBMS=0.0,idx = 1,prior_ang=0) {
     elem_type = LDBdef[idx][Ztype];
     if (elem_type == Qbeam) {  // Note: undefined causes the recursion to stop
-        L = LDBdef[idx][Zlen];
-        t = LDBdef[idx][Zthk];
-        w = LDBdef[idx][Zw];
-        LDBdef_ang = LDBdef[idx][Zang];  // Unloaded Z rotation of beam relative to prior beam
-        cr = results[idx][Zrad];
-        babyL = L*(1-cr);
+        L = LDBdef[idx][Blen];
+        t = LDBdef[idx][Bthk];
+        w = LDBdef[idx][Bw];
+        LDBdef_ang = LDBdef[idx][Bang];  // Unloaded Z rotation of beam relative to prior beam
         end_ang = results[idx][Zthetaend];
         a = results[idx][Za];
         b = results[idx][Zb];
         ms = results[idx][Zms] - SUBMS; 
 //echo(idx=idx,elem_type=elem_type,LDBdef_ang=LDBdef_ang,end_ang=end_ang,cr=cr,a=a,b=b);
         // draw the two beam segments 
-        color ([val_red(ms),val_green(ms),0.2]) linear_extrude(height=w,center=true) 
-            hull() { 
-                rotate([0,0,LDBdef_ang]) translate([babyL,0,0]) circle(d=t,$fn=16);
-                circle(d=t,$fn=16);  // ZERO,ZERO
-        }
         color ([val_red(ms),val_green(ms),0]) linear_extrude(height=w,center=true) 
             hull() { 
-                rotate([0,0,LDBdef_ang]) translate([babyL,0,0]) circle(d=t,$fn=16);
-                rotate([0,0,LDBdef_ang]) translate([a,b,0]) circle(d=t,$fn=16);
-        }
+                rotate([0,0,LDBdef_ang]) translate([L,0,0]) circle(d=t,$fn=16);
+                circle(d=t,$fn=16);  // ZERO,ZERO
+            };
         
-        if(displayHinge) color("black") rotate([0,0,LDBdef_ang]) translate([babyL,0,0]) cylinder(h=w*1.2,d=t/2,$fn=16);
+        if(displayHinge) color("black") rotate([0,0,LDBdef_ang]) translate([L,0,0]) cylinder(h=w*1.2,d=t/2,$fn=16);
             
         // Recursive call generating the next beam
         rotate([0,0,LDBdef_ang]) translate([a,b,0]) rotate([0,0,end_ang]) 
@@ -639,27 +638,24 @@ function getAnglesFromNodes(NodesArray,x_start=0,y_start=0, index=1) =
            getAnglesFromNodes(NodesArray, x , y , index + 1) ) 
     :  [] ;  // Return nothing when all points are processed
 
-function beamFromNodes(nodes,t,w,THICKEN_ENDS=false,T_MID=false,TUP = 1.03,S=9,index=0,prior_ang=0) =
-    // beam stresses at the fix endS can be larger than reported, due to stress concentrations
-    // THICKEN_ENDS option will gradually increase thickenss of the ends
+function beamFromNodes(nodes,t,w,THICKEN_ENDS=false,TUP = 1.03,S=9,index=0,prior_ang=0) =
+    // THICKEN_ENDS option will gradually increase thickenss of the ends,
+    // to address beam stresses at the fix endS,
+    // which can be larger than reported, due to stress concentrations.
     // TUP is scaler for thickening up the ends
     // S is the number of nodes from each end to thicken
-    // More nodes, increase S, decrease TUP
+    // When adding nodes, increase S, decrease TUP
     let (n = len(nodes)-1)
     index < n ? 
     let (T_NEW_1 = index < S ? t*TUP^(S-index) : t) // Thicken Start End
     let (T_NEW_2 = index > n-S ? t*TUP^(index-(n-S)) : T_NEW_1) // Thicken End End
-    let (MID_N = floor(n/2))
-    let (T_NEW_3 = (index == MID_N && T_MID) ? t*1.4 : T_NEW_2) // Thicken up the middle
-    let (T_NEW_4 = (index == (MID_N-1) && T_MID) ? t*1.2 : T_NEW_3) // Thicken up the middle
-    let (T_NEW_5 = (index == (MID_N+1) && T_MID) ? t*1.2 : T_NEW_4) // Thicken up the middle
-    let (T_NEW = THICKEN_ENDS ? T_NEW_5 : t)
+    let (T_NEW = THICKEN_ENDS ? T_NEW_2 : t)
     let (length = sqrt((nodes[index][0]-nodes[index+1][0])^2 + (nodes[index][1]-nodes[index+1][1])^2))
     let (dx=nodes[index+1][0]-nodes[index][0])
     let (dy=nodes[index+1][1]-nodes[index][1])
     let (ang = atan2((nodes[index+1][1]-nodes[index][1]),(nodes[index+1][0]-nodes[index][0])))
-//echo(index=index,n=n,T_NEW) //ang=ang,prior_ang=prior_ang,dx=dx,dy=dy)
-    concat([[Qbeam,length,T_NEW,w,ang-prior_ang]],beamFromNodes(nodes,t,w,THICKEN_ENDS,T_MID,TUP,S,index+1,ang))  : [] ;
+//echo(index=index,ang=ang,prior_ang=prior_ang,dx=dx,dy=dy)
+    concat([[Qbeam,length,T_NEW,w,ang-prior_ang]],beamFromNodes(nodes,t,w,THICKEN_ENDS,TUP,S,index+1,ang))  : [] ;
 
 function addPoints(points, minDistance) = flatten([
     [points[0]], // copy initial point

@@ -2,24 +2,25 @@
 //
 // LIST DEFINITIONS
 // LDBdef (LDB definition)
-// [[beam, len, thk, width, angle]
 
 // Indexes into the DNA array start with Z
 Ztype = 0;     // first element of each list 
     // All Q values should numbers that don't get used for angles or what not
     Qbeam = 11111;  
 
-// USED WITH Qbeam: [Qbeam,Zlen,Zthk,Zw,Zang,ZangLoad]
-Zlen = 1;   // beam length
-Zthk = 2;   // beam thickness
-Zw = 3;     // beam width (normal to plane, or printer bed)
-Zang = 4;   // Unloaded Z rotation of beam relative to prior beam (local)
+// BEAM ARRAY: [Qbeam,Blen,Bthk,Bw,Bang]  INITIALLY DEFINED, NOT CHANGED
+Blen = 1;   // beam length
+Bthk = 2;   // beam thickness
+Bw = 3;     // beam width (normal to plane, or printer bed)
+Bang = 4;   // Unloaded Z rotation of beam relative to prior beam (local)
+  // Bang is needed for AUTO-GENERATED BEAMS (i.e. from points)
 
-// USED WITH Load Array: [Zfx,Zfy,Zm]
+// INITIAL Load AND ANGLES Array: [Ifx,Ify,Im,Iang ]
 // Array size = Beams + 1  (Nodes)
-Zfx = 0;    // external force in global X
-Zfy = 1;    // external force in global Y
-Zm = 2;     // external moment about global Z 
+Ifx = 0;    // external force in global X
+Ify = 1;    // external force in global Y
+Im = 2;     // external moment about global Z 
+Iang = 3;
 //Ztargetx = 4;  // to specify a target x value with load
 //Ztargety = 5;  // to specify a target y value with load
 

@@ -17,7 +17,7 @@ force_scale = 0.1; // [0.05:.05:2.0]
 // Units
 UNITS = "METRIC, LENGTH = MM, FORCE = NEWTONS";
 
-TITLE = "AIRPLANE LAUNCHER May 2 24"; // UPDATE DATE BEFORE EXPORTING
+TITLE = "AIRPLANE LAUNCHER July 24"; // UPDATE DATE BEFORE EXPORTING
 
 // MATERIAL PROPERTIES
 MATERIAL = "PLA";
@@ -120,8 +120,10 @@ module AIRPLANE_LAUNCHER (PRINT = false) {
 
     // Launcher, Deformed, DON'T INCLUDE IN PRINT 
     if(!PRINT) TranslateChildren(StartingNodes,FinalNodes,NumberBeams) 
-        translate(end_point)  color("yellow",0.5) 
-            LAUNCHER(CAP_X,CAP_LEN,w,LATCH_H,-CAP_LEN*LAUNCHER_Y_SHIFT); 
+        translate(end_point)  color("yellow",0.5) {
+            *LAUNCHER(CAP_X,CAP_LEN,w,LATCH_H,-CAP_LEN*LAUNCHER_Y_SHIFT); 
+            THIN_LAUNCHER(3,V_LEN,w,LATCH_H,-CAP_LEN*LAUNCHER_Y_SHIFT);
+        }
 
     // Four flex beams, not deformed
     FLEX_BEAM_FILLETED(BEAM1,ORIGIN,BEAM_T=t,BEAM_W=w,BEAM_ANG=START_ANG,R=Rfillet, NODES=STEP_1_PTS, SPACE = BEAM_SPACE,CYL=true);
@@ -133,7 +135,10 @@ module AIRPLANE_LAUNCHER (PRINT = false) {
     FLEX_BEAM_FILLETED(BEAM1,[0,BEAM_SPACE*3,0],BEAM_T=t,BEAM_W=w,BEAM_ANG=START_ANG,R=Rfillet, NODES=STEP_1_PTS, SPACE = BEAM_SPACE,CYL=false);
 
     // Launcher, Not deformed
-    translate(end_point) LAUNCHER(CAP_X,CAP_LEN,w,LATCH_H,-CAP_LEN*LAUNCHER_Y_SHIFT);
+    translate(end_point) {
+        *LAUNCHER(CAP_X,CAP_LEN,w,LATCH_H,-CAP_LEN*LAUNCHER_Y_SHIFT);
+        THIN_LAUNCHER(3,V_LEN,w,LATCH_H,-CAP_LEN*LAUNCHER_Y_SHIFT);
+    }
     
     Base();
 
@@ -141,6 +146,11 @@ module AIRPLANE_LAUNCHER (PRINT = false) {
     //
 }
 AIRPLANE_LAUNCHER(PRINT = true);
+
+// Prusa Mini Print Bed (DON'T PRINT)
+*color("yellow") 
+    translate([-18,-100,-10]) 
+        cube([180,180,2]);
 
 module Base() {
     // Base constants
@@ -220,19 +230,85 @@ module Trigger(HLATCH,W,T,FLEXL) {
 }
 *Trigger(LATCH_H,w,t*1.3,FLEX_LEN);
 
-module LAUNCHER(CAPX=0.7,CAPLEN=4,W=0.5,HLATCH=0.3,YSHIFT=0) {
+T_X = 120; // mm, Length of Thin launcher
+T_Y = 5; // mm, width of Thin launcher
+T_Z = 17; // mm, z height of launcher portion
+
+module THIN_PAPER_HOLDER(X=4,Y=0.5,Z=0.7,WALL=1) { 
+   translate([0,WALL,0])
+    color("orange") {
+        difference() {
+            translate([0.1,0.1,-0.1])
+                cube([X+WALL,Y+WALL,Z+WALL],center=false); 
+            translate([-2*WALL,0,3*WALL])
+                cube([X,Y,Z],center=false); // cube2
+            
+            //scale([1.01,1.01,1.01])
+            THIN_OUTER(X=T_X,Y=T_Y,Z=T_Z,WALL=1.01,CORNER=true); 
+
+        }
+    }
+
+}
+*THIN_PAPER_HOLDER(Z=T_Z,X=T_X,Y=T_Y); // not for print
+
+module THIN_OUTER(X=10,Y=2,Z=3,WALL=1,CORNER=true) {
+    translate([0,0,WALL]) color("green") {
+        difference() {
+            cube([X,Y,Z],center=false); 
+            
+            translate([-WALL,WALL,WALL])
+                cube([X,Y,Z],center=false); // cube2
+        }
+        // corner is for fit
+        // leave corner off for printing
+        if(CORNER)
+        translate([X-WALL,Y/2,WALL]) rotate([0,45,0])
+            cube([WALL,Y,WALL],center=true);
+    }
+}
+translate([10,-10,-CAP_X/2+1.5]) rotate([90,0,0]) 
+    THIN_OUTER(X=T_X,Y=T_Y,Z=T_Z,WALL=1,CORNER=false);  // for printing (REQUIRED)
+
+module VEE_SLOT2(X=1,Y=1,LEN=10) {
+    // x is vee depth, y is vee width
+    X_TIP = .7;
+    translate([0,-Y/2,0])
+    linear_extrude(LEN,convexity=10) {
+        polygon([[0,Y/2-X_TIP],[X,0],[X,Y],[0,Y/2+X_TIP]]);
+    }
+};
+
+
+V_LEN = 120; // mm, Length of rigid beams, USED IN MANY PLACES
+//CAP_X = 18; // mm, Thickness of rigid beams, USED IN MANY PLACES
+
+module THIN_LAUNCHER(CAPX=0.7,LEN=4,W=0.5,HLATCH=0.3,YSHIFT=0) {
+    translate([0,YSHIFT,-W/2]) {
+            cube([CAPX,LEN+1,W]);  // right cap
+            translate([-HLATCH,LEN/2+12,0]) 
+                LATCH(HLATCH,HLATCH,W); // moving latch
+        }
+    translate([2,29.9,-0.4]) rotate([-90,0,-90]) 
+        THIN_PAPER_HOLDER(Z=T_Z,X=T_X,Y=T_Y); 
+}
+*THIN_LAUNCHER(3,V_LEN,w,LATCH_H,-CAP_LEN*LAUNCHER_Y_SHIFT); // NOT FOR PRINT
+
+// May 2 2024 paper holder launcher
+module LAUNCHER(CAPX=0.7,LEN=4,W=0.5,HLATCH=0.3,YSHIFT=0) {
     translate([0,YSHIFT,-W/2]) {
         difference() {
-            cube([CAPX,CAPLEN,W]);  // right cap
-            translate([-0.6*CAPX,CAPLEN*0.01,W/2]) VEE_SLOT(CAPX-.075,W,CAPLEN); // slot in right cap. 
+            cube([CAPX,LEN,W]);  // right cap
+            translate([-0.6*CAPX,LEN*0.01,W/2]) 
+                VEE_SLOT(CAPX-.075,W,LEN); // slot in right cap. 
             translate([CAPX,0,-W/2]) rotate([0,0,7.0]) 
-                cube([CAPX,CAPLEN*2,W*2]);  // remove top angle
+                cube([CAPX,LEN*2,W*2]);  // remove top angle
         }
-        translate([-HLATCH,CAPLEN/2+12,0]) 
+        translate([-HLATCH,LEN/2+12,0]) 
             LATCH(HLATCH,HLATCH,W); // moving latch
     }
 }
-*LAUNCHER(CAP_X,CAP_LEN,w,LATCH_H,-CAP_LEN*LAUNCHER_Y_SHIFT);
+*LAUNCHER(CAP_X,V_LEN,w,LATCH_H,-CAP_LEN*LAUNCHER_Y_SHIFT); // NOT FOR PRINT
 
 module VEE_SLOT(X=1,Y=1,LEN=10) {
     X_TIP = X/30;
