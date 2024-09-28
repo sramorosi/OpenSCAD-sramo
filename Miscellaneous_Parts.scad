@@ -21,6 +21,78 @@ $vpd = 90;         // view point distance
 // use large value (~100) for printing, smaller (~40) for display
 FACETS = $preview ? 100 : 150; // [40,100]
 
+// E-Z Up Envoy Canopy parts, for broken leg.  Created 8-22-2024
+IN_SM = 16.4;
+IN_LG = 23;
+OUT_SM = 20;
+OUT_LG = 28;
+
+Z_SM = 25;
+Z_CAP = 10;
+module EZUP_end(GROUND=true) {
+    
+    // Top end
+    difference() {
+        // Part that goes inside small tube
+        hull() {
+            translate([0,0,2]) 
+                rounded_cube([IN_SM,IN_SM,4],r=IN_SM*.04,$fn=FACETS);
+            translate([0,0,Z_SM]) 
+                rounded_cube([IN_SM*.95,IN_SM*.95,2],r=IN_SM*.04,$fn=FACETS);
+        }
+        translate([10,0,9])  // screw hole
+            rotate([0,90,0]) 
+                cylinder(h=20,d=2.7,center=true,$fn=FACETS);
+    }
+    
+    // Bottom end
+    if (GROUND) {
+        // Triangular base with two holes for stakes
+        difference() {
+            hull() {
+                translate([0,0,-Z_CAP/2]) 
+                    rounded_cube([IN_LG,IN_LG,Z_CAP],r=IN_LG*.04,$fn=FACETS);
+                translate([-Z_CAP*2,-Z_CAP+8,-Z_CAP/2]) 
+                    cylinder(h=Z_CAP,d=18,center=true,$fn=FACETS);
+                translate([Z_CAP-8,Z_CAP*2,-Z_CAP/2]) 
+                    cylinder(h=Z_CAP,d=18,center=true,$fn=FACETS);
+            }
+            
+            translate([-Z_CAP*2,-Z_CAP+8,-Z_CAP/2]) 
+                cylinder(h=Z_CAP*2,d=8,center=true,$fn=FACETS);
+            translate([Z_CAP-8,Z_CAP*2,-Z_CAP/2]) 
+                cylinder(h=Z_CAP*2,d=8,center=true,$fn=FACETS);
+
+        }
+    } else {
+        // Part that slides inside large tube
+        translate([0,0,-Z_CAP/2]) rounded_cube([IN_LG,IN_LG,Z_CAP],r=IN_LG*.04,$fn=FACETS);
+    }
+}
+*EZUP_end(GROUND=false);
+
+module EZUP_slide() {
+    difference() {
+        union() {
+            translate([0,0,40])rounded_cube([IN_LG,IN_LG,80],r=IN_LG*.04,$fn=FACETS);
+            translate([0,0,1.5])rounded_cube([OUT_LG,OUT_LG,3],r=OUT_LG*.04,$fn=FACETS);
+            
+            translate([0,OUT_LG/2-5,18]) sphere(d=8,$fn=FACETS);
+            translate([0,-OUT_LG/2+5,18]) sphere(d=8,$fn=FACETS);
+        }
+        rounded_cube([OUT_SM,OUT_SM,500],r=OUT_SM*.04,$fn=FACETS);
+        
+        // slot for pin
+        translate([20,0,45.5]) 
+        rotate([0,90,0]) 
+        hull() {
+            cylinder(h=40,d=11,center=true,$fn=FACETS);
+            translate([-40,0,0]) cylinder(h=40,d=11,center=true,$fn=FACETS);
+        }
+    }
+}
+EZUP_slide();
+
 // Bike Bag Support
 module BikeBagU () {
     T=2;
@@ -226,7 +298,7 @@ module cClip(ID = 2, OD = 10, H = 5) {
         }
 }
 *cClip(ID=6.4,OD=16.0,H=6,$fn = FACETS);  // Shower Rack Bumper
-cClip(ID=4.45,OD=9.0,H=18.6,$fn = FACETS);  // Sink Rack Bumper
+*cClip(ID=4.45,OD=9.0,H=18.6,$fn = FACETS);  // Sink Rack Bumper
 
 // Freezer Rack Support for Clara & Adam.  Units are in MM
 RACK_WIRE_D = 7.5;  // measured 7.3.  Add 2% for shrinkage

@@ -38,7 +38,7 @@ Fx=-1.7; // Newtons, for running simulation
 L=220; // mm, of flex beam
 Y = 15; // mm, initial offset of beam wave
 t=1.2;  // mm, individual beam thickness, minimum
-Z_BEAM=15.0;  // mm, z height of beam (3d printing z-direction)
+Z_BEAM=20.0;  // mm, z height of beam (3d printing z-direction) WAS 15
 NumberBeams = 45;  // was 30
 LN = L/NumberBeams;
 
@@ -75,19 +75,19 @@ AIRPLANELAUNCHERTWO();
 module FLEX_BEAM_FILLETED(BEAM,ORG,BEAM_T,BEAM_W,BEAM_ANG,R,NODES) {
     NB = len(BEAM);  // number of beams
     
-    draw_beam_undeformed(BEAM);
+    MAKE_BEAM_UNDEFORMED(BEAM,Z_BEAM);
     
     BEAM_FILLETS(BEAM_T,BEAM_W,BEAM_ANG,R); // Fillet at start
     
     // Fillet at end
-    end_point = [NODES[NB][Nx],NODES[NB][Ny]+0.5,0]; // NOT SURE WHY THE +0.5 IS NEEDED
+    end_point = [NODES[NB][Nx],NODES[NB][Ny]+0.5,0]; 
     translate(end_point) 
         rotate([0,0,180]) BEAM_FILLETS(BEAM_T,BEAM_W,BEAM_ANG,R);
 }
 
 module BEAM_FILLETS(BEAM_T,BEAM_W,BEAM_ANG,R) {
     Y_FILR = R + BEAM_T/2;
-    Y_ANG = R*sin(BEAM_ANG);
+    Y_ANG = R*sin(BEAM_ANG) +0.2; // NOT SURE WHY THE +0.2 IS NEEDED
     X_FILR = R;
     TRAPIZOID = [[X_FILR,Y_FILR+Y_ANG] , [-X_FILR/3,Y_FILR-Y_ANG] , [-X_FILR/3,-Y_FILR-Y_ANG] , [X_FILR,-Y_FILR+Y_ANG]];
     
@@ -116,12 +116,13 @@ module SHOOTER_SUB1() {
     translate([0,-BEAM_SPACE,0]) rotate([180,0,0]) 
         FLEX_BEAM_FILLETED(BEAM1,BEAM_T=t,BEAM_W=Z_BEAM,BEAM_ANG=BEAM_ANG,R=Rfillet, NODES=StartingNodes);
     
-    translate([-END_T/2,-BEAM_SPACE/2,0]) cube([END_T,BEAM_SPACE*2,Y],center=true);
-    translate([L+END_T/2,-BEAM_SPACE/2,0]) cube([END_T,BEAM_SPACE*2,Y],center=true);
+    translate([-END_T/2,-BEAM_SPACE/2,0]) cube([END_T,BEAM_SPACE*2,Z_BEAM],center=true);
+    translate([L+END_T/2,-BEAM_SPACE/2,0]) cube([END_T,BEAM_SPACE*2,Z_BEAM],center=true);
 }
 *SHOOTER_SUB1();
 
 module SHOOTER_SUB2() {
+    MJX = 3.5;
     difference() {
         union() {
             
@@ -132,17 +133,21 @@ module SHOOTER_SUB2() {
                 rotate([0,-90,90]) 
                     LAUNCHER(CAPX=Z_LAUNCH,CAPLEN=V_LEN,W=V_W);
         };
-        // remove holes for tube
-        rotate([0,90,0]) translate([3,0,0]) {
+        // remove hole ON SLIDING END for tube
+        rotate([0,90,0]) translate([Z_BEAM/MJX,0,0]) {
             BIG_D = 5.8;
             TOP_D = BIG_D*0.5;
             cylinder(h=3*V_LEN,d=BIG_D,center=true,$fn=100);
-            translate([-BIG_D*0.353,0,0]) 
+            
+            // ADD HAT ON CYLINDER, TO MINIMIZE OVERHANG WHILE PRINTING
+            translate([-Z_BEAM/MJX+BIG_D/1.6,0,0]) 
                 rotate([0,0,45]) 
                     cube([TOP_D,TOP_D,3*V_LEN],center=true);
         }
         
-        rotate([0,90,0]) translate([3,0,L]) 
+        // remove hole on FIXED END (SMALLER)
+        // DON'T CARE ABOUT SOME OVERHANGE HERE, AS WE WANT A TIGHT FIT
+        rotate([0,90,0]) translate([Z_BEAM/MJX,0,L]) 
             cylinder(h=L,d=5.1,center=true,$fn=100);
         
         Z_TRANS = Z_LAUNCH-Z_VEE;

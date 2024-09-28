@@ -25,7 +25,7 @@ DENSITY_PETG_METRIC = 0.0012733;  // material density (gram per mm^3)
 
 Load_Steps = 6;  // THE NUMBER OF STEPS IS DEPENDENT ON THE PROBLEM
 
-/*    // beam from points
+//    // beam from points
     t=1.5;  // mm, individual beam thickness, minimum
     w=15.0;  // mm, width of beam (3d printing z-direction)
     L=150;  // mm, total length of beams
@@ -45,8 +45,9 @@ Load_Steps = 6;  // THE NUMBER OF STEPS IS DEPENDENT ON THE PROBLEM
     LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[0,Fy,Mz]]);
     echo(LOADS1=LOADS1," n=", len(LOADS1));
 
-    translate(ORIGIN) draw_beam_undeformed(BEAM1); 
-    
+    //translate(ORIGIN) draw_beam_undeformed(BEAM1);  // OLD MODULE
+    translate(ORIGIN) MAKE_BEAM_UNDEFORMED(BEAM1,w);
+
     // Set the beam thickness to be a Minimum MS of 2
     MSFLOOR = 1.5;
     //BEAM1 = SetBeamMinMS(BEAM0 ,LOADS1 , MSFLOOR, FAILURE_STRESS_PETG_METRIC , E_PETG_NSMM ,DENSITY_PETG_METRIC , ORIGIN, STEPS=Load_Steps);
@@ -57,7 +58,7 @@ Load_Steps = 6;  // THE NUMBER OF STEPS IS DEPENDENT ON THE PROBLEM
     StartingNodes = getNodesFromBeams(BEAM1,ORIGIN[0],ORIGIN[1]);  // DOES NOT MATCH NEW POINTS
     //color("red") draw_points(StartingNodes,dia=0.03);
 
-//    
+/*    
     Do_Analysis(BEAM1,LOADS1,force_scale,Display_steps,FAILURE_STRESS_PETG_METRIC,E_PETG_NSMM,DENSITY_PETG_METRIC,ORIGIN,steps=Load_Steps);
     
     //StartingNodes = getNodesFromBeams(BEAM1,ORIGIN[0],ORIGIN[1]);
@@ -395,7 +396,7 @@ function checkMS(ms,thk,BEAMNO) =
 function a_position(L,cr,theta) = L*(1-cr*(1-cos(theta)));
 function b_position(L,cr,theta) = cr*L*sin(theta);
 
-// Draws the undeformed beam in the default color
+/* Models the undeformed beam, using cylinders at ends of each beam, and hull()
 module draw_beam_undeformed(LDBdef,idx = 0) {
     // Parameter idx is hidden for module
     elem_type = LDBdef[idx][Ztype];
@@ -414,7 +415,47 @@ module draw_beam_undeformed(LDBdef,idx = 0) {
         // Recursive call generating the next beam
         rotate([0,0,LDBdef_ang]) translate([L,0,0]) draw_beam_undeformed(LDBdef,idx + 1); 
     } 
+} */
+
+// NEW BEAM MODELER
+module MAKE_BEAM_UNDEFORMED(BEAM,THK,idx=0) {
+    
+    OUTLINE_U = outline_beam_undeformed(BEAM,UP=true);
+    OUTLINE_D = outline_beam_undeformed(BEAM,UP=false);
+    
+    OUTLINE = concat(OUTLINE_U,reverse_array(OUTLINE_D));
+    
+    linear_extrude(THK,convexity=10,center=true) 
+        polygon(OUTLINE);
 }
+
+// Create an array of points that outline the beam
+// This is called twice, for each side of the beam (UP boolean)
+// Assumes the first node is at [x_start,y_start]  of beam angle ang_start
+function outline_beam_undeformed(BEAM,UP=true,x_start=0,y_start=0,ang_start=0,index=0) =  
+    let (ROT = (UP) ? 90 : -90) // rotation from the beam vector direction
+    index < len(BEAM)-1 ? // -1 FOR NEW METHOD ONLY
+        index == 0 ? //  first point, first beam
+           let (T = BEAM[index][Zthk]/2)
+           concat([ [x_start + T*cos(ang_start+ROT),y_start+ T*sin(ang_start+ROT) ] ],
+            outline_beam_undeformed(BEAM,UP,x_start,y_start, BEAM[index][Zang],index+1) )
+        :  // middle beams
+            let (T = (BEAM[index][Zthk] + BEAM[index+1][Zthk])/4)
+            let (LEN = BEAM[index][Zlen])
+            let (END_ANG = BEAM[index][Zang])
+            let (ANG = ang_start)
+            let (x_end = x_start + LEN*cos(ANG)) 
+            let (y_end = y_start + LEN*sin(ANG))
+            concat([ [ x_end + T*cos(ANG+ROT) , y_end + T*sin(ANG+ROT)] ] ,
+            outline_beam_undeformed(BEAM,UP,x_end,y_end,END_ANG + ANG,index+1) )
+      : [] ; /*  // last point, use prior beam  NOT USED NEW METHOD
+            let (T =       BEAM[index-1][Zthk]/2 )
+            let (LEN =     BEAM[index-1][Zlen])
+            let (END_ANG = BEAM[index-1][Zang])
+            let (ANG = ang_start)
+            let (x_end = x_start + LEN*cos(ANG)) 
+            let (y_end = y_start + LEN*sin(ANG))
+        [ [x_end + T*cos(ANG+ROT), y_end  + T*sin(ANG+ROT)] ]  ; */
 
 // recursive module that draws the deformed beam.
 module draw_beam_deformed(LDBdef,results,displayHinge=false,SUBMS=0.0,idx = 0,prior_ang=0) {
@@ -536,9 +577,10 @@ function scale_int_loads(int_loads,scale=1) =
 // calculate moment due to force on current beam 
 function momentsDueToForce(loads, LDBdef, angles) = 
     let (n = len(LDBdef))
-    [ for (i=[0:1:n-1]) (
+    [ for (i=[1:1:n-2]) (  // OLD METHOD WAS 0:1:n-1
                 let (L = LDBdef[i][Zlen])
-                let (fy = loads[i+1][Zfy])
+                let (fy = loads[i][Zfy])  // OLD METHOD WAS loads[i+1]
+//echo("MO DUE TO FORCE",i,L=L,fy=fy)
                 let (m = (fy*L == undef ? 0 : fy*L))
                 m 
             )  ];
@@ -607,7 +649,7 @@ function getNodeFromResults(resultsArray,initAngles,x_start=0,y_start=0,ang_star
         getNodeFromResults(resultsArray, initAngles, x_end , y_end , sum_ang, index + 1) ) 
     :  [] ;  // Return nothing when all points are processed
 
-// NEW FUNCTION TO PULL NODES FROM A BEAM DEFINITION  ***********************
+// GENERATE NODES FROM A BEAM DEFINITION  ***********************
 function getNodesFromBeams(BEAMS,x_start=0,y_start=0,ang_start=0,index=0) =
     index < len(BEAMS) ? 
         index == 0 ? // first node
@@ -694,6 +736,11 @@ draw_points(result,dia=0.3);
 echo(points=points," n=",len(points));
 echo(result=result," n=",len(result));
         */
+
+// Function to reverse an array of points
+function reverse_array(arr) =
+    let(len_arr = len(arr)) 
+        [for (i = [0 : len_arr - 1]) arr[len_arr - i - 1]] ;
 
 module THING(StartingNodes,NODE,LEN=10) {
     translate([StartingNodes[NODE][Nx],StartingNodes[NODE][Ny],0]) 
