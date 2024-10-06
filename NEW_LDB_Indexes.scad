@@ -39,8 +39,7 @@ Nang = 2;
 // USED WITH Result Array:
 // Matches length of beam array
 // [theta,theta_end,a,b,K,CR,ms,   stressmax,stressmin,energy,weight,ms,fx,fy,m_total] : 
-Ztheta = 0; // Spring angle
-//Zthetaend = 1; // angle of the end of the beam
+Ztheta = 0; // Spring angle, at the start of the beam
 Za = 1;     // beam-local x end position
 Zb = 2;     // beam-local y end position
 //ZK = 3;     // Spring Rate
