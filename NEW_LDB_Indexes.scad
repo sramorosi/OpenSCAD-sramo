@@ -7,6 +7,8 @@
 Ztype = 0;     // first element of each list 
     // All Q values should numbers that don't get used for angles or what not
     Qbeam = 11111;  
+    Qstart = 88888;  // invisible beam  at the start
+    Qend = 99999;    // invisible beam at the end
 
 // BEAM ARRAY: [Qbeam,Blen,Bthk,Bw,Bang]  INITIALLY DEFINED, NOT CHANGED
 Blen = 1;   // beam length

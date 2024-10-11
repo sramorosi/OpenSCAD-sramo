@@ -3,10 +3,17 @@ include <NEW_LDB_Indexes.scad>
 //use <ME_lib.scad>
 use <../MAKE3-Arm/openSCAD-code/ME_lib.scad>
 
-// Display intermediate load steps?
-Display_steps = true;
-// Scale of Force & Moment Display
-force_scale = 0.3; // [0.001:.025:10.0]
+// TO DO LIST
+// Go through test cases
+// ADD SUM MOMENT CHECK AFTER COMPUTATION
+// Reduce number of arrays in a step by:
+// COMPUTEBeamChain  could also calculate and store node absolute x,y, angle
+// On pinned solution, only echo data on last step?
+// 
+// getAnglesFromNodes is not being used. Seems like an update step is missing. 
+// Better module and function names  (FIX_RIGHT??)  Naming convention?
+
+
 // MATERIAL PROPERTIES. 
 // Modulus of Elasticity (PSI)
 E_PLA_PSI = 320000;  // USED IN MANY FUNCTIONS AND MODULES
@@ -23,43 +30,90 @@ DENSITY_PLA_IMPERIAL = 0.045;  // material density (lb per inch^3)
 DENSITY_PLA_METRIC = 0.0012318;  // material density (gram per mm^3)
 DENSITY_PETG_METRIC = 0.0012733;  // material density (gram per mm^3)
 
+/*
+// Catilever beam, left fixed, right free, end load
+// Roark 6th ed, Table 3, case 1a and 3a, page 100
+    N_BEAMS = 6;
+    LEN = 3;
+    t=0.1;  
+    w=0.5;
+
+    // End Load can have Fx, Fy and M
+    FX2 = 0;
+    FY2 = 2;  // 2
+    M2 = 0;  // 6, 4  , -7
+
+        // Solution from Roark, case 1a and 3a
+        I=((w*pow(t,3))/12);
+        //echo(I=I);
+
+        NP=N_BEAMS;
+        RoarkPts = [for (i=[1:NP+2]) 
+            let (x = ((i-1)/NP)*LEN)
+            [x,Y_MidRoark(FY2,M2,LEN,E_PLA_PSI,I,x)]]; 
+
+        // Linear solution from Roark (superposition of case 1a and 3a)
+        color("red") draw_points(RoarkPts,dia=0.03);   
+        RoarkAngles = getAnglesFromNodes(RoarkPts,0,0);
+
+        // Non-linear solution where beam length is preserved
+        NL_Beam_Pts = NL_Beam(NP, LEN, FY2,M2,E_PLA_PSI,I);
+        color("blue") draw_points(NL_Beam_Pts,dia=0.035);
+        //echo(NL_Beam_Pts=NL_Beam_Pts);
+        
+    pts=[[0,0],[LEN,0]];  // shape
+    pts2 = addPoints(pts,LEN/N_BEAMS);  // SUBDIVIDE points
+    VIS_BEAM = beamFromNodes(pts2,t,w,false);
+    START_BEAM = [[Qstart,LEN/N_BEAMS,t*4,w,0]];
+    END_BEAM = [[Qend,LEN/N_BEAMS,t*1,w,0]];
+    BEAM = concat(START_BEAM ,concat(VIS_BEAM,END_BEAM));
+    //echo(BEAM=BEAM);
+
+    MAKE_BEAM_UNDEFORMED(BEAM,w);
+    
+    LOADS1 = concat([for (i=[1:N_BEAMS]) [0,0,0]],[[FX2,FY2,M2]]);
+    
+    DO_ANALYSIS(LDB=BEAM,EXT_LOADS=LOADS1,fscale=0.2,Display_steps=true, echoLDB=false, displayLoads=false, Failure_Stress=FAILURE_STRESS_PLA_PSI, E=E_PLA_PSI, density=DENSITY_PLA_IMPERIAL,Origin=[0,0,0],steps=3);
+*/
+//
 // Catilever beam, left fixed, right simple support, mid load
 // Roark 6th ed, Table 3, case 1c, page 100
-    N_BEAMS = 20;
-    LEN = 3;
-    t=0.07;  
+    N_BEAMS = 6;
+    LEN = 4;
+    t=0.1;  
     w=0.5;
 
     // loads
-    W = 3;  // 2
-    M2 = 0;  // not using for case 1c
+    W = 2;  // 2
 
     I=((w*pow(t,3))/12);
     //echo(I=I);
 
     // Solution from Roark
     a = LEN/2;
-    FYr = -(W/(2*LEN^3))*((LEN-a)^2)*(2*LEN+a); // case 1c
+    FYr = -(W/(2*LEN^3))*((LEN-a)^2)*(2*LEN+a); // case 1c, fixed left, simple right
     //FYr = -(W/LEN)*(LEN-a);  // case 1e, simple support on both ends
-    FYl = -W-FYr;
-    echo(FYl=FYl,FYr=FYr);
+    FYla = -W-FYr;  // from sum of forces in Y
+    FYlroark = -((W*a)/(2*LEN^3))*(3*LEN^2 - a^2); // case 1c, fixed left, simple right
+    Ml = -(W*a)/(2*LEN^2)*(LEN^2-a^2);// case 1c, fixed left, simple right
+    echo(FYla=FYla,FYlroark=FYlroark,Ml=Ml,FYr=FYr);
     
     pts = addPoints([[0,0,0],[LEN,0,0]],LEN/N_BEAMS);  // SUBDIVIDE points
     VIS_BEAM = beamFromNodes(pts,t,w,false);
-    START_BEAM = [[Qbeam,LEN/N_BEAMS,t*1,w,0]]; // LEFT FIXITY
-    END_BEAM = [[Qbeam,LEN/N_BEAMS,t*1,w,0]];
+    START_BEAM = [[Qstart,LEN/N_BEAMS,t*2,w,0]]; // LEFT FIXITY
+    END_BEAM = [[Qend,LEN/N_BEAMS,t*1,w,0]];
     BEAM = concat(START_BEAM ,concat(VIS_BEAM,END_BEAM));
 
     MAKE_BEAM_UNDEFORMED(BEAM,w);
     
     MID=N_BEAMS/2;
     LOADS1 = concat([for (i=[1:MID]) [0,0,0]],
-        concat([[0,W,M2]],
+        concat([[0,W,0]],
             concat([for (i=[1:MID-1]) [0,0,0]],[[0,FYr,0]])));
 
-    DO_ANALYSIS(LDB=BEAM,EXT_LOADS=LOADS1,fscale=force_scale,Display_steps=Display_steps, echoLDB=false, displayLoads=false, Failure_Stress=FAILURE_STRESS_PLA_PSI, E=E_PLA_PSI, density=DENSITY_PLA_IMPERIAL,Origin=[0,0,0],steps=4);
-
-module DO_ANALYSIS(LDB,EXT_LOADS,fscale,Display_steps=false, echoLDB=false, displayLoads=false, Failure_Stress,E,density,Origin=[0,0,0],steps) {
+    DO_ANALYSIS(LDB=BEAM,EXT_LOADS=LOADS1,fscale=0.3,Display_steps=true, echoLDB=false, displayLoads=false, Failure_Stress=FAILURE_STRESS_PLA_PSI, E=E_PLA_PSI, density=DENSITY_PLA_IMPERIAL,pinned=true,steps=4);
+//
+module DO_ANALYSIS(LDB,EXT_LOADS,fscale,Display_steps=false, echoLDB=false, displayLoads=false, Failure_Stress,E,density,pinned=false,steps) {
     echo("******* LARGE DISPLACEMENT 2D BEAM ANALYSIS *******");
     echo(E=E,Failure_Stress=Failure_Stress,density=density,fscale=fscale);
     if(echoLDB) echo(LDB=LDB);
@@ -67,11 +121,7 @@ module DO_ANALYSIS(LDB,EXT_LOADS,fscale,Display_steps=false, echoLDB=false, disp
     // perform data checks
     num_beams = count_beams(LDB);
     echo(str("NUMBER OF BEAMS =",num_beams,", NUMBER OF NODES =",len(EXT_LOADS)));
-    ttl_load = sum_loads(EXT_LOADS);
-    echo(str("TOTAL APPLIED LOADS AND MOMENTS =",ttl_load));
-    if (num_beams > 0 && num_beams == len(EXT_LOADS)+1 && abs(ttl_load) > 0) {
-
-        draw_loads(nodes=pts, loads=EXT_LOADS, torques=EXT_LOADS,scale=fscale);
+    if (num_beams > 0 && num_beams == len(EXT_LOADS)-1 ) {
 
         // compute weight
         Weight = computeWeight(LDB,density,START=1,END=len(LDB)-1);
@@ -80,31 +130,42 @@ module DO_ANALYSIS(LDB,EXT_LOADS,fscale,Display_steps=false, echoLDB=false, disp
         // Generate GLOBAL Beam ANGLES, undeformed
         NoLoadAngles = global_angles(LDB);
         //echo("INITIAL ",NoLoadAngles=NoLoadAngles);
+        
+        // DRAW THE UNDEFORMED APPLIED LOADS
+        Nodes = getNodesFromLDB(LDB, num_beams);
+        draw_loads(nodes=Nodes, loads=EXT_LOADS, torques=EXT_LOADS,scale=fscale);
 
         // MAIN ANALYSIS (MODULE)
-        COMPUTEStepsModule(f_scale=fscale,LDB=LDB,Failure_Stress=Failure_Stress,E=E,density=density,loads=EXT_LOADS, original_angles=NoLoadAngles,Origin=Origin,displaySteps=Display_steps,displayLoads=displayLoads, STEPS=steps); 
+        COMPUTEStepsModule(f_scale=fscale,LDB=LDB,Failure_Stress=Failure_Stress,E=E,density=density,loads=EXT_LOADS, original_angles=NoLoadAngles,new_angles=NoLoadAngles,displaySteps=Display_steps,displayLoads=displayLoads, pinned = pinned, NB = num_beams, STEPS=steps); 
                 
-    } else echo("**NUMBER OF BEAMS OR LOADS IS ZERO, TERMINATING**"); 
+    } else echo("**NUMBER OF BEAMS OR LOADS ERROR, TERMINATING**"); 
 }
 
 // Recursive Module to perform analysis in (STEPS) steps 
-module COMPUTEStepsModule(f_scale=1,LDB, Failure_Stress,E,density,loads,original_angles, Origin, displaySteps=true, displayLoads=false, STEPS=1,index=1) {
+module COMPUTEStepsModule(f_scale=1,LDB, Failure_Stress,E,density,loads,original_angles, new_angles, displaySteps=true, displayLoads=false, pinned = false, NB=0, STEPS=1,index=1) {
     
     loadScale = (STEPS<=1) ? 1 : (index/(STEPS-1));
-      
-    //INTERNAL_LOADS = make_internal_loads(EXT_LOADS=loads,LSCALE=loadScale,BEAM_ANGLES=beam_angles,LDB=LDB);
-    
-    //newResults = COMPUTEBeamChain(LDB,INTERNAL_LOADS,Failure_Stress,E);
-newResults = FIX_RIGHT(EXT_LOADS=loads,LSCALE=loadScale,BEAM_ANGLES=original_angles,LDB=LDB,E=E,SFAIL=Failure_Stress);
 
-n = len(newResults)-1;
-//echo(n=n);
-NEW_EXT_LOADS = SWAP_LAST(loads,newResults[n]);
-//echo(NEW_EXT_LOADS=NEW_EXT_LOADS);
-    Nodes = concat([Origin],GETNodeFromResults(newResults,original_angles, x_start=0, y_start=0,ang_start=0, NumNodes = n));
+    newResults = (!pinned) ? 
+        // OLD WAY, RIGHT END HAS NO SUPPORT
+        COMPUTEBeamChain(LDB,
+        makeInternalLoads(EXT_LOADS=loads,LSCALE=loadScale,BEAM_ANGLES=new_angles,LDB=LDB), Failure_Stress,E) 
+    :     // NEW WAY, RIGHT END SIMPLY SUPPORTED
+     FIX_RIGHT(EXT_LOADS=loads,LSCALE=loadScale,BEAM_ANGLES=new_angles,LDB=LDB,E=E,SFAIL=Failure_Stress);
+    
+    NEW_EXT_LOADS = (!pinned) ?
+        // OLD WAY, EXTERNAL LOADS DO NOT CHANGE
+        loads
+        : // NEW WAY, RIGHT END LOADS CHANGE EACH STEP
+        SWAP_LAST(loads,newResults[NB+1]);
+    
+    //GETNodeFromResults(resultsArray,initAngles,x_start=0,y_start=0,ang_start=0, NumNodes = 1, index=0)
+    Nodes = concat([[0,0,0]],GETNodeFromResults(resultsArray=newResults,initAngles=original_angles, x_start=0, y_start=0,ang_start=0, NumNodes = NB+1));
+
+    //###### NEED TO UPDATE THE BEAM ANGLES
+    new_angles = getAnglesFromNodes(Nodes,x_start=0,y_start=0);
           
-    OUTPUT_STRESS(n=index,loadScale=loadScale,Results=newResults, NODES=Nodes,LOADS=NEW_EXT_LOADS);
-    MIN_MS = min_tree(newResults,Zms);
+    LOG_STRESS(n=index,loadScale=loadScale,Results=newResults, NODES=Nodes,LOADS=NEW_EXT_LOADS);
     
     // Determine Node Display Diameter from the overall model node size
     NODE_DISPLAY_DIA = max(abs(max_tree(Nodes,Nx)),abs(max_tree(Nodes,Ny))) * 0.01;
@@ -114,91 +175,83 @@ NEW_EXT_LOADS = SWAP_LAST(loads,newResults[n]);
             color("yellow",loadScale+.1) 
                 draw_points(Nodes,dia=NODE_DISPLAY_DIA); 
             } 
-
-        COMPUTEStepsModule(f_scale,LDB,Failure_Stress,E,density,NEW_EXT_LOADS,original_angles, Origin, displaySteps, displayLoads, STEPS, index+1 );
+            
+        COMPUTEStepsModule(f_scale,LDB,Failure_Stress,E,density,NEW_EXT_LOADS,original_angles, new_angles, displaySteps, displayLoads, pinned, NB, STEPS, index+1 );
         
     } if (index==STEPS-1) {  // last iteration
-        
+//echo(NEW_EXT_LOADS=NEW_EXT_LOADS);        
         if (displaySteps) { 
             color("red",loadScale) draw_points(Nodes,dia=NODE_DISPLAY_DIA); 
             //echo(NODE_DISPLAY_DIA=NODE_DISPLAY_DIA,"FINAL_NODES,",Nodes);
-            
-            if (displayLoads) draw_loads(nodes=Nodes, loads=NEW_EXT_LOADS, torques=INTERNAL_LOADS,scale=f_scale);
+                
+            // NEW WAY TO GET FINAL LOADS
+            Final_Int_Loads = makeInternalLoads(NEW_EXT_LOADS,loadScale,new_angles,LDB);
+            fixedLoads = [[-Final_Int_Loads[0][Ifx],-Final_Int_Loads[0][Ify],-Final_Int_Loads[0][Im]]];
+            draw_loads(nodes=Nodes, loads=fixedLoads, torques=fixedLoads,scale=f_scale);
+            echo(str("Final Starting Fixed Loads [Fx,Fy,M]=",fixedLoads));
+
+            if (displayLoads) draw_loads(nodes=Nodes, loads=Final_Int_Loads, torques=Final_Int_Loads,scale=f_scale);
         }
-        translate(Origin) //union () 
-            DRAW_DEFORMED_BEAM(LDB,newResults,SUBMS=MIN_MS);
+        // Find the minimum Margin so the colors look good
+        MIN_MS = min_tree(newResults,Zms); 
+        DRAW_DEFORMED_BEAM(LDB,newResults,SUBMS=MIN_MS);
 //echo(newResults=newResults);
-        echo(str("NODES: X MAX=",max_tree(Nodes,Nx),", X MIN=",min_tree(Nodes,Nx)));
-        echo(str("NODES: Y MAX=",max_tree(Nodes,Ny),", Y MIN=",min_tree(Nodes,Ny)));
+        echo(str("NODES: X MAX=",max_tree(Nodes,Nx),", X MIN=",min_tree(Nodes,Nx)),
+        str("NODES: Y MAX=",max_tree(Nodes,Ny),", Y MIN=",min_tree(Nodes,Ny)));
     }
 }
 
 // Recursive function to keep right end pinned
 // returns Results with Last member = pinned end APPLIED LOADS FULL SCALE
 function FIX_RIGHT(EXT_LOADS,LSCALE,BEAM_ANGLES,LDB,E,SFAIL,index=0) =
-// LOADS are scaled by LSCALE
+    // LOADS are scaled by LSCALE
 
     let (n = len(LDB)-2) // last position in Nodes array
 
-    let (Int_Loads_1 = make_internal_loads(EXT_LOADS,LSCALE,BEAM_ANGLES,LDB))
-    let (newResults_1 = COMPUTEBeamChain(LDB,Int_Loads_1,SFAIL,E))
+    // PREP STEP
+    let (prep_Loads = makeInternalLoads(EXT_LOADS,LSCALE,BEAM_ANGLES,LDB))
+    let (prepResults = COMPUTEBeamChain(LDB=LDB,Internal_Loads=prep_Loads,Failure_Stress=SFAIL,E=E,checks=false))
+    let (prepNodes = GETNodeFromResults(prepResults,BEAM_ANGLES,0,0,0,n+1))
+    let (new_angles = getAnglesFromNodes(prepNodes,x_start=0,y_start=0))
+
+    // LOAD 1
+    let (Int_Loads_1 = makeInternalLoads(EXT_LOADS,LSCALE,new_angles,LDB))
+    let (newResults_1 = COMPUTEBeamChain(LDB=LDB,Internal_Loads=Int_Loads_1,Failure_Stress=SFAIL,E=E,checks=false))
     let (Nodes_1 = GETNodeFromResults(newResults_1,BEAM_ANGLES,0,0,0,n+1))
-    let (dy_1 = Nodes_1[n][Ny])  // assuming target is Y=0 for now
+    let (dy_1 = Nodes_1[n-1][Ny])  // assuming target is Y=0 for now
     let (Fy_1 = EXT_LOADS[n][Ify]) 
-echo(Fy_1=Fy_1,dy_1=dy_1)
 
-
-    let (Fy_2 = Fy_1+0.05) // small adjustment
+    // LOAD 2
+    let (Fy_2 = Fy_1+.1) // small adjustment
     let (new_last = [EXT_LOADS[n][Ifx],Fy_2,EXT_LOADS[n][Im]])
     let (Ext_Loads_2 = SWAP_LAST(ARRAY=EXT_LOADS,NEW_LAST = new_last))
-//echo(Ext_Loads_2=Ext_Loads_2)
-    let (Int_Loads_2 = make_internal_loads(Ext_Loads_2,LSCALE,BEAM_ANGLES,LDB))
+    //echo(Ext_Loads_2=Ext_Loads_2)
+    let (Int_Loads_2 = makeInternalLoads(Ext_Loads_2,LSCALE,new_angles,LDB))
 
-    let (newResults_2 = COMPUTEBeamChain(LDB,Int_Loads_2,SFAIL,E))
+    let (newResults_2 = COMPUTEBeamChain(LDB=LDB, Internal_Loads=Int_Loads_2,Failure_Stress=SFAIL,E=E,checks=false))
     let (Nodes_2 = GETNodeFromResults(newResults_2,BEAM_ANGLES,0,0,0,n+1))
-    let (dy_2 = Nodes_2[n][Ny])  // assuming target is Y=0 for now
-echo(Fy_2=Fy_2,dy_2=dy_2) 
+    let (dy_2 = Nodes_2[n-1][Ny])  // assuming target is Y=0 for now
 
-    // calculate new Fy
+    // calculate new Fy where line between points intecepts Y
     let (m=(Fy_2-Fy_1)/(dy_2-dy_1)) // m = slope
-    let (b=Fy_1-m*dy_1)
+    let (b=Fy_1-m*dy_1)  // b is the Y intersept
     let (NEW_FY = b)
-echo(NEW_FY=NEW_FY)
-        concat(newResults_1,[[EXT_LOADS[n][Ifx],NEW_FY,EXT_LOADS[n][Im]]])
 
-/*
-    // is the last node where we want it?
-    ((abs(dY) < 0.001) || (index > 4)) ? 
-        //YES, return the new loads, scaled up to full
-        [ Scale_Loads(EXT_LOADS,1/LSCALE)] 
-   :
-        // NO, make an adjustment to the loads and try again
-        // calculate K = F/dy
-        let (K = LOADS[n][Ify]/dy)
-        // calculate delta Fy = K*X
-        let (NEW_FY = (K * (dy))/LSCALE + Fy)
-        let (NEW_LOADS = SWAP_LAST(LOADS,[[LOADS[n][Ifx],NEW_FY,LOADS[n][Im]]]))
-echo(dy=dy,Fy=Fy,K=K,NEW_FY=NEW_FY)
-        FIX_RIGHT(NEW_LOADS,LSCALE,BEAM_ANGLES,LDB,E,SFAIL,index+1)
-        */
-;
+    // last computation with NEW_FY
+    let (final_last = [EXT_LOADS[n][Ifx],NEW_FY,EXT_LOADS[n][Im]])
+    //echo(final_last=final_last)
+    let (Final_Ext_Loads = SWAP_LAST(ARRAY=EXT_LOADS,NEW_LAST = final_last))
+    let (Final_Int_Loads = makeInternalLoads(Final_Ext_Loads,LSCALE,new_angles,LDB))
+    let (FinalResults = COMPUTEBeamChain(LDB=LDB, Internal_Loads=Final_Int_Loads, Failure_Stress= SFAIL,E=E,checks=true))
+    let (finalNodes = GETNodeFromResults(FinalResults,BEAM_ANGLES,0,0,0,n+1))
+    let (DY_final = finalNodes[n-1][Ny])  // assuming target is Y=0 for now
+    echo("^^^FIX_RIGHT:",Fy_1=Fy_1,dy_1=dy_1,Fy_2=Fy_2,dy_2=dy_2,NEW_FY=NEW_FY,DY_final=DY_final)
+    // Return the results, and append on the new right loads.
+           concat(FinalResults,[final_last]) ;
 
-//junk = [[0,1],[0,2],[0,3]];
-//new_junk = SWAP_LAST(ARRAY=junk,NEW_LAST=[0,10]);
-//echo(junk=junk,new_junk=new_junk);
-
-// FUNCTION TO SWAP LAST MEMBER IN AN ARRAY
-function SWAP_LAST(ARRAY, NEW_LAST,index=0) =
-    let (n = len(ARRAY))
-    (index < n-1) ?
-        concat([ARRAY[index]],SWAP_LAST(ARRAY, NEW_LAST,index+1))
-    :
-        [NEW_LAST];
-    
 // FUNCTION TO MAKE SCALED INTERNAL LOADS FROM EXTERNAL LOADS
-function make_internal_loads(EXT_LOADS,LSCALE,BEAM_ANGLES,LDB) = 
+function makeInternalLoads(EXT_LOADS,LSCALE,BEAM_ANGLES,LDB) = 
     // Spread Loads. Moments don't include force-moments at this time
-//echo(EXT_LOADS=EXT_LOADS)
     let (initial_loads = spread_ext_loads(EXT_LOADS))
     // scale internal loads
     let (loads_scaled = Scale_Loads(initial_loads,LSCALE)) 
@@ -209,11 +262,9 @@ function make_internal_loads(EXT_LOADS,LSCALE,BEAM_ANGLES,LDB) =
     // Sum moments due to forces
     let (beam_moments = sum_moments(force_mom_temp)) 
     // Add moments due-to-forces and return
-    add_moments_to_loads(loads_local,beam_moments)
-;
-
+    add_moments_to_loads(loads_local,beam_moments) ;
     
-function COMPUTEBeamChain(LDB,Internal_Loads,Failure_Stress,E) =    
+function COMPUTEBeamChain(LDB,Internal_Loads,Failure_Stress,E,checks) =    
     // NEW METHOD assumes rigid beams connected by rotational spring (2d)
     // Loop thru all beam elements (first and last are invisible)
     // find average thickness and lengths at nodes (spring) 
@@ -226,30 +277,34 @@ function COMPUTEBeamChain(LDB,Internal_Loads,Failure_Stress,E) =
         let (LEN = (LDB[i][Blen]+LDB[i+1][Blen])/2) // spring calculation
         let (THK = (LDB[i][Bthk]+LDB[i+1][Bthk])/2)
         let (W = (LDB[i][Bw]+LDB[i+1][Bw])/2)
-//echo("NODE",i=i,LEN=LEN,Fx=Fx,Fy=Fy,m2=m2)
-    getSingleSpringResults(LEN=LDB[i+1][Blen],K_LEN=LEN ,THK=THK ,W=W, Fx=Fx, Fy=Fy, M=m2,Failure_Stress=Failure_Stress, E=E,BEAM_NO = i) ];
+    //echo("NODE",i=i,LEN=LEN,Fx=Fx,Fy=Fy,m2=m2)
+    getSingleSpringResults(LEN=LDB[i+1][Blen],K_LEN=LEN ,THK=THK ,W=W, Fx=Fx, Fy=Fy, M=m2,Failure_Stress=Failure_Stress, E=E,BEAM_NO = i,checks=checks) ];
 
 // Given a Beam Element and Loads, Calculate deflection, stress, ms, energy
-function getSingleSpringResults(LEN,K_LEN,THK,W,Fx,Fy,M,Failure_Stress,E, BEAM_NO) = 
+function getSingleSpringResults(LEN,K_LEN,THK,W,Fx,Fy,M,Failure_Stress,E, BEAM_NO,checks) = 
     let (c = THK / 2)     // c is half thickness
     let (Iz = ((W*THK^3)/12))
     let (AREA = THK*W)
     let (Krotate = E*Iz/K_LEN) //moment per radian
-    let (m_total = M + Fy * LEN)
+    let (Kaxial = E*AREA/LEN)   // Axial spring rate
+    let (NEW_LEN = (Fx / Kaxial) + LEN)  // Axial displacement
+    let (m_1 = M + Fy * NEW_LEN)  // moment without Fx component
+    let (theta_1 = (m_1/Krotate)*180/PI) // rotation, degrees, without Fx
+    let (a_1 = NEW_LEN*cos(theta_1))  // local x displacement, minus Fx component
+    let (b_1 = NEW_LEN*sin(theta_1))  // local y displacement, minus Fx component
+    let (m_total = M - Fx * b_1 + Fy * a_1) // update moment to include Fx
+    let (theta = (m_total/Krotate)*180/PI) // update rotation with new moment
+    let (a = NEW_LEN*cos(theta))  // local x displacement
+    let (b = NEW_LEN*sin(theta))  // local y displacement
     let (stressmax = m_total*c/Iz + Fx/LEN)
     let (stressmin = -m_total*c/Iz + Fx/LEN)
     let (ms = getSafetyMargin(stressmax,stressmin,Failure_Stress))
-    let (Kaxial = E*AREA/LEN)   // Axial spring rate
-    let (NEW_LEN = (Fx / Kaxial) + LEN)  // Axial displacement
-    let (theta = (m_total/Krotate)*180/PI) // degrees
-    let (a = NEW_LEN*cos(theta))  // local x displacement
-    let (b = NEW_LEN*sin(theta))  // local y displacement
-    let (newTHK = checkMS(ms,THK,BEAM_NO))  // GIVES MESSAGE TO GAUGE UP
+    let (newTHK = checks ? checkMS(ms,THK,BEAM_NO) : THK)  // GIVES MESSAGE TO GAUGE UP
     let (t_rad = theta * PI / 180)      // radians
     let (EnergyRotate = 0.5* Krotate * (t_rad*t_rad))  // PE = 1/2 * K * x ^2
     let (EnergyAxial = 0.5 * Kaxial * (Fx / Kaxial)*(Fx / Kaxial))
     let (energy = EnergyRotate + EnergyAxial)
-//echo(BEAM_NO=BEAM_NO,theta=theta,a=a,b=b,ms=ms)
+    //echo(BEAM_NO=BEAM_NO,theta=theta,a=a,b=b,ms=ms)
     // QUALITY CHECKING HERE:
     ((abs(theta) > 60 ) ? 
         echo("***** LARGE SPRING ROTATION *****",BEAM_NO=BEAM_NO) 
@@ -267,20 +322,46 @@ function GETNodeFromResults(resultsArray,initAngles,x_start=0,y_start=0,ang_star
         let (sum_ang = initAng + ang + ang_start) // add up to get new angle
         let (x_end = rot_x(x,y,sum_ang) + x_start) // add up to get new x
         let (y_end = rot_y(x,y,sum_ang) + y_start) // add up to get new y 
-//echo(index=index,x=x,y=y,y_start=y_start,initAng=initAng,sum_ang=sum_ang)
+//echo(index=index,NumNodes=NumNodes,x=x,y=y,y_start=y_start,initAng=initAng,sum_ang=sum_ang,ang_start=ang_start)
         concat([ [x_end , y_end ,resultsArray[index][Ztheta]] ],
         // Recursive call to process the next point
         GETNodeFromResults(resultsArray, initAngles, x_end , y_end , sum_ang, NumNodes, index + 1) ) 
     :  [] ;  // Return nothing when all points are processed
 
-module OUTPUT_STRESS(n,loadScale,Results,NODES,LOADS) { 
-    echo(str("STEP=",n,",load scale=",loadScale,
+function getNodesFromLDB(LDB, NB, x_last=0,y_last=0,ang_last=0, index=0) = 
+    index < NB ?
+        let (len = LDB[index+1][Blen])  // index+1 because first beam is not for display
+        let (ang = LDB[index][Bang])
+        let (sum_ang = ang + ang_last) // add up to get new angle
+        let (x = len*cos(sum_ang))
+        let (y = len*sin(sum_ang))
+        let (x_end = x + x_last) // add up to get new x
+        let (y_end = y + y_last) // add up to get new y 
+
+//echo(index=index,ang_last=ang_last,ang=ang,sum_ang=sum_ang)
+        (index==0) ? concat([ [x_last,y_last],[x,y]  ], getNodesFromLDB(LDB, NB, x_end,y_end, sum_ang, index +1 ))
+            : concat([ [ x_end , y_end ] ], getNodesFromLDB(LDB, NB, x_end,y_end, sum_ang, index + 1)) 
+            : [] ; // return nothing when index is up
+
+module LOG_STRESS(n,loadScale,Results,NODES,LOADS) { 
+    echo(str(">>>>STEP=",n+1,",load scale=",loadScale,
     ",σ MAX=",max_tree(Results,Zstressmax),
              ",σ MIN=",min_tree(Results,Zstressmin),
              ",MIN MS=",min_tree(Results,Zms),
              ",MAX MS=",max_tree(Results,Zms),
              ",ENERGY=",sum_fwd(Results,0,Zenergy)));
 }
+/* test of beam modeler
+TESTpts=[[0,0],[0,3],[3,3],[3,0]]; 
+pts_ADD = addPoints(TESTpts,1.0);  // add points at 0.5 spacing
+draw_points(pts_ADD,dia=0.05);
+BEAM1 = BEAM_FROM_NODES(nodes=pts_ADD,TBEAMS=1,TENDS=.5,w=.3);
+echo(BEAM1=BEAM1);
+MAKE_BEAM_UNDEFORMED(BEAM1,THK=1);
+Nodes = getNodesFromLDB(BEAM1, len(BEAM1)-1);
+color("yellow") draw_points(Nodes,dia=.1); 
+*/
+
 // UNDEFORMED BEAM MODELER
 // Creates an up and down profile and concatinate into an outline.
 module MAKE_BEAM_UNDEFORMED(BEAM,THK,idx=0) {
@@ -315,7 +396,8 @@ function outline_beam_undeformed(BEAM,UP=true,ang_start=0,x1=0,y1=0,index=0) =
 //echo(index=index,ANG=ANG,END_ANG=END_ANG,AVG_ANG=AVG_ANG)
             let (x_end = x1 + LEN*cos(ANG)) 
             let (y_end = y1 + LEN*sin(ANG))
-            concat([ [ x_end + T*cos(AVG_ANG+ROT) , y_end + T*sin(AVG_ANG+ROT)] ] ,
+            let (TMOD = T/cos(END_ANG/2))
+            concat([ [ x_end + TMOD*cos(AVG_ANG+ROT) , y_end + TMOD*sin(AVG_ANG+ROT)] ] ,
             outline_beam_undeformed(BEAM,UP,END_ANG + ANG,x_end,y_end,index+1) ): [] ;
 
 // convert the margin of safety into a red to green value
@@ -371,8 +453,8 @@ function getAnglesFromNodes(NodesArray,x_start=0,y_start=0, index=1) =
 function BEAM_FROM_NODES(nodes,TBEAMS,TENDS,w,THICKEN_ENDS=false,T_MID=false,TUP = 1.03,S=9,index=0,prior_ang=0) =
     let (length = sqrt((nodes[0][0]-nodes[1][0])^2 + (nodes[0][1]-nodes[1][1])^2))
     let (ang = atan2((nodes[1][1]-nodes[0][1]),(nodes[1][0]-nodes[0][0])))
-    concat([[Qbeam,length,TENDS,w,ang]],
-    concat(beamFromNodes(nodes=nodes,t=TBEAMS,w=w,THICKEN_ENDS=THICKEN_ENDS,T_MID=T_MID, TUP=TUP,S=S,index=0,prior_ang=ang),[[Qbeam,length,TENDS,w,0]]) );
+    concat([[Qstart,length,TENDS,w,ang]],
+    concat(beamFromNodes(nodes=nodes,t=TBEAMS,w=w,THICKEN_ENDS=THICKEN_ENDS,T_MID=T_MID, TUP=TUP,S=S,index=0,prior_ang=ang),[[Qend,length,TENDS,w,ang]]) );
 
 // DO NOT CALL THIS DIRECTLY
 function beamFromNodes(nodes,t,w,THICKEN_ENDS=false,T_MID=false,TUP = 1.03,S=9,index=0,prior_ang=0) =
@@ -393,10 +475,25 @@ function beamFromNodes(nodes,t,w,THICKEN_ENDS=false,T_MID=false,TUP = 1.03,S=9,i
     let (length = sqrt((nodes[index][0]-nodes[index+1][0])^2 + (nodes[index][1]-nodes[index+1][1])^2))
     let (dx=nodes[index+1][0]-nodes[index][0])
     let (dy=nodes[index+1][1]-nodes[index][1])
-    let (ang = index==n-1 ? 0 : atan2((nodes[index+2][1]-nodes[index+1][1]),(nodes[index+2][0]-nodes[index+1][0])))
+    let (ang = index==n-1 ? prior_ang : atan2((nodes[index+2][1]-nodes[index+1][1]),(nodes[index+2][0]-nodes[index+1][0])))
 //echo(index=index,n=n,T_NEW) //ang=ang,prior_ang=prior_ang,dx=dx,dy=dy)
     concat([[Qbeam,length,T_NEW,w,ang-prior_ang]],beamFromNodes(nodes,t,w,THICKEN_ENDS,T_MID,TUP,S,index+1,ang))  : [] ;
 
+//junk = [[0,1],[0,2],[0,3]];
+//new_first = SWAP_FIRST(ARRAY=junk,NEW_FIRST=[111,10]);
+//new_last = SWAP_LAST(ARRAY=junk,NEW_LAST=[999,9]);
+//echo(junk=junk,new_first=new_first,new_last=new_last);
+
+// FUNCTION TO SWAP LAST MEMBER IN AN ARRAY
+function SWAP_LAST(ARRAY, NEW_LAST,index=0) =
+    let (n = len(ARRAY))
+    [ for (i=[0:1:n-1]) (i<n-1) ? ARRAY[i] : NEW_LAST ] ;
+
+// FUNCTION TO SWAP FIRST MEMBER IN AN ARRAY
+function SWAP_FIRST(ARRAY, NEW_FIRST,index=0) =
+    let (n = len(ARRAY))
+    [ for (i=[0:1:n-1]) (i==0) ? NEW_FIRST : ARRAY[i] ] ;
+    
 function addPoints(points, minDistance) = flatten([
     [points[0]], // copy initial point
     for (i = [1:len(points)-1]) concat(
@@ -426,8 +523,10 @@ function count_beams(LDB,i=0,count=0) =
     let (length=(LDB[i][Blen] == 0 ? echo("** FOUND ZERO LENGTH BEAM **",i=i) : 0))
     let (thick=(LDB[i][Bthk] == 0 ? echo("** FOUND ZERO THICKNESS BEAM **",i=i):0))
     let (width=(LDB[i][Bw] == 0 ? echo("** FOUND ZERO WIDTH BEAM **",i=i):0))
-    //echo("BEAM",i=i,count=count)
-        count_beams(LDB,i+1,count+1) 
+    //echo("BEAM",i=i,count=count,LDB[i][Ztype])
+        ((LDB[i][Ztype] == Qbeam) ? 
+            count_beams(LDB,i+1,count+1) 
+            : count_beams(LDB,i+1,count) )
     : count );
 
 // recursive function to sum the loads, for check data
@@ -502,12 +601,12 @@ function momentsDueToForce(loads, LDBdef, angles) =
                 m 
             )  ];
 
-// recursive function to sum moments from tail of tree to root
+// function to sum moments from tail of tree to root
 function sum_moments(moments) =
     let (n = len(moments))
     [ for (i=[0:1:n-1]) (sum_range(moments,i,n-1)) ];
     
-// recursive function to add beam_moments to node_loads
+// function to add beam_moments to node_loads
 function add_moments_to_loads(node_loads,beam_moments) =
     let (n = len(node_loads))
     [ for (i=[0:1:n-1]) 

@@ -3,12 +3,8 @@ include <NEW_LDB_Indexes.scad>
 use <NEW_LDB_Modules.scad>
 
 // Pick which beam definition to use
-ACTIVE_BEAM=2; // [1:1-CANTILEVER BEAM w End Moment-CIRCLE, 2:2-CANTILEVER BEAM w Force & Moment, 3:3-SINE WAVE BEAM, 4:4-CANTILEVER BEAM w Distributed Force, 5:5-8seg Normal Force (test shape), 6:6-test (125g), 7:7-test (545g),8:8-test-reaction (545g) TBD,9:9-Column,10:10-PINNED FRAME,11:11-Parallel Flex AIRPLANE LAUNCHER,12:12-CROSS FRAME,13:13-Compression Beam,99:99-BAD DATA]
+ACTIVE_BEAM=10; // [1:1-CANTILEVER BEAM w End Moment-CIRCLE, 2:2-CANTILEVER BEAM w Force & Moment, 3:3-SINE WAVE BEAM, 4:4-CANTILEVER BEAM w Distributed Force, 5:5-8seg Normal Force (test shape), 6:6-test (125g), 7:7-test (545g),8:8-test-reaction (545g) TBD,9:9-Column,10:10-PINNED FRAME,11:11-Parallel Flex AIRPLANE LAUNCHER,12:12-CROSS FRAME,13:13-Compression Beam,99:99-BAD DATA]
 
-// Display intermediate load steps?
-Display_steps = true;
-// Load Steps
-Load_Steps = 4; // [1:1:20]
 // Scale of Force & Moment Display
 force_scale = 0.5; // [0.05:.05:2.0]
 
@@ -49,10 +45,10 @@ if (ACTIVE_BEAM == 1) { // CANTILEVER BEAM WITH END MOMENT ONLY
     LN = L/NBeams;
     ELEM_VIS = [for (i=[1:NBeams]) [Qbeam,LN,t,w,0]];
     // NEW METHOD, CONCATINATE A BEAM AT START AND END
-    ELEM = concat([[Qbeam,LN,t*1,w,0]] ,concat(ELEM_VIS,[[Qbeam,LN,t,w,0]]));  
+    ELEM = concat([[Qstart,LN,t*1,w,0]] ,concat(ELEM_VIS,[[Qend,LN,t,w,0]]));  
     
     //echo(ELEM=ELEM);
-    //MAKE_BEAM_UNDEFORMED(ELEM,w);
+    color("yellow") MAKE_BEAM_UNDEFORMED(ELEM,w);
     
     // THE CORRECT MOMENT TO APPLY IS...
     I=((w*pow(t,3))/12);
@@ -62,8 +58,8 @@ if (ACTIVE_BEAM == 1) { // CANTILEVER BEAM WITH END MOMENT ONLY
     LOADS1 = concat([for (i=[1:NBeams]) [0,0,0]],[[0,0,M]]);
     //echo(LOADS1=LOADS1);
 
-    // This problem only needs 1 load step!    
-    DO_ANALYSIS(LDB=ELEM, NODE_LOADS=LOADS1, fscale=force_scale, Display_steps=false, echoLDB=false, displayLoads=false, Failure_Stress=Failure_Stress, E=E_PLA_PSI, density=density,Origin=[0,0,0],steps=1);
+    // This problem only needs 2 load steps!    (Step 1 is zero load)
+    DO_ANALYSIS(LDB=ELEM, EXT_LOADS=LOADS1, fscale=force_scale, Display_steps=false, echoLDB=false, displayLoads=false, Failure_Stress=Failure_Stress, E=E_PLA_PSI, density=density,steps=2);
 
     // The beam with M applied, should wrap the cylinder
     translate([0,RAD,-1]) cylinder(h=1,r=RAD,center=true,$fn=32);
@@ -97,45 +93,46 @@ if (ACTIVE_BEAM == 1) { // CANTILEVER BEAM WITH END MOMENT ONLY
         // Non-linear solution where beam length is preserved
         NL_Beam_Pts = NL_Beam(NP, LEN, FY2,M2,E_PLA_PSI,I);
         color("blue") draw_points(NL_Beam_Pts,dia=0.035);
-        echo(NL_Beam_Pts=NL_Beam_Pts);
+        //echo(NL_Beam_Pts=NL_Beam_Pts);
         
     pts=[[0,0],[LEN,0]];  // shape
     pts2 = addPoints(pts,LEN/N_BEAMS);  // SUBDIVIDE points
     VIS_BEAM = beamFromNodes(pts2,t,w,false);
-    START_BEAM = [[Qbeam,LEN/N_BEAMS,t*4,w,0]];
-    END_BEAM = [[Qbeam,LEN/N_BEAMS,t*1,w,0]];
+    START_BEAM = [[Qstart,LEN/N_BEAMS,t*4,w,0]];
+    END_BEAM = [[Qend,LEN/N_BEAMS,t*1,w,0]];
     BEAM = concat(START_BEAM ,concat(VIS_BEAM,END_BEAM));
     //echo(BEAM=BEAM);
 
     MAKE_BEAM_UNDEFORMED(BEAM,w);
     
     LOADS1 = concat([for (i=[1:N_BEAMS]) [0,0,0]],[[FX2,FY2,M2]]);
-    draw_loads(nodes=pts2, loads=LOADS1, torques=LOADS1,scale=force_scale);
     
-    DO_ANALYSIS(LDB=BEAM,NODE_LOADS=LOADS1,fscale=force_scale,Display_steps=Display_steps, echoLDB=false, displayLoads=false, Failure_Stress=FAILURE_STRESS_PLA_PSI, E=E_PLA_PSI, density=DENSITY_PLA_IMPERIAL,Origin=[0,0,0],steps=10);
+    DO_ANALYSIS(LDB=BEAM,EXT_LOADS=LOADS1,fscale=0.2,Display_steps=true, echoLDB=false, displayLoads=false, Failure_Stress=FAILURE_STRESS_PLA_PSI, E=E_PLA_PSI, density=DENSITY_PLA_IMPERIAL,steps=3);
     
 } else if (ACTIVE_BEAM == 3) { // Sinewave beam
-    N_BEAMS = 20;
-    X=-2;  // inch, width of sine
+    // TO DO:  REPLACE WITH ARC BEAM, AND ADD ROARK SOLUTIONS
+    N_BEAMS = 10;
+    X=-6;  // inch, width of sine
     Y=12; // inch, height of sine
-    t=.2;
+    t=.3;
     pts=[for (i=[0:N_BEAMS]) [X*cos(180*(i/N_BEAMS))-X,Y*sin(180*(i/N_BEAMS))] ];
     draw_points(pts,dia=0.1);
-    echo(pts=pts);
+    //echo(pts=pts);
     
-    BEAM1 = BEAM_FROM_NODES(nodes=pts,t=t,w=w);
-
+    // BEAM_FROM_NODES(nodes,TBEAMS,TENDS,w,THICKEN_ENDS=false,T_MID=false,TUP = 1.03,S=9)
+    BEAM1 = BEAM_FROM_NODES(nodes=pts,TBEAMS=t,TENDS=t*1,w=w);
     echo(BEAM1=BEAM1);
         
-    Fx = 1.8;
-    //LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[Fx,0,0]]);
-    //LOADS1 = concat(concat([for (i=[1:NumberBeams/2]) [0,0,0]],[[Fx,0,0]]),[for (i=[1:NumberBeams/2]) [0,0,0]]);
-    LOADS1 = concat ( concat(concat([for (i=[1:N_BEAMS/2]) [0,0,0]],[[Fx,0,0]]),[for (j=[1:(N_BEAMS/2)-1]) [0,0,0]]),[[0,Fx*.5,Fx*3]]); 
+    Fx = 1;
+    LOADS1 = concat ( concat(concat([for (i=[1:N_BEAMS/2]) [0,0,0]],[[Fx,0,0]]),[for (j=[1:(N_BEAMS/2)-1]) [0,0,0]]),[[0,0,0]]); 
         // << last load is ???
 
     MAKE_BEAM_UNDEFORMED(BEAM1,w);
     
-    DO_ANALYSIS(LDB=BEAM1, NODE_LOADS=LOADS1, fscale=force_scale*0.2, Display_steps=true, echoLDB=false, displayLoads=true, Failure_Stress=Failure_Stress, E=E_PSI,density=density,Origin=[0,0,0],steps=8);
+    //Nodes = getNodesFromLDB(BEAM1, len(BEAM1)-2);
+    //draw_points(Nodes,dia=.3);
+    
+    DO_ANALYSIS(LDB=BEAM1, EXT_LOADS=LOADS1, fscale=force_scale*1, Display_steps=true, echoLDB=false, displayLoads=true, Failure_Stress=Failure_Stress, E=E_PSI,density=density,pinned=true,steps=4);
 
 } else if (ACTIVE_BEAM == 4) { // CANTILEVER BEAM W DISTRIBUTED VERTICAL FORCE
     // TEST CASE: L=3, t=0.15, w=.8, F=10,Roark defection=1.2,min MS=-0.06
@@ -145,13 +142,13 @@ if (ACTIVE_BEAM == 1) { // CANTILEVER BEAM WITH END MOMENT ONLY
     Fy=1; // lbs
     
     BEAM_VIS = [[Qbeam,LN,t,w,ang_fixed], for (i=[1:NumberBeams-1]) [Qbeam,LN,t,w,0]];
-    BEAM1 = concat([[Qbeam,LN,t*2,w,ang_fixed]] ,concat(BEAM_VIS,[[Qbeam,LN,t,w,0]]));  
+    BEAM1 = concat([[Qstart,LN,t*2,w,ang_fixed]] ,concat(BEAM_VIS,[[Qend,LN,t,w,0]]));  
         
     LOADS1 = concat([for (i=[1:NumberBeams]) [0,Fy,0]],[[0,Fy,0]]);
    
     MAKE_BEAM_UNDEFORMED(BEAM1,w);
 
-    DO_ANALYSIS(LDB=BEAM1, NODE_LOADS=LOADS1, fscale=force_scale*0.2, Display_steps=true, echoLDB=false, displayLoads=true, Failure_Stress=Failure_Stress, E=E_PSI,density=density,Origin=[0,0,0],steps=8);
+    DO_ANALYSIS(LDB=BEAM1, EXT_LOADS=LOADS1, fscale=force_scale*0.1, Display_steps=true, echoLDB=false, displayLoads=true, Failure_Stress=Failure_Stress, E=E_PSI,density=density,steps=8);
 
 } else if (ACTIVE_BEAM == 5) { // CANTILEVER BEAM TEST CASE FROM OTHER SOURCE
     // VERTICAL FORCE, 8 SEGMENTS
@@ -166,14 +163,14 @@ if (ACTIVE_BEAM == 1) { // CANTILEVER BEAM WITH END MOMENT ONLY
     t=0.15;
     w=0.8;
     Fy=18; // lbs
-    BEAM_VIS = [[Qbeam,LN,t,w,ang_fixed], for (i=[1:NumberBeams-1]) [Qbeam,LN,t,w,0]];
-    BEAM1 = concat([[Qbeam,LN,t*2,w,ang_fixed]] ,concat(BEAM_VIS,[[Qbeam,LN,t,w,0]]));  
+    BEAM_VIS = [[Qstart,LN,t,w,ang_fixed], for (i=[1:NumberBeams-1]) [Qbeam,LN,t,w,0]];
+    BEAM1 = concat([[Qbeam,LN,t*2,w,ang_fixed]] ,concat(BEAM_VIS,[[Qend,LN,t,w,0]]));  
     
     LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[0,Fy,0]]);
    
     MAKE_BEAM_UNDEFORMED(BEAM1,w);
 
-    DO_ANALYSIS(LDB=BEAM1, NODE_LOADS=LOADS1, fscale=force_scale*0.2, Display_steps=true, echoLDB=false, displayLoads=false, Failure_Stress=Failure_Stress, E=340000,density=density,Origin=[0,0,0],steps=8);
+    DO_ANALYSIS(LDB=BEAM1, EXT_LOADS=LOADS1, fscale=force_scale*0.1, Display_steps=true, echoLDB=false, displayLoads=false, Failure_Stress=Failure_Stress, E=340000,density=density,steps=8);
 
 } else if (ACTIVE_BEAM == 6) { // CANTILEVER BEAM TEST CASE F=126 g
     // W FORCE, 7 SEGMENT, 125 g
@@ -193,12 +190,12 @@ if (ACTIVE_BEAM == 1) { // CANTILEVER BEAM WITH END MOMENT ONLY
     Fy=0.278; // lbs
 
     BEAM_VIS = [[Qbeam,LN,t,w,ang_fixed], for (i=[1:NumberBeams-1]) [Qbeam,LN,t,w,0]];
-    BEAM1 = concat([[Qbeam,LN,t*4,w,ang_fixed]] ,concat(BEAM_VIS,[[Qbeam,LN,t,w,0]]));  
+    BEAM1 = concat([[Qstart,LN,t*4,w,ang_fixed]] ,concat(BEAM_VIS,[[Qend,LN,t,w,0]]));  
     LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[0,Fy,0]]);
     
     MAKE_BEAM_UNDEFORMED(BEAM1,w);
     
-    DO_ANALYSIS(LDB=BEAM1, NODE_LOADS=LOADS1, fscale=force_scale*0.2, Display_steps=true, echoLDB=false, displayLoads=false, Failure_Stress=Failure_Stress, E=340000,density=density,Origin=[0,0,0],steps=8);
+    DO_ANALYSIS(LDB=BEAM1, EXT_LOADS=LOADS1, fscale=force_scale*1, Display_steps=true, echoLDB=false, displayLoads=false, Failure_Stress=Failure_Stress, E=340000,density=density,steps=8);
     
 } else if (ACTIVE_BEAM == 7) { // CANTILEVER BEAM TEST CASE F=545G
     // WITH FORCE, 7 SEGMENT, 545 g
@@ -218,13 +215,13 @@ if (ACTIVE_BEAM == 1) { // CANTILEVER BEAM WITH END MOMENT ONLY
     Fy=1.203 * 0.96; // lbs
     
     BEAM_VIS = [[Qbeam,LN,t,w,ang_fixed], for (i=[1:NumberBeams-1]) [Qbeam,LN,t,w,0]];
-    BEAM1 = concat([[Qbeam,LN,t*4,w,ang_fixed]] ,concat(BEAM_VIS,[[Qbeam,LN,t,w,0]]));  
+    BEAM1 = concat([[Qstart,LN,t*4,w,ang_fixed]] ,concat(BEAM_VIS,[[Qend,LN,t,w,0]]));  
     LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[0,Fy,0]]);
     
     MAKE_BEAM_UNDEFORMED(BEAM1,w);
     
     // NEED A LOT OF STEPS
-    DO_ANALYSIS(LDB=BEAM1, NODE_LOADS=LOADS1, fscale=force_scale*0.2, Display_steps=true, echoLDB=false, displayLoads=false, Failure_Stress=Failure_Stress, E=340000,density=density,Origin=[0,0,0],steps=40);
+    DO_ANALYSIS(LDB=BEAM1, EXT_LOADS=LOADS1, fscale=force_scale*0.2, Display_steps=true, echoLDB=false, displayLoads=false, Failure_Stress=Failure_Stress, E=340000,density=density,steps=40);
     
 } else if (ACTIVE_BEAM == 8) { // TEST BEAM WITH FORCE AND REACTION
     // 7 SEGMENT, 545 g
@@ -251,12 +248,12 @@ if (ACTIVE_BEAM == 1) { // CANTILEVER BEAM WITH END MOMENT ONLY
     // SENSITIVE TO THE NUMBER OF BEAMS AND STEPS!!!
     
     BEAM_VIS = [[Qbeam,LN,t,w,0.0], for (i=[1:NumberBeams-1]) [Qbeam,LN,t,w,0]];
-    BEAM1 = concat([[Qbeam,LN,t*8,w,0.0001]] ,concat(BEAM_VIS,[[Qbeam,LN,t,w,0]]));  
+    BEAM1 = concat([[Qstart,LN,t*8,w,0.0001]] ,concat(BEAM_VIS,[[Qend,LN,t,w,0]]));  
     LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[Fx,0,0]]);
    
     MAKE_BEAM_UNDEFORMED(BEAM1,w);
 
-    DO_ANALYSIS(LDB=BEAM1, NODE_LOADS=LOADS1, fscale=force_scale*0.2, Display_steps=true, echoLDB=false, displayLoads=false, Failure_Stress=Failure_Stress, E=340000,density=density,Origin=[0,0,0],steps=60);
+    DO_ANALYSIS(LDB=BEAM1, EXT_LOADS=LOADS1, fscale=force_scale*0.2, Display_steps=true, echoLDB=false, displayLoads=false, Failure_Stress=Failure_Stress, E=340000,density=density,steps=60);
 
 } else if (ACTIVE_BEAM == 10) { // Frame with pinned supports
     // Roark 6th ed, Rigid Frame, Table 4, page 122, case 1f, where a = L1
@@ -290,16 +287,16 @@ if (ACTIVE_BEAM == 1) { // CANTILEVER BEAM WITH END MOMENT ONLY
     BEAM1 = BEAM_FROM_NODES(nodes=pts_ADD,TBEAMS=t,TENDS=0.01,w=w);
     NumberBeams = len(BEAM1)-2;
 
-    k = .85;  // should be 1
+    k = .42;  // should be 1
     LOADS1 = concat ( concat (
     concat([for (i=[1:(NumberBeams/2)-2]) [0,0,0]],[[W,0,0]]), // first leg & top load
         [for (j=[1:(NumberBeams/2)+1]) [0,0,0]]), // second leg
             [[-HB*k,VB*k,0]]); // << last load is solved to not move
-    draw_loads(nodes=pts_ADD, loads=LOADS1, torques=LOADS1,scale=1);
+    translate(ORIGIN) draw_loads(nodes=pts_ADD, loads=LOADS1, torques=LOADS1,scale=1);
        
     translate(ORIGIN) MAKE_BEAM_UNDEFORMED(BEAM1,w);
     
-    DO_ANALYSIS(LDB=BEAM1, NODE_LOADS=LOADS1, fscale=force_scale*0.2, Display_steps=true, echoLDB=false, displayLoads=false, Failure_Stress=FAILURE_STRESS_PLA_PSI, E=E,density=DENSITY_PLA_IMPERIAL,Origin=[0,0,0],steps=4);
+    DO_ANALYSIS(LDB=BEAM1, EXT_LOADS=LOADS1, fscale=force_scale*0.2, Display_steps=true, echoLDB=false, displayLoads=false, Failure_Stress=FAILURE_STRESS_PLA_PSI, E=E,density=DENSITY_PLA_IMPERIAL,steps=4);
     
 } else if (ACTIVE_BEAM == 11) { // PARALLEL FLEXTURE SYSTEM, PAPER AIRPLANE LAUNCHER
     t=.06;  // individual beam thickness, minimum
@@ -355,13 +352,12 @@ if (ACTIVE_BEAM == 1) { // CANTILEVER BEAM WITH END MOMENT ONLY
         cube([L-.05,CAP_X-.1,w]); // upright for fixed latch
 
     // // ANALYSIS, DON'T INCLUDE ANYTHING BELOW THIS LINE IN PRINT 
-    Load_Steps = 6;
-    translate(ORIGIN) Do_Analysis(BEAM1,LOADS1,force_scale,true,Failure_Stress,E_PSI,density,steps=Load_Steps) {launcher(CAP_X,CAP_LEN,w,LATCH_H);} ;
+    translate(ORIGIN) Do_Analysis(BEAM1,LOADS1,force_scale,true,Failure_Stress,E_PSI,density,steps=6) {launcher(CAP_X,CAP_LEN,w,LATCH_H);} ;
     
     // THREE FUNCTION CALLS TO GET FINAL NODES:
     initial_loads = spread_ext_loads(LOADS1); // Spread Loads
     beam_angles = global_angles(BEAM1); // Generate GLOBAL Beam ANGLES, undeformed
-    FinalNodes = GetFinalNodes(BEAM1,Failure_Stress,E_PSI,density,initial_loads, ORIGIN, STEPS=Load_Steps);
+    FinalNodes = GetFinalNodes(BEAM1,Failure_Stress,E_PSI,density,initial_loads, ORIGIN, STEPS=6);
     
     StartingNodes = getNodesFromBeams(BEAM1,ORIGIN[0],ORIGIN[1]);
 
