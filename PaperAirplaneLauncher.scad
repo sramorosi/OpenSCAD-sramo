@@ -7,8 +7,8 @@
 // For this design, when latched:
 // PETG has greater margin to failure than PLA
 // PLA has greater potential energy (35 N-mm) than PETG (30.4 N-mm)
-include <LDB_Indexes.scad>
-use <LDB_Modules.scad>
+include <NEW_LDB_Indexes.scad>
+use <NEW_LDB_Modules.scad>
 use <../MAKE3-Arm/openSCAD-code/Robot_Arm_Parts_lib.scad>
 
 // Scale of Force & Moment Display
@@ -97,32 +97,35 @@ module AIRPLANE_LAUNCHER (PRINT = false) {
     
     //color("blue") draw_points(STEP_1_PTS,dia=0.03);
     
-    BEAM1 = beamFromNodes(STEP_1_PTS,t,w,true);  // CREATES THE BEAM ELEMENTS FROM POINTS
+    BEAM1 = BEAM_FROM_NODES(nodes=STEP_1_PTS,TBEAMS=t,TENDS=t,w=w,THICKEN_ENDS=true, T_MID=false);  // CREATES THE BEAM ELEMENTS FROM POINTS BEAM_FROM_NODES(nodes,TBEAMS,TENDS,w,THICKEN_ENDS=false,T_MID=false,TUP = 1.03,S=9,index=0,prior_ang=0)
 
-    NumberBeams = len(BEAM1);
+    NumberBeams = len(BEAM1)-2;
     LOADS1 = concat([for (i=[1:NumberBeams]) [0,0,0]],[[Fx,Fy,Mz]]);
 
     // Set the beam thickness to be a Minimum MS of:
     //MSFLOOR = 0.44;
     //BEAM1 = SetBeamMinMS(BEAM0 ,LOADS1 , MSFLOOR, FAILURE_STRESS_METRIC , E_NSMM ,DENSITY_METRIC , ORIGIN, STEPS=Load_Steps);
     
-    StartingNodes = getNodesFromBeams(BEAM1,ORIGIN[0],ORIGIN[1]);  // SHOULD  BE THE SAME AS STEP_1_PTS ?ANGLES DON'T MATCH
+    StartingNodes = getNodesFromLDB(LDB=BEAM1,NB = NumberBeams);  // SHOULD  BE THE SAME AS STEP_1_PTS ?ANGLES DON'T MATCH
     //echo(StartingNodes=StartingNodes);
     //color("red") draw_points(StartingNodes,dia=0.03);
-
-    // ANALYSIS, DON'T INCLUDE IN PRINT 
-    if(!PRINT) translate(ORIGIN) Do_Analysis(BEAM1,LOADS1,force_scale,false,FAILURE_STRESS_METRIC,E_NSMM,DENSITY_METRIC,steps=Load_Steps);
-
-    // GET FINAL NODES:
-    FinalNodes = GetFinalNodes(BEAM1,FAILURE_STRESS_METRIC,E_NSMM,DENSITY_METRIC,LOADS1, ORIGIN, STEPS=Load_Steps);
-
+    
     end_point = [STEP_1_PTS[NumberBeams][Nx],STEP_1_PTS[NumberBeams][Ny],0];
 
-    // Launcher, Deformed, DON'T INCLUDE IN PRINT 
-    if(!PRINT) TranslateChildren(StartingNodes,FinalNodes,NumberBeams) 
-        translate(end_point)  color("yellow",0.5) {
-            *LAUNCHER(CAP_X,CAP_LEN,w,LATCH_H,-CAP_LEN*LAUNCHER_Y_SHIFT); 
-            THIN_LAUNCHER(3,V_LEN,w,LATCH_H,-CAP_LEN*LAUNCHER_Y_SHIFT);
+    // ANALYSIS, DON'T INCLUDE IN PRINT 
+    if(!PRINT) {
+        translate(ORIGIN) Do_Analysis(BEAM1,LOADS1,force_scale,false,FAILURE_STRESS_METRIC,E_NSMM,DENSITY_METRIC,steps=Load_Steps);
+
+        // GET FINAL NODES:
+        FinalNodes = GetFinalNodes(BEAM1,FAILURE_STRESS_METRIC,E_NSMM,DENSITY_METRIC,LOADS1, ORIGIN, STEPS=Load_Steps);
+
+
+            // Launcher, Deformed, DON'T INCLUDE IN PRINT 
+            TranslateChildren(StartingNodes,FinalNodes,NumberBeams) 
+            translate(end_point)  color("yellow",0.5) {
+                *LAUNCHER(CAP_X,CAP_LEN,w,LATCH_H,-CAP_LEN*LAUNCHER_Y_SHIFT); 
+                THIN_LAUNCHER(3,V_LEN,w,LATCH_H,-CAP_LEN*LAUNCHER_Y_SHIFT);
+            }
         }
 
     // Four flex beams, not deformed
@@ -328,14 +331,15 @@ module LATCH(X=1,Y=1,LEN=2) {
 *LATCH();
 
 module FLEX_BEAM_FILLETED(BEAM,ORG,BEAM_T,BEAM_W,BEAM_ANG,R,NODES,SPACE,CYL=false) {
-    NB = len(BEAM);  // number of beams
+    NB = len(BEAM)-2;  // number of beams
     
-    translate(ORG) draw_beam_undeformed(BEAM);
+    translate(ORG) MAKE_BEAM_UNDEFORMED(BEAM,BEAM_W);
     
     translate(ORG) BEAM_FILLETS(BEAM_T,BEAM_W,BEAM_ANG,R); // Fillet at start
     
     // Fillet at end
     end_point = [NODES[NB][Nx],NODES[NB][Ny],0];
+    //echo(end_point=end_point,ORG=ORG);
     translate(ORG) translate(end_point) 
         rotate([0,0,180]) BEAM_FILLETS(BEAM_T,BEAM_W,BEAM_ANG,R);
 
