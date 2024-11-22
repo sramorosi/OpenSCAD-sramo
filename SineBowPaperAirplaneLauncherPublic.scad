@@ -17,9 +17,6 @@
 //     PETG has greater strength than PLA
 //     PETG is more flexible than PLA
 //   PETG sticks to the printer bed better, thus no brim required!
-include <NEW_LDB_Indexes.scad>
-use <NEW_LDB_Modules.scad>
-use <../MAKE3-Arm/openSCAD-code/Robot_Arm_Parts_lib.scad>
 
 // MATERIAL PROPERTIES:
 MATERIAL = "PETG";
@@ -39,7 +36,8 @@ DENSITY_PETG_METRIC = 0.0012733;  // material density (gram per mm^3)
 // Units
 UNITS = "METRIC, LENGTH = MM, FORCE = NEWTONS";
 
-TITLE = str("SINE-BOW 11-11-24 ",MATERIAL); // UPDATE DATE BEFORE EXPORTING
+// TITLE is a Date Stamp.  UPDATE DATE BEFORE EXPORTING
+TITLE = str("SINE-BOW 11-11-24 ",MATERIAL); 
 echo(TITLE);
 
 echo(str("UNITS ARE ",UNITS,", MATERIAL IS ",MATERIAL));
@@ -81,6 +79,7 @@ function OneFlexBeam() =
 *MAKE_BEAM_UNDEFORMED(BEAM=OneFlexBeam(),THK=T_MIN);
     
 module ANALYSIS() {
+    // NOTE: Analysis modules are not included in the public version.
     NB=25;  // half the full beam
     
     pts=[for (i=[0:NB]) [L_FLEX/2*(i/NB),Y_SINE*sin(180*(i/NB)-90) + Y_SINE] ];
@@ -116,6 +115,8 @@ module ANALYSIS() {
 // PLA STEP=20,load scale=1,σ MAX=43.5716,σ MIN=-46.0749,MIN MS=-0.0360458,MAX MS=15.8643,ENERGY=11.414"
 // "Final Starting Fixed Loads [Fx,Fy,M]=[[6.8644, 0.700055, -282.558]]"
 // "NODES: X MAX=45.677, X MIN=0", "NODES: Y MAX=87.0003, Y MIN=0"
+
+// NOTE: I never found a viable PLA version with positive MS
 
 module SINE_BOW_PAPER_AIRPLANE_LAUNCHER() {
     intersection() { // make sure print fits on a 180 x 180 printer bed
@@ -355,3 +356,119 @@ module cone(d=10,h=5) {
     rotate_extrude(convexity=10,$fn=100) 
         polygon([[d/2,0],[0,h],[0,0]]);
 }
+
+//****  NEW_LDB_Modules used in Public version ***
+// Indexes into the Beam array start with Z
+Ztype = 0;     // first element of each list 
+    // All Q values should numbers that don't get used for angles or what not
+    Qbeam = 11111;  
+    Qstart = 88888;  // invisible beam  at the start
+    Qend = 99999;    // invisible beam at the end
+
+// BEAM ARRAY: [Qbeam,Blen,Bthk,Bw,Bang]  INITIALLY DEFINED, NOT CHANGED
+Blen = 1;   // beam length
+Bthk = 2;   // beam thickness
+Bw = 3;     // beam width (normal to plane, or printer bed)
+Bang = 4;   // Unloaded Z rotation of beam relative to prior beam (local)
+  // Bang is needed for AUTO-GENERATED BEAMS (i.e. from points)
+
+// INITIAL Load AND ANGLES Array: [Ifx,Ify,Im]
+// Array size = Beams + 1  (Nodes)
+Ifx = 0;    // external force in global X
+Ify = 1;    // external force in global Y
+Im = 2;     // external moment about global Z 
+
+// USED WITH NODES ARRAY [Nx,Ny,Nang]
+Nx = 0;
+Ny = 1;
+Nang = 2;
+
+// USED WITH Result Array:
+Ztheta = 0; // Spring angle, at the start of the beam
+Za = 1;     // beam-local x end position
+Zb = 2;     // beam-local y end position
+Zms = 3;       // margin of safety
+Zstressmin = 4;
+Zstressmax = 5;
+Zenergy = 6;
+ZNewThk = 7;
+ZReactx = 8;
+ZReacty = 9;
+ZReactm = 10;
+
+// UNDEFORMED BEAM MODELER
+// Creates an up and down profile and concatinate into an outline.
+//
+module MAKE_BEAM_UNDEFORMED(BEAM,THK,idx=0) {
+    
+    start_ang = BEAM[0][Bang]; // starting angle of the beam is in beam[0]
+    OUTLINE_U = outline_beam_undeformed(BEAM=BEAM,UP=true,ang_start=start_ang);
+    OUTLINE_D = outline_beam_undeformed(BEAM=BEAM,UP=false,ang_start=start_ang);
+    
+    OUTLINE = concat(OUTLINE_U,reverse_array(OUTLINE_D));
+    
+    linear_extrude(THK,convexity=10,center=true) 
+        polygon(OUTLINE);
+}
+
+// Create a point-array profile on one side of the beam.
+// Call it twice, for each side of the beam (UP boolean)
+// Thickness at a node is the average of the beam to either side.
+// Parameters x1,y1,index are for recursion.
+function outline_beam_undeformed(BEAM,UP=true,ang_start=0,x1=0,y1=0,index=0) =  
+    let (ROT = (UP) ? 90 : -90) // rotation from the beam vector direction
+    index < len(BEAM)-1 ? // -1 FOR NEW METHOD ONLY
+        index == 0 ? //  first point, first beam
+           let (T = (BEAM[index][Bthk] + BEAM[index+1][Bthk])/4)
+           concat([ [x1 + T*cos(ang_start+ROT),y1+ T*sin(ang_start+ROT) ] ],
+            outline_beam_undeformed(BEAM,UP, BEAM[index][Bang],x1,y1,index+1) )
+        :  // middle beams
+            let (T = (BEAM[index][Bthk] + BEAM[index+1][Bthk])/4)
+            let (LEN = BEAM[index][Blen])
+            let (END_ANG = BEAM[index][Bang])
+            let (ANG = ang_start)
+            let (AVG_ANG = ANG+END_ANG/2)
+//echo(index=index,ANG=ANG,END_ANG=END_ANG,AVG_ANG=AVG_ANG)
+            let (x_end = x1 + LEN*cos(ANG)) 
+            let (y_end = y1 + LEN*sin(ANG))
+            let (TMOD = T/cos(END_ANG/2))
+            concat([ [ x_end + TMOD*cos(AVG_ANG+ROT) , y_end + TMOD*sin(AVG_ANG+ROT)] ] ,
+            outline_beam_undeformed(BEAM,UP,END_ANG + ANG,x_end,y_end,index+1) ): [] ;
+
+// NEW WRAPPER FUNCTION FOR BEAM FROM NODES
+// THAT ADDS FIRST AND LAST INVISIBLE BEAMS
+function BEAM_FROM_NODES(nodes,TBEAMS,TENDS,w,THICKEN_ENDS=false,T_MID=false,TUP = 1.03,S=9,index=0,prior_ang=0) =
+    let (length = sqrt((nodes[0][0]-nodes[1][0])^2 + (nodes[0][1]-nodes[1][1])^2))
+    let (ang = atan2((nodes[1][1]-nodes[0][1]),(nodes[1][0]-nodes[0][0])))
+    concat([[Qstart,length,TENDS,w,ang]],
+    concat(beamFromNodes(nodes=nodes,t=TBEAMS,w=w,THICKEN_ENDS=THICKEN_ENDS,T_MID=T_MID, TUP=TUP,S=S,index=0,prior_ang=ang),[[Qend,length,TENDS,w,ang]]) );
+
+// DO NOT CALL THIS DIRECTLY
+function beamFromNodes(nodes,t,w,THICKEN_ENDS=false,T_MID=false,TUP = 1.03,S=9,index=0,prior_ang=0) =
+    // beam stresses at the fix endS can be larger than reported, due to stress concentrations
+    // THICKEN_ENDS option will gradually increase thickenss of the ends
+    // TUP is scaler for thickening up the ends
+    // S is the number of nodes from each end to thicken
+    // More nodes, increase S, decrease TUP
+    let (n = len(nodes)-1)
+    index < n ? 
+    let (T_NEW_1 = (index < S && THICKEN_ENDS) ? t*TUP^(S-index) : t) // Thicken Start
+    let (T_NEW_2 = (index > n-S && THICKEN_ENDS) ? t*TUP^(index-(n-S-1)) : T_NEW_1) // Thicken End
+    // Thicken up the middle
+    let (MID_N = floor(n/2))
+    let (nfm = index-MID_N) // neg before mid, pos after
+    let (T_NEW_3 = (nfm <= 0 && nfm > -S && T_MID) ? t*TUP^(S+nfm) : T_NEW_2) 
+    let (T_NEW_4 = (nfm > 0 && nfm < S && T_MID) ? t*TUP^(S-nfm) : T_NEW_3)
+    let (T_NEW = T_NEW_4)
+    let (length = sqrt((nodes[index][0]-nodes[index+1][0])^2 + (nodes[index][1]-nodes[index+1][1])^2))
+    let (dx=nodes[index+1][0]-nodes[index][0])
+    let (dy=nodes[index+1][1]-nodes[index][1])
+    let (ang = index==n-1 ? prior_ang : atan2((nodes[index+2][1]-nodes[index+1][1]),(nodes[index+2][0]-nodes[index+1][0])))
+    //echo(index=index,T_NEW) 
+    concat([[Qbeam,length,T_NEW,w,ang-prior_ang]],beamFromNodes(nodes,t,w,THICKEN_ENDS,T_MID,TUP,S,index+1,ang))  : [] ;
+    
+// Function to reverse an array of points
+function reverse_array(arr) =
+    let(len_arr = len(arr)) 
+        [for (i = [0 : len_arr - 1]) arr[len_arr - i - 1]] ;
+//

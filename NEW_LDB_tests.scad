@@ -3,7 +3,7 @@ include <NEW_LDB_Indexes.scad>
 use <NEW_LDB_Modules.scad>
 
 // Pick which beam definition to use
-ACTIVE_BEAM=9; // [1:1-CANTILEVER BEAM w End Moment-CIRCLE, 2:2-CANTILEVER BEAM w Force & Moment, 3:3-SINE WAVE BEAM, 4:4-CANTILEVER BEAM w Distributed Force, 5:5-8seg Normal Force (test shape), 6:6-test (125g), 7:7-test (545g),8:8-test-reaction (545g) TBD,9:9-Column,10:10-PINNED FRAME,11:11-Parallel Flex AIRPLANE LAUNCHER,12:12-CROSS FRAME,13:13-Compression Beam,99:99-BAD DATA]
+ACTIVE_BEAM=1; // [1:1-CANTILEVER BEAM w End Moment-CIRCLE, 2:2-CANTILEVER BEAM w Force & Moment, 3:3-SINE WAVE BEAM, 4:4-CANTILEVER BEAM w Distributed Force, 5:5-8seg Normal Force (test shape), 6:6-test (125g), 7:7-test (545g),8:8-test-reaction (545g) TBD,9:9-Column,10:10-PINNED FRAME,11:11-Parallel Flex AIRPLANE LAUNCHER,12:12-CROSS FRAME,13:13-Compression Beam,99:99-BAD DATA]
 
 // Scale of Force & Moment Display
 force_scale = 0.5; // [0.05:.05:2.0]
@@ -11,12 +11,14 @@ force_scale = 0.5; // [0.05:.05:2.0]
 // MATERIAL PROPERTIES. 
 // Modulus of Elasticity (PSI)
 E_PLA_PSI = 340000;  // USED IN MANY FUNCTIONS AND MODULES
+E_PETG_PSI = 300000; 
 E_PLA_NSMM = 2344;  // Modulus of Elasticity (NEWTONS PER mm^2), PLA
 E_PETG_NSMM = 2068;  // Modulus of Elasticity (NEWTONS PER mm^2), PETG
 E_PSI = E_PLA_PSI; // MUST MODIFY IN MODULES 
 
 // ~Stress level at which the material will fail
 FAILURE_STRESS_PLA_PSI = 6600;  // PLA, IN PSI
+FAILURE_STRESS_PETG_PSI = 8700;
 FAILURE_STRESS_PLA_METRIC = 45;  // ~Stress level at which PLA will fail (NEWTONS per mm^2)
 FAILURE_STRESS_PETG_METRIC = 60;  // ~Stress level at which PETG will fail (NEWTONS per mm^2)
 // This could be tensile failure, compression failure, bending, etc.
@@ -25,6 +27,7 @@ Failure_Stress = FAILURE_STRESS_PLA_PSI;
 DENSITY_PLA_IMPERIAL = 0.045;  // material density (lb per inch^3)
 DENSITY_PLA_METRIC = 0.0012318;  // material density (gram per mm^3)
 DENSITY_PETG_METRIC = 0.0012733;  // material density (gram per mm^3)
+DENSITY_PETG_IMPERIAL = 0.046;
 density = DENSITY_PLA_IMPERIAL;
 
 // Beam thickness
@@ -38,8 +41,8 @@ density = DENSITY_PLA_IMPERIAL;
 
 if (ACTIVE_BEAM == 1) { // CANTILEVER BEAM WITH END MOMENT ONLY
     t=0.1;
-    L = 30;  // circle len = pi()*d  
-    w=.8; // beam width
+    L = 26;  // circle len = pi()*d  
+    w=1.0; // beam width
     RAD = L/(2*PI);
     NBeams = 80;  // the more beams, the closer it gets
     LN = L/NBeams;
@@ -52,17 +55,31 @@ if (ACTIVE_BEAM == 1) { // CANTILEVER BEAM WITH END MOMENT ONLY
     
     // THE CORRECT MOMENT TO APPLY IS...
     I=((w*pow(t,3))/12);
-    M = E_PLA_PSI*I*2*PI/L;  // The Moment to apply to form a full circle
+    M = E_PETG_PSI*I*2*PI/L;  // The Moment to apply to form a full circle
     STRESS = M * (t/2) / I;  // The stress on the outer fibers of the beam
     echo("CASE 1 END M ONLY ",I=I,M=M,STRESS=STRESS,RAD=RAD);
     LOADS1 = concat([for (i=[1:NBeams]) [0,0,0]],[[0,0,M]]);
     //echo(LOADS1=LOADS1);
 
     // This problem only needs 2 load steps!    (Step 1 is zero load)
-    DO_ANALYSIS(LDB=ELEM, EXT_LOADS=LOADS1, fscale=force_scale, Display_steps=false, echoLDB=false, displayLoads=true, Failure_Stress=Failure_Stress, E=E_PLA_PSI, density=density,pinned=false,FixFy=true,steps=2);
+    DO_ANALYSIS(LDB=ELEM, EXT_LOADS=LOADS1, fscale=force_scale, Display_steps=true, echoLDB=false, displayLoads=true, Failure_Stress=FAILURE_STRESS_PETG_PSI, E=E_PETG_PSI, density=DENSITY_PETG_IMPERIAL,pinned=false,FixFy=true,steps=8);
 
     // The beam with M applied, should wrap the cylinder
     translate([0,RAD,-1]) cylinder(h=1,r=RAD,center=true,$fn=NBeams);
+    
+    // RESULTS:
+    // PLA
+    //ECHO: "CASE 1 END M ONLY ", I = 0.0000833333, M = 6.84706, STRESS = 4108.24, RAD = 4.13803
+    //ECHO: "******* LARGE DISPLACEMENT 2D BEAM ANALYSIS *******"
+    //ECHO: E = 340000, Failure_Stress = 6600, density = 0.045, fscale = 0.5
+    //ECHO: ">>>>STEP=8,load scale=1,σ MAX=4108.24,σ MIN=-4108.24,MIN MS=0.606529,MAX MS=31.5322,ENERGY=0.00295071"  
+    //
+    // PETG
+    //ECHO: "CASE 1 END M ONLY ", I = 0.0000833333, M = 6.04152, STRESS = 3624.91, RAD = 4.13803
+    //ECHO: "******* LARGE DISPLACEMENT 2D BEAM ANALYSIS *******"
+    //ECHO: E = 300000, Failure_Stress = 8700, density = 0.046, fscale = 0.5
+    //ECHO: ">>>>STEP=8,load scale=1,σ MAX=3624.91,σ MIN=-3624.91,MIN MS=1.40006,MAX MS=47.6011,ENERGY=0.00260357"
+
     
 } else if (ACTIVE_BEAM == 2) { // CANTILEVER BEAM WITH FORCE
 // Catilever beam, left fixed, right free, end load

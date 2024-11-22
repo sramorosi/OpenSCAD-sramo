@@ -91,7 +91,7 @@ module EZUP_slide() {
         }
     }
 }
-EZUP_slide();
+*EZUP_slide();
 
 // Bike Bag Support
 module BikeBagU () {
@@ -251,10 +251,10 @@ module C7hook() {
     
     // connection cube
     translate([thickness/2,0,-(baseH-height)/2]) // (baseH-height)/2
-        cube([thickness,14,baseH+height],center=true);
+        cube([thickness,16,baseH+height],center=true);
     }
 }
-*C7hook($fn=80);
+C7hook($fn=120);
 
 // spacers for juniper duck wings
 *washer(d=0.8*MM,t=3,d_pin=0.65*MM,$fn=FACETS);

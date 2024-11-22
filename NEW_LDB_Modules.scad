@@ -199,7 +199,8 @@ module ComputeStepsModule(f_scale=1,LDB, Failure_Stress,E,density,loads,original
         //
         } 
         // Find the minimum Margin so the colors look good
-        MIN_MS = min_tree(newResults,Zms); 
+        //MIN_MS = min_tree(newResults,Zms); 
+        MIN_MS = 0.0;
         //DRAW_DEFORMED_BEAM(LDB=LDB,results=newResults,prior_ang = newResults[0][Ztheta],SUBMS=MIN_MS );
         DRAW_DEFORMED_BEAM(LDB=LDB,results=newResults,nodes=Nodes, SUBMS=MIN_MS );
         
@@ -448,10 +449,11 @@ module DRAW_DEFORMED_BEAM(LDB,results,nodes,SUBMS=0.0,x0=0, y0=0, idx = 0) {
         ms_prior = idx==0 ? 0 : results[idx-1][Zms];
         //ms = (ms_prior+results[idx][Zms])/2 - SUBMS; 
         ms = results[idx][Zms] - SUBMS; 
+        RGB = (ms <= 0.0 ) ? [0,0,0] : [val_red(ms),val_green(ms),0];
 //echo(idx=idx,x0=x0,y0=y0,a=a,b=b);
         
         // Draw a round-end beam, using hull
-        color (c=[val_red(ms),val_green(ms),0],alpha=1) 
+        color (c=RGB,alpha=1) 
             linear_extrude(height=w,center=true) 
             hull() { 
                 translate([x0,y0,0]) 

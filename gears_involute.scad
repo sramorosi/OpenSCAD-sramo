@@ -298,7 +298,7 @@ module involute_bevel_gear_tooth (
 module gear (
     number_of_teeth=15,
     circular_pitch=undef, diametral_pitch=undef,
-    pressure_angle=20, // was 28.  Changed to 20 to match Actobotic 32P gears
+    pressure_angle=28, // was 28.  Changed to 20 to match Actobotic 32P gears
     clearance = undef,
     gear_thickness=5,
     rim_thickness=undef,
@@ -396,7 +396,7 @@ module gear (
             difference ()
             {
                 //start with a plane toothed disk gear
-                linear_extrude_flat_option(flat=flat, height=rim_thickness, convexity=10, twist=twist)
+                //linear_extrude_flat_option(flat=flat, height=rim_thickness, convexity=10, twist=twist)
                 gear_shape (
                     number_of_teeth,
                     pitch_radius = pitch_radius,
@@ -855,10 +855,24 @@ module 32P_Actobotics (teeth=32,thickness=6,bore=4)
         rim_thickness = 0,
         rim_width = 0, // controls the circles diameter
         hub_thickness = 0,  // ?
-        hub_diameter=0,// controls the circles diameter
+        hub_diameter=10,// controls the circles diameter
         bore_diameter=bore, // center bore
         backlash = 0,
         circles=0);
 }
 *32P_Actobotics(teeth=32);
-translate([0,0,0]) 32P_Actobotics(teeth=51,thickness=8);
+*32P_Actobotics(teeth=51,thickness=8,$fn=60);
+module SHIRT_GEAR() {
+    gear (
+        number_of_teeth = 18,
+        circular_pitch= 20, //1*25.4, //32*180*pi/180,
+        gear_thickness = 40,
+        rim_thickness = 0,
+        rim_width = 0, // controls the circles diameter
+        hub_thickness = 0,  // ?
+        hub_diameter=0,// controls the circles diameter
+        bore_diameter=80, // center bore
+        backlash = 0,
+        circles=0);
+}
+SHIRT_GEAR($fn=80);
