@@ -39,7 +39,8 @@ DENSITY_PETG_METRIC = 0.0012733;  // material density (gram per mm^3)
 // Units
 UNITS = "METRIC, LENGTH = MM, FORCE = NEWTONS";
 
-TITLE = str("SINE-BOW 11-11-24 ",MATERIAL); // UPDATE DATE BEFORE EXPORTING
+//TITLE = str("SINE-BOW 12-15-24 ",MATERIAL); // UPDATE DATE BEFORE EXPORTING
+TITLE = str(" SINE-BOW ", " Dec. 24"); // Custom
 echo(TITLE);
 
 echo(str("UNITS ARE ",UNITS,", MATERIAL IS ",MATERIAL));
@@ -129,7 +130,7 @@ module SINE_BOW_PAPER_AIRPLANE_LAUNCHER() {
 
 SINE_BOW_PAPER_AIRPLANE_LAUNCHER();
 
-rotate([0,0,45]) translate([L_FLEX-3.5,0,0]) // NOT FOR PRINT, TRANSFORMATIONS FOR ASSY
+*rotate([0,0,45]) translate([L_FLEX-3.5,0,0]) // NOT FOR PRINT, TRANSFORMATIONS FOR ASSY
   TRIGGER(Z_TRIG=30,Z_LAUNCH=Z_BEAM,W_TRIG=W_TRIG); 
 
 *rotate([90,0,0]) TRIGGER(Z_TRIG=30,Z_LAUNCH=Z_BEAM,W_TRIG=W_TRIG); // FOR PRINT
@@ -210,7 +211,7 @@ module SHOOTER_SUB2() {
         // remove the V slot in the launcher
         Z_TRANS = Z_LAUNCH-Z_VEE;
         translate([V_LEN-2,0,Z_TRANS]) rotate([0,-88,0]) 
-            VEE_SLOT(X=Z_VEE,Y=V_W-1,LEN=V_LEN);
+            VEE_SLOT(X=Z_VEE,Y=V_W-1.5,LEN=V_LEN);
         
         // Two screw holes, don't protrude through the top to prevent missassembly
         translate([L_FLEX+22,0,-10]) SCREW_HOLES(DIA=2.5);
@@ -332,7 +333,7 @@ module SCREW_HOLES(DIA=10) {
 // Text block for Sine-bow Paper Airplane Launcher
 module text_block() {
     
-    SZ = 5;  // Text height
+    SZ = 6;  // Text height
     TD = 0.5; // Text depth (determined for printabilit) 
 
     translate([93,0,-TD]) 

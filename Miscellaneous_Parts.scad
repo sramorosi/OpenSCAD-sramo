@@ -8,6 +8,7 @@
 //
 // by SrAmo  July, 2023
 use <../MAKE3-Arm/openSCAD-code/Robot_Arm_Parts_lib.scad>
+use <NEW_LDB_Modules.scad>
 
 // mm in an inch. Don't change.
 MM = 25.4;
@@ -20,6 +21,114 @@ $vpd = 90;         // view point distance
 */
 // use large value (~100) for printing, smaller (~40) for display
 FACETS = $preview ? 100 : 150; // [40,100]
+
+// Sine Wave
+module SineWave(L=200,Y_SINE=20,WIDTH=4,PERIODS=3,NPTS=100) {
+    pts_up=[for (i=[0:NPTS]) [L*(i/NPTS),Y_SINE*sin(360*(i/NPTS*PERIODS)) + WIDTH/2] ];
+    pts_down=[for (i=[0:NPTS]) [L*(i/NPTS),Y_SINE*sin(360*(i/NPTS*PERIODS)) - WIDTH/2] ];
+    
+    polygon(concat(pts_up,reverse_array(pts_down)));
+}
+*SineWave(L=80,Y_SINE=6,WIDTH=7,PERIODS=4,NPTS=100);
+
+// Einstein Tile
+ET_SIZE = 40; // Size on Einstein tile kite on long side
+CORN_DIA = 3.6; // Minimum inside corner diameter for 1/8 cutter in mm
+
+module Kite(L=10) {
+    polygon([[0,0],[0,L],[tan(30)*L,L],[sin(60)*L,cos(60)*L],[0,0]]);
+}
+*Kite(L=ET_SIZE);
+
+module Bite_Tile(x=0,y=0,ang=0) {
+    // Cutter relieve for any external angles that are less than 180 deg
+    translate([x,y,0]) 
+        rotate([0,0,ang]) 
+            translate([CORN_DIA/2,0,0]) 
+                circle(d=CORN_DIA,$fn=64);
+}
+
+module EinsteinTile(KL=10,BITE=false) {
+    difference() {
+        union() {
+            color("lavender") Kite(L=KL);
+            color("thistle") 
+                translate([2*sin(60)*KL,2*cos(60)*KL,0]) 
+                    rotate([0,0,120]) Kite(L=KL);
+            color("plum") 
+                translate([2*sin(60)*KL,2*cos(60)*KL,0]) 
+                    rotate([0,0,180]) Kite(L=KL);
+            color("violet") 
+                translate([2*sin(60)*KL,-2*cos(60)*KL,0]) 
+                    rotate([0,0,60]) Kite(L=KL);
+            color("orchid") 
+                translate([2*sin(60)*KL-0.001,-2*cos(60)*KL,0]) Kite(L=KL);
+            color("fuchsia") 
+                rotate([0,0,-60]) Kite(L=KL);
+            color("mediumorchid") 
+                rotate([0,0,-120]) translate([0,0.001,0]) Kite(L=KL);
+                // small numbe 0.001 helps the union work properly
+            color("mediumpurple") 
+                rotate([0,0,-180]) translate([-0.001,0.001,0]) Kite(L=KL);
+        }
+    if (BITE) {
+        // Cutter relieve for any external angles that are less than 180 deg
+        Bite_Tile(x=0,y=0,ang=150);
+        Bite_Tile(x=ET_SIZE*tan(30),y=ET_SIZE,ang=120);
+        Bite_Tile(x=2*ET_SIZE*cos(30),y=0,ang=45);
+        Bite_Tile(x=ET_SIZE*cos(30),y=-ET_SIZE*sin(30),ang=-75);
+        }
+    }
+}
+EinsteinTile(KL=ET_SIZE,BITE=true);  // Export as SVG (F6 then F7)
+
+module Trivet() {
+    // IN WORK
+        translate([ET_SIZE,0]) rotate([0,0,-120]) {
+            EinsteinTile(KL=ET_SIZE);
+            EinsteinTileMarks(L=ET_SIZE);
+        }
+    *translate([125,0]) EinsteinTile(KL=ET_SIZE);
+    *translate([125,100]) EinsteinTile(KL=ET_SIZE);
+    *translate([0,120]) EinsteinTile(KL=ET_SIZE);
+}
+*Trivet();
+
+module ShrinkKite(L=10) {
+    scl = 0.75;
+    d = L*((1-scl)/1.5);
+    translate([d*cos(60),d*sin(60),0]) scale([scl,scl,1]) Kite(L);
+}
+
+*color("gold") ShrinkKite(L=ET_SIZE);
+
+module EinsteinTileMarks(L=10) {
+    KL = L*1.0;
+    color("aqua") 
+        ShrinkKite(L=KL);
+    color("lightcyan") 
+        translate([2*sin(60)*L,2*cos(60)*L,0]) rotate([0,0,120]) 
+            ShrinkKite(L=KL);
+    color("paleturquoise") 
+        translate([2*sin(60)*L,2*cos(60)*L,0]) rotate([0,0,180]) 
+            ShrinkKite(L=KL);
+    color("aquamarine") 
+        translate([2*sin(60)*L,-2*cos(60)*L,0]) rotate([0,0,60]) 
+            ShrinkKite(L=KL);
+    color("turquoise") 
+        translate([2*sin(60)*L,-2*cos(60)*L,0]) 
+            ShrinkKite(L=KL);
+    color("darkturquoise") 
+        rotate([0,0,-60]) 
+            ShrinkKite(L=KL);
+    color("cadetblue") 
+        rotate([0,0,-120]) translate([0,0.001,0]) 
+            ShrinkKite(L=KL);
+    color("steelblue") 
+        rotate([0,0,-180]) translate([-0.001,0.001,0]) 
+            ShrinkKite(L=KL);
+}
+EinsteinTileMarks(L=ET_SIZE); // Export as SVG (F6 then F7)
 
 // E-Z Up Envoy Canopy parts, for broken leg.  Created 8-22-2024
 IN_SM = 16.4;
@@ -254,7 +363,7 @@ module C7hook() {
         cube([thickness,16,baseH+height],center=true);
     }
 }
-C7hook($fn=120);
+*C7hook($fn=120);
 
 // spacers for juniper duck wings
 *washer(d=0.8*MM,t=3,d_pin=0.65*MM,$fn=FACETS);
