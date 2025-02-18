@@ -17,9 +17,9 @@
 //     PETG has greater strength than PLA
 //     PETG is more flexible than PLA
 //   PETG sticks to the printer bed better, thus no brim required!
-include <NEW_LDB_Indexes.scad>
-use <NEW_LDB_Modules.scad>
-use <../MAKE3-Arm/openSCAD-code/Robot_Arm_Parts_lib.scad>
+include <../Large Displacement Beam/NEW_LDB_Indexes.scad>
+use <../Large Displacement Beam/NEW_LDB_Modules.scad>
+use <../Robot_Arm_Parts_lib.scad>
 
 // MATERIAL PROPERTIES:
 MATERIAL = "PETG";

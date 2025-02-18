@@ -1,7 +1,7 @@
 // Large Displacement Beam, Modules and Functions
 include <NEW_LDB_Indexes.scad>
 //use <ME_lib.scad>
-use <../MAKE3-Arm/openSCAD-code/ME_lib.scad>
+use <../ME_lib.scad>
 
 // TO DO LIST
 // Go through test cases

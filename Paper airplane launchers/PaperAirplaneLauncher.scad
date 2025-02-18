@@ -7,9 +7,9 @@
 // For this design, when latched:
 // PETG has greater margin to failure than PLA
 // PLA has greater potential energy (35 N-mm) than PETG (30.4 N-mm)
-include <NEW_LDB_Indexes.scad>
-use <NEW_LDB_Modules.scad>
-use <../MAKE3-Arm/openSCAD-code/Robot_Arm_Parts_lib.scad>
+include <../Large Displacement Beam/NEW_LDB_Indexes.scad>
+use <../Large Displacement Beam/NEW_LDB_Modules.scad>
+use <../Robot_Arm_Parts_lib.scad>
 
 // Scale of Force & Moment Display
 force_scale = 0.1; // [0.05:.05:2.0]

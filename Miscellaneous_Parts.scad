@@ -7,8 +7,8 @@
 //    Nut Covers for human turntable (June 2023)
 //
 // by SrAmo  July, 2023
-use <../MAKE3-Arm/openSCAD-code/Robot_Arm_Parts_lib.scad>
-use <NEW_LDB_Modules.scad>
+use <Robot_Arm_Parts_lib.scad>
+//use <NEW_LDB_Modules.scad>
 
 // mm in an inch. Don't change.
 MM = 25.4;

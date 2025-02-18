@@ -5,7 +5,7 @@
   
   */
 use <Robot_Arm_Parts_lib.scad>
-use <force_lib.scad>  // using draw_3d_list function
+use <ME_lib.scad>  // using draw_3d_list function
 s_TA=0;  // 15 mm
 s_AB=350; 
 s_BC=380;
