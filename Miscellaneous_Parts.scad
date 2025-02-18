@@ -80,7 +80,7 @@ module EinsteinTile(KL=10,BITE=false) {
         }
     }
 }
-EinsteinTile(KL=ET_SIZE,BITE=true);  // Export as SVG (F6 then F7)
+*EinsteinTile(KL=ET_SIZE,BITE=true);  // Export as SVG (F6 then F7)
 
 module Trivet() {
     // IN WORK
@@ -128,7 +128,7 @@ module EinsteinTileMarks(L=10) {
         rotate([0,0,-180]) translate([-0.001,0.001,0]) 
             ShrinkKite(L=KL);
 }
-EinsteinTileMarks(L=ET_SIZE); // Export as SVG (F6 then F7)
+*EinsteinTileMarks(L=ET_SIZE); // Export as SVG (F6 then F7)
 
 // E-Z Up Envoy Canopy parts, for broken leg.  Created 8-22-2024
 IN_SM = 16.4;
@@ -343,6 +343,7 @@ module C7hook() {
         translate([-r1,-clipW/2,0]) mirror([0,1,0]) half_hook(r1,r2);
     }
     union() {  
+        
     // C7 hook
     translate([-radius1,0,0]) full_hook(r1=radius1,r2=radius2);
     
@@ -363,7 +364,7 @@ module C7hook() {
         cube([thickness,16,baseH+height],center=true);
     }
 }
-*C7hook($fn=120);
+C7hook($fn=120);
 
 // spacers for juniper duck wings
 *washer(d=0.8*MM,t=3,d_pin=0.65*MM,$fn=FACETS);
