@@ -9,6 +9,8 @@
 //use <ME_lib.scad>
 //use <../MAKE3-Arm/openSCAD-code/ME_lib.scad>
 
+G = 980.665;  // cm/sec^2
+
 // Object Member:
 // Vector of objects OBJV: [[cube1],[cube2],[cyl1]], etc for each composite object
 // Object=["NAME", "TYPE", "COLOR", density, X_Size, Y_Size, Z_Size, X_CM,Y_CM,Z_CM];
@@ -49,6 +51,7 @@ PHONE_MASS = cubeMass(PHONE_DIM,PET_DENSITY/0.9); // measured 165 grams
  *                         time to second reverse = 1.25 sec, less distance
  */
 WHEEL_DIA = 15.5; // cm
+RAD_WHEEL = WHEEL_DIA/2;
 STRUT_L = 9; // LENGTH OF STRUT, cm
 // Oject v=["NAME", "TYPE", "COLOR", densi,X_Size,Y_Size,Z_Size,X_CM,Y_CM,Z_CM];
 STRUT_OBJ =["BRASS","CUBE","gold"      ,9.94  ,5.0     ,2.5 ,4.2     ,0,4.0  ,0];
@@ -72,6 +75,17 @@ echo(str("CENTER OF MASS, NO TRANSFORMATION  = ",OBJCM));
 OBJI = objIzz(OBJECTS); //  defaults to around [0,0,0] 
 echo(str("TOTAL MOMENT OF INERTIA Izz = ",OBJI));
 
+// Simplify variables, in preparation for multiple objects
+M1 = OBJM;
+I1 = OBJI;
+CM1 = OBJCMy;
+
+// Simple pendulum frequency = 2*PI*sqrt(L/G)
+SimpleFreq = 2*PI*sqrt(CM1/G);
+echo(str("Simple Frequency = ",SimpleFreq," seconds"));
+// Compound Pendulum frequency = 2*PI*sqrt(I/(m*G*CMr))
+CompoundFreq = 2*PI*sqrt(I1/(M1*G*CM1));
+echo(str("Compound Frequency = ",CompoundFreq," seconds"));
 
 // Function for calculating Mass Properties of objects,
 // such as mass, moment of inertias, center of mass (CM).
@@ -198,7 +212,7 @@ function roll(rad,pt,ang) =
 KT=0; // time
 KX=1; // x position of center of mass
 KY=2; // y position of center of mass
-KR=3; // rotation (radians)
+KR=3; // wheel angle (radians)
 KVX=4; // x velocity
 KVY=5; // y velocity
 KVR=6; // rotational velocity
@@ -206,54 +220,56 @@ KAX=7; // x acceleration
 KAY=8; // y acceleration
 KAR=9; // rotational acceleration
 //
-G = 980.665;  // cm/sec^2
-END_TIME = 1.0;  // seconds
-DT = 0.02; // delta time in seconds
+END_TIME = 0.20;  // seconds
+DT = 0.01; // delta time in seconds
 
 INIT_ANG = 30; // DEG
-INIT_POS = XY_from_A(INIT_ANG);
+IAR = INIT_ANG*PI/180;  // initial angle radians
+INIT_POS = XY_from_Gamma(INIT_ANG);
 FINAL_POS = [PI*WHEEL_DIA-INIT_POS[0],INIT_POS[1],0];
 translate(FINAL_POS) color("blue") cube([0.5,10,1],center=true);
 echo(FINIAL_POS=FINAL_POS);
 
 // Vector=[time,x,y,r,  vx,vy,vr,  ax,ay,ar]; 
-KIN_0=    [0,INIT_POS[0],INIT_POS[1],INIT_ANG*PI/180, 0,0,0, 0,-G,INIT_POS[2]]; // initial kinematics
+KIN_0=    [0,INIT_POS[0],INIT_POS[1],IAR, 0,0,0,AX_from_Gamma(IAR,0),AY_from_Gamma(IAR,0),-INIT_POS[2]]; // initial kinematics
 
-function SUM_M(radius,mass,CMy,Izz,torque) =
-    // NOT USED
-    // returns change in rotational acceleration of wheel
-    (mass*G*CMy*sin(radius) + torque)/Izz;
-    
-function XY_from_A(Angle) = 
+function XY_from_Gamma(GAMMA) = 
     // Cog Whobble Wheel function, returns X,Y,Angle Accel give angle
-    // Angle is in Degrees (unlike the other times!)
+    // GAMMA is in Degrees (unlike the other times!)
     // Third value is Angular acceleration
-    [(Angle*PI/180)*WHEEL_DIA/2 + sin(Angle)*OBJCMy,cos(Angle)*OBJCMy, (OBJM*G*sin(Angle)*OBJCMy)/OBJI];
-    
+    [(GAMMA*PI/180)*RAD_WHEEL + sin(GAMMA)*CM1,cos(GAMMA)*CM1, (M1*G*sin(GAMMA)*CM1)/I1];
+
+function AX_from_Gamma(Gamma,Acentrip) = (G - Acentrip)*sin(Gamma*180/PI);
+
+function AY_from_Gamma(Gamma,Acentrip) = (-G + Acentrip)*cos(Gamma*180/PI);
+
 // RECURSIVE TIME STEP FUNCTION, GENERATES ARRAY OF DYNAMIC POSITIONS
 function time_stepper(DELTA_T,END_T,PRIOR,time=0) = 
-    echo(str(",",time,",",PRIOR[KX],",",PRIOR[KY],",",PRIOR[KR], ",", PRIOR[KVX],",",PRIOR[KVY],",",PRIOR[KVR],",", PRIOR[KAX],",", PRIOR[KAY],",",PRIOR[KAR],","))
-    // COMPUTE NEXT TIME:
-    let (Acentrip = pow(PRIOR[KVR],2)/OBJCMy) // Centripital Acceleration = v^2/R
-    let (AX = Acentrip*sin(PRIOR[KR]*180/PI))  // only Centripital Accel for whob wheel?
-    let (AY = -G + Acentrip*cos(PRIOR[KR]*180/PI)) // SUM FORCES Y (Gravity in the -Y direction plus centripital acceleration)
-    let (AR = (OBJM*G*sin(PRIOR[KR]*180/PI)*OBJCMy + OBJM*AX*cos(PRIOR[KR]*180/PI)/2)/OBJI) // SUM MOMENTS
-    let (VX = (PRIOR[KVX] + AX*DELTA_T)) // integrate accel to get velo
-    let (VY = (PRIOR[KVY] + AY*DELTA_T))
+    // COMPUTE NEXT TIME
+    let (OldGamma = PRIOR[KR])
+    let (Acentrip = 0) //-pow(PRIOR[KVR],2)/CM1) // Centripital Acceleration = v^2/R
+    let (AX = AX_from_Gamma(OldGamma,Acentrip))
+    let (AY = AY_from_Gamma(OldGamma,Acentrip))
+    let (Fx = M1*PRIOR[KAX] + M1*Acentrip*(RAD_WHEEL + CM1*cos(OldGamma)))
+    let (Fy = M1*(PRIOR[KAY]+ G - Acentrip*sin(OldGamma)))
+    //let (AR = (OBJM*G*sin(OldGamma*180/PI)*CM1 + OBJM*AX*cos(OldGamma*180/PI)/2)/OBJI) // SUM MOMENTS
+    let (AR=(-Fy*CM1*sin(OldGamma) + Fx*(RAD_WHEEL+CM1*cos(OldGamma)) )/I1) 
     let (VR = (PRIOR[KVR] + AR*DELTA_T)) 
-    let (R = PRIOR[KR] + VR*DELTA_T)  // R = ROTATION IN RADIANS
-    let (X = R*WHEEL_DIA/2 + sin(R*180/PI)*OBJCMy) // COG WHEEL
-    //let (X = PRIOR[KX] + PRIOR[KVX]*DELTA_T)
-    let (Y = cos(R*180/PI)*OBJCMy)   // COG WHEEL
-    //let (Y = PRIOR[KY] + PRIOR[KVY]*DELTA_T)
-    let (NEXT_STEP = [time+DELTA_T,X,Y,R,VX,VY,VR,AX,AY,AR])
+    let (Gamma = OldGamma + VR*DELTA_T)  // Gamma = wheel angle (radians)
+    let (NEW_POS = XY_from_Gamma(Gamma*180/PI))
+    let (X = NEW_POS[0]) // COG WHEEL
+    let (Y = NEW_POS[1])   // COG WHEEL
+    let (VX = (X-PRIOR[KX])/DELTA_T) 
+    let (VY = (Y-PRIOR[KY])/DELTA_T)
+    let (NEXT_STEP = [time+DELTA_T,X,Y,Gamma,VX,VY,VR,AX,AY,AR])
+    echo(str(",",time,",",PRIOR[KX],",",PRIOR[KY],",",PRIOR[KR], ",", PRIOR[KVX],",",PRIOR[KVY],",",PRIOR[KVR],",", PRIOR[KAX],",", PRIOR[KAY],",",PRIOR[KAR],",",Acentrip,",",Fx,",",Fy,","))
     (time <= END_T) ? 
         concat([PRIOR],time_stepper(DELTA_T=DELTA_T,END_T=END_T, PRIOR=NEXT_STEP,time=time+DELTA_T)) :
         [PRIOR] ;
 
 function echo_header() =
     // This function writes header line before data lines for spreadsheet
-    echo(str(",time,X,Y,rot,X velo,Y velo,rot velo,X accel,Yaccel,rot accel,"));
+    echo(str(",time,X,Y,rot,X velo,Y velo,rot velo,X accel,Yaccel,rot accel,Acentrip,Fx,Fy,"));
 dummy = echo_header(); // for spreadsheet
 
 SIM1=time_stepper(DELTA_T=DT,END_T=END_TIME,PRIOR=KIN_0);
@@ -276,7 +292,7 @@ module drawSIM(SIM,DELTA_T,END_T,PRIOR,time=0,i=0) {
 };
 
 // static picture (put last to display propertly):
-translate([(INIT_ANG*PI/180)*WHEEL_DIA/2,0,0]) rotate([0,0,-INIT_ANG]) {
+translate([(INIT_ANG*PI/180)*RAD_WHEEL,0,0]) rotate([0,0,-INIT_ANG]) {
     color("red") translate(OBJCM) sphere(r=0.7,$fn=FACETS);
     drawObjects(OBJECTS);
 };
