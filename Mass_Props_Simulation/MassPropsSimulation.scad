@@ -5,9 +5,8 @@
 // focusing on aspects like displacement, velocity, and acceleration, while dynamics examines
 // the forces and torques that produce or change motion.
 //
-//use <../MAKE3-Arm/openSCAD-code/Robot_Arm_Parts_lib.scad>
-//use <ME_lib.scad>
-//use <../MAKE3-Arm/openSCAD-code/ME_lib.scad>
+//use <../Robot_Arm_Parts_lib.scad>
+//use <../ME_lib.scad>
 
 G = 980.665;  // cm/sec^2
 
@@ -234,7 +233,7 @@ echo(FINIAL_POS=FINAL_POS);
 KIN_0=    [0,INIT_POS[0],INIT_POS[1],IAR, 0,0,0,AX_from_Gamma(IAR,0),AY_from_Gamma(IAR,0),-INIT_POS[2]]; // initial kinematics
 
 function XY_from_Gamma(GAMMA) = 
-    // Cog Whobble Wheel function, returns X,Y,Angle Accel give angle
+    // Cog time_step_Whobble_Wheel function, returns X,Y,Angle Accel give angle
     // GAMMA is in Degrees (unlike the other times!)
     // Third value is Angular acceleration
     [(GAMMA*PI/180)*RAD_WHEEL + sin(GAMMA)*CM1,cos(GAMMA)*CM1, (M1*G*sin(GAMMA)*CM1)/I1];
@@ -244,7 +243,9 @@ function AX_from_Gamma(Gamma,Acentrip) = (G - Acentrip)*sin(Gamma*180/PI);
 function AY_from_Gamma(Gamma,Acentrip) = (-G + Acentrip)*cos(Gamma*180/PI);
 
 // RECURSIVE TIME STEP FUNCTION, GENERATES ARRAY OF DYNAMIC POSITIONS
-function time_stepper(DELTA_T,END_T,PRIOR,time=0) = 
+// PRIOR = initial condition state vector
+// Returns a vector of state vectors, which is the simulation
+function time_step_Whobble_Wheel(DELTA_T,END_T,PRIOR,time=0) = 
     // COMPUTE NEXT TIME
     let (OldGamma = PRIOR[KR])
     let (Acentrip = 0) //-pow(PRIOR[KVR],2)/CM1) // Centripital Acceleration = v^2/R
@@ -264,7 +265,7 @@ function time_stepper(DELTA_T,END_T,PRIOR,time=0) =
     let (NEXT_STEP = [time+DELTA_T,X,Y,Gamma,VX,VY,VR,AX,AY,AR])
     echo(str(",",time,",",PRIOR[KX],",",PRIOR[KY],",",PRIOR[KR], ",", PRIOR[KVX],",",PRIOR[KVY],",",PRIOR[KVR],",", PRIOR[KAX],",", PRIOR[KAY],",",PRIOR[KAR],",",Acentrip,",",Fx,",",Fy,","))
     (time <= END_T) ? 
-        concat([PRIOR],time_stepper(DELTA_T=DELTA_T,END_T=END_T, PRIOR=NEXT_STEP,time=time+DELTA_T)) :
+        concat([PRIOR],time_step_Whobble_Wheel(DELTA_T=DELTA_T,END_T=END_T, PRIOR=NEXT_STEP,time=time+DELTA_T)) :
         [PRIOR] ;
 
 function echo_header() =
@@ -272,7 +273,7 @@ function echo_header() =
     echo(str(",time,X,Y,rot,X velo,Y velo,rot velo,X accel,Yaccel,rot accel,Acentrip,Fx,Fy,"));
 dummy = echo_header(); // for spreadsheet
 
-SIM1=time_stepper(DELTA_T=DT,END_T=END_TIME,PRIOR=KIN_0);
+SIM1=time_step_Whobble_Wheel(DELTA_T=DT,END_T=END_TIME,PRIOR=KIN_0);
 //echo(SIM1=SIM1);
 drawSIM(SIM=SIM1,DELTA_T=DT,END_T=END_TIME);
 
