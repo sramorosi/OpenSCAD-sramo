@@ -5,7 +5,7 @@
 // Force or Torque magnitude for testing modules
 mag = 1; // [-40:0.2:40]
 // Display force arrows
-display_force = false; 
+display_force = true; 
 // Display torque arrow
 display_torque = false;
 
