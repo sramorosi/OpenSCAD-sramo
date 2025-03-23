@@ -1,142 +1,63 @@
-// Dynamic Analysis methods:
-// State (time) Vector=[time,x,y,r,  vx,vy,vr,  ax,ay,ar]; 
-//                     0   1 2 3    4  5  6   7  8   9
-KT=0; // time
-KX=1; // x position of center of mass
-KY=2; // y position of center of mass
-KR=3; // wheel angle (radians)
-KVX=4; // x velocity
-KVY=5; // y velocity
-KVR=6; // rotational velocity
-KAX=7; // x acceleration
-KAY=8; // y acceleration
-KAR=9; // rotational acceleration
-//
-END_TIME = 0.74;  // seconds, full cycle for simple = 0.29, compound = 0.74
-DT = 0.01; // delta time in seconds
+// Two Wheel Robot with 6" dia wheels, expansion Hub, Phone, low center of mass
+ECHO: "MASS OF WHEEL1,CYL,dens=0.83712,m=401.213"
+ECHO: "MASS OF WHEEL1-H,CYL,dens=-0.83712,m=-106.879"
+ECHO: "MASS OF WHEEL2,CYL,dens=0.83712,m=401.213"
+ECHO: "MASS OF WHEEL2-H,CYL,dens=-0.83712,m=-106.879"
+ECHO: "TOTAL MASS = 588.668"
+ECHO: "INERTIA OF WHEEL1,CYL,dx=0,dy=0,Izz=12048.9,Parall_Izz=0"
+ECHO: "INERTIA OF WHEEL1-H,CYL,dx=0,dy=0,Izz=-855.03,Parall_Izz=0"
+ECHO: "INERTIA OF WHEEL2,CYL,dx=0,dy=0,Izz=12048.9,Parall_Izz=0"
+ECHO: "INERTIA OF WHEEL2-H,CYL,dx=0,dy=0,Izz=-855.03,Parall_Izz=0"
+ECHO: "TOTAL MOMENT OF INERTIA Izz = 22387.8"
+ECHO: "CENTER OF MASS, NO TRANSFORMATION  = [0, 0, 0]"
+ECHO: "MASS OF HUB,CUBE,dens=0.473,m=209.005"
+ECHO: "MASS OF PHONE,CUBE,dens=1.47,m=165.375"
+ECHO: "MASS OF MOTOR1,CYL,dens=3.48,m=334.815"
+ECHO: "MASS OF MOTOR2,CYL,dens=3.48,m=334.815"
+ECHO: "MASS OF BATTERY,CUBE,dens=0.94,m=687.375"
+ECHO: "MASS OF PLATE,CUBE,dens=9.69,m=2267.46"
+ECHO: "TOTAL MASS = 3998.84"
+ECHO: "INERTIA OF HUB,CUBE,dx=0,dy=4,Izz=2004.53,Parall_Izz=3344.07"
+ECHO: "INERTIA OF PHONE,CUBE,dx=0,dy=-10,Izz=788.977,Parall_Izz=16537.5"
+ECHO: "INERTIA OF MOTOR1,CYL,dx=0,dy=1,Izz=512.686,Parall_Izz=334.815"
+ECHO: "INERTIA OF MOTOR2,CYL,dx=0,dy=1,Izz=512.686,Parall_Izz=334.815"
+ECHO: "INERTIA OF BATTERY,CUBE,dx=0,dy=-1.5,Izz=12902.6,Parall_Izz=1546.59"
+ECHO: "INERTIA OF PLATE,CUBE,dx=0,dy=6,Izz=15494.3,Parall_Izz=81628.6"
+ECHO: "TOTAL MOMENT OF INERTIA Izz = 135942"
+ECHO: "CENTER OF MASS, NO TRANSFORMATION  = [0, -3.1073, 0]"
+ECHO: "End Time = 4, Time Step = 0.02, Number of time steps = 200"
+ECHO: "Body Simple Frequency = 0.35368 seconds"
+ECHO: "Body Compound Frequency = 0.663648 seconds"
 
-INIT_ANG = 60; // DEG
-IAR = INIT_ANG*PI/180;  // initial angle radians
-INIT_POS = XY_from_Gamma(INIT_ANG);
-FINAL_POS = [PI*WHEEL_DIA-INIT_POS[0],INIT_POS[1],0];
-*translate(FINAL_POS) color("blue") cube([0.5,10,1],center=true);
-echo(FINIAL_POS=FINAL_POS);
-
-
-function XY_from_Gamma(GAMMA) = 
-    // Cog time_step_Whobble_Wheel function, returns X,Y,Angle Accel give angle
-    // GAMMA is in Degrees (unlike the other times!)
-    // Third value is Angular acceleration
-    [(GAMMA*PI/180)*RAD_WHEEL + sin(GAMMA)*CM1,cos(GAMMA)*CM1, (M1*G*sin(GAMMA)*CM1)/I1];
-
-function AX_from_Gamma(Gamma,Acentrip) = (G - Acentrip)*sin(Gamma*180/PI);
-
-function AY_from_Gamma(Gamma,Acentrip) = (-G + Acentrip)*cos(Gamma*180/PI);
-
-// RECURSIVE TIME STEP FUNCTION, GENERATES ARRAY OF DYNAMIC POSITIONS
-// PRIOR = initial condition state vector
-// Returns a vector of state vectors, which is the simulation
-
-// For Wobble Wheel
-function time_step_Whobble_Wheel(DELTA_T,END_T,PRIOR,time=0) = 
-    // COMPUTE NEXT TIME
-    let (OldGamma = PRIOR[KR])
-    let (Acentrip = 0) //-pow(PRIOR[KVR],2)/CM1) // Centripital Acceleration = v^2/R
-    let (AX = AX_from_Gamma(OldGamma,Acentrip))
-    let (AY = AY_from_Gamma(OldGamma,Acentrip))
-    let (Fx = M1*PRIOR[KAX] + M1*Acentrip*(RAD_WHEEL + CM1*cos(OldGamma)))
-    let (Fy = M1*(PRIOR[KAY]+ G - Acentrip*sin(OldGamma)))
-    //let (AR = (OBJM*G*sin(OldGamma*180/PI)*CM1 + OBJM*AX*cos(OldGamma*180/PI)/2)/OBJI) // SUM MOMENTS
-    let (AR=(-Fy*CM1*sin(OldGamma) + Fx*(RAD_WHEEL+CM1*cos(OldGamma)) )/I1) 
-    let (VR = (PRIOR[KVR] + AR*DELTA_T)) 
-    let (Gamma = OldGamma + VR*DELTA_T)  // Gamma = wheel angle (radians)
-    let (NEW_POS = XY_from_Gamma(Gamma*180/PI))
-    let (X = NEW_POS[0]) // COG WHEEL
-    let (Y = NEW_POS[1])   // COG WHEEL
-    let (VX = (X-PRIOR[KX])/DELTA_T) // velocity needs to be tangent to the path
-    let (VY = (Y-PRIOR[KY])/DELTA_T)
-    let (NEXT_STEP = [time+DELTA_T,X,Y,Gamma,VX,VY,VR,AX,AY,AR])
-    echo(str(",",time,",",PRIOR[KX],",",PRIOR[KY],",",PRIOR[KR], ",", PRIOR[KVX],",",PRIOR[KVY],",",PRIOR[KVR],",", PRIOR[KAX],",", PRIOR[KAY],",",PRIOR[KAR],",",Acentrip,",",Fx,",",Fy,","))
-    (time <= END_T) ? 
-        concat([PRIOR],time_step_Whobble_Wheel(DELTA_T=DELTA_T,END_T=END_T, PRIOR=NEXT_STEP,time=time+DELTA_T)) :
-        [PRIOR] ;
-
-// For Pendulum
-function time_step_Pendulum(DELTA_T,END_T,PRIOR,time=0) = 
-    // COMPUTE NEXT TIME
-    let (OldGamma = PRIOR[KR])
-    let (Acentrip = 0) //-pow(PRIOR[KVR],2)/CM1) // Centripital Acceleration = v^2/R
-    let (Fy = 0) // not used
-    let (Fx = 0) // not used
-    //let (AR=(-G*cos(OldGamma*180/PI)/CM1))  // simple pendulum formula
-    let (AR=(-G*M1*CM1*cos(OldGamma*180/PI)/I1)) // compount pendulum formula
-    let (VR = (PRIOR[KVR] + AR*DELTA_T)) 
-    let (Gamma = OldGamma + VR*DELTA_T)  // Gamma = wheel angle (radians)
-    let (X = CM1*cos(Gamma*180/PI)) 
-    let (Y = CM1*sin(Gamma*180/PI)) 
-    let (VX = (X-PRIOR[KX])/DELTA_T)
-    let (VY = (Y-PRIOR[KY])/DELTA_T)
-    let (AX = (VX-PRIOR[KVX])/DELTA_T)
-    let (AY = (VY-PRIOR[KVY])/DELTA_T)
-    let (NEXT_STEP = [time+DELTA_T,X,Y,Gamma,VX,VY,VR,AX,AY,AR])
-    echo(str(",",time,",",PRIOR[KX],",",PRIOR[KY],",",PRIOR[KR], ",", PRIOR[KVX],",",PRIOR[KVY],",",PRIOR[KVR],",", PRIOR[KAX],",", PRIOR[KAY],",",PRIOR[KAR],",",Acentrip,",",Fx,",",Fy,","))
-    (time <= END_T) ? 
-        concat([PRIOR],time_step_Pendulum(DELTA_T=DELTA_T,END_T=END_T, PRIOR=NEXT_STEP,time=time+DELTA_T)) :
-        [PRIOR] ;
-
-function echo_header() =
-    // This function writes header line before data lines for spreadsheet
-    echo(str(",time,X,Y,rot,X velo,Y velo,rot velo,X accel,Yaccel,rot accel,Acentrip,Fx,Fy,"));
-dummy = echo_header(); // for spreadsheet
-
-// Pendulum
-// Initial state Vector=[time,x,y,r,  vx,vy,vr,  ax,ay,ar]; 
-KIN_0=[0,CM1*cos(INIT_ANG),CM1*sin(INIT_ANG),IAR, 0,0,0,G*sin(INIT_ANG),-G*cos(INIT_ANG),-G*cos(INIT_ANG)/CM1];
-SIM1=time_step_Pendulum(DELTA_T=DT,END_T=END_TIME,PRIOR=KIN_0);
-
-// Whobble Wheel
-// Initial state Vector=[time,x,y,r,  vx,vy,vr,  ax,ay,ar]; 
-//KIN_0=[0,INIT_POS[0],INIT_POS[1],IAR, 0,0,0,AX_from_Gamma(IAR,0),AY_from_Gamma(IAR,0),-INIT_POS[2]];
-//SIM1=time_step_Whobble_Wheel(DELTA_T=DT,END_T=END_TIME,PRIOR=KIN_0);
-
-//echo(SIM1=SIM1);
-drawSIM_Vector(SIM=SIM1,DELTA_T=DT,END_T=END_TIME);
-*drawSIM(SIM=SIM1,i=15);
-
-// draw a single time
-module drawSIM(SIM,i=0) {
-    //i = lookup(time,SIM);
-    // draw center of mass indicator
-    color("green") 
-        translate([SIM[i][KX],SIM[i][KY],0])
-            rotate([0,0,(SIM[i][KR])*180/PI]) {
-                cylinder(h=1,r=0.1,$fn=FACETS);
-                cube([1,0.05,1],center=true);
-            };
-    // draw velocity vector
-    VMag = 0.05*sqrt(pow(SIM[i][KVX],2) + pow(SIM[i][KVY],2));
-    color("blue") force_arrow([SIM[i][KX],SIM[i][KY],0],[SIM[i][KVX],SIM[i][KVY],0],mag=VMag);
-            
-    // draw acceleration vector
-    AMag = 0.001*sqrt(pow(SIM[i][KAX],2) + pow(SIM[i][KAY],2));
-    color("red") force_arrow([SIM[i][KX],SIM[i][KY],0],[SIM[i][KAX],SIM[i][KAY],0],mag=AMag);
-
-}
-
-// Recursive module to draw the center of mass of a simulation
-module drawSIM_Vector(SIM,DELTA_T,END_T,PRIOR,time=0,i=0) {
-    if (time <= END_T) {
-        
-        drawSIM(SIM,i);
-        
-        // recursive call to draw next time step
-        drawSIM_Vector(SIM=SIM1,DELTA_T=DT,END_T=END_TIME,time=time+DELTA_T,i=i+1);
-    };
-};
-
-// static picture (put last to display propertly):
-*translate([0,0,0]) rotate([0,0,INIT_ANG-90]) {
-    color("red") translate(OBJCM) sphere(r=0.7,$fn=FACETS);
-    drawObjects(OBJECTS);
-};
-
+// Two Wheel Robot with 8" dia wheels, Control Hub
+ECHO: "MASS OF WHEEL1,CYL,dens=1.1,m=895.404"
+ECHO: "MASS OF WHEEL1-H,CYL,dens=-1.1,m=-590.206"
+ECHO: "MASS OF WHEEL2,CYL,dens=1.1,m=895.404"
+ECHO: "MASS OF WHEEL2-H,CYL,dens=-1.1,m=-590.206"
+ECHO: "TOTAL MASS = 610.395"
+ECHO: "INERTIA OF WHEEL1,CYL,dx=0,dy=0,Izz=45670.1,Parall_Izz=0"
+ECHO: "INERTIA OF WHEEL1-H,CYL,dx=0,dy=0,Izz=-19842.7,Parall_Izz=0"
+ECHO: "INERTIA OF WHEEL2,CYL,dx=0,dy=0,Izz=45670.1,Parall_Izz=0"
+ECHO: "INERTIA OF WHEEL2-H,CYL,dx=0,dy=0,Izz=-19842.7,Parall_Izz=0"
+ECHO: "TOTAL MOMENT OF INERTIA Izz = 51654.7"
+ECHO: "CENTER OF MASS, NO TRANSFORMATION  = [0, 0, 0]"
+ECHO: "MASS OF HUB,CUBE,dens=0.473,m=209.005"
+ECHO: "MASS OF MOTOR1,CYL,dens=3.48,m=334.815"
+ECHO: "MASS OF MOTOR2,CYL,dens=3.48,m=334.815"
+ECHO: "MASS OF BATTERY,CUBE,dens=0.94,m=366.6"
+ECHO: "MASS OF PLATE,CUBE,dens=9.69,m=1133.73"
+ECHO: "MASS OF BRASS1,CUBE,dens=8.49,m=520.013"
+ECHO: "MASS OF BRASS2,CUBE,dens=8.49,m=520.013"
+ECHO: "TOTAL MASS = 3418.99"
+ECHO: "INERTIA OF HUB,CUBE,dx=0,dy=5.5,Izz=2004.53,Parall_Izz=6322.39"
+ECHO: "INERTIA OF MOTOR1,CYL,dx=0,dy=1,Izz=512.686,Parall_Izz=334.815"
+ECHO: "INERTIA OF MOTOR2,CYL,dx=0,dy=1,Izz=512.686,Parall_Izz=334.815"
+ECHO: "INERTIA OF BATTERY,CUBE,dx=0,dy=2.5,Izz=5437.9,Parall_Izz=2291.25"
+ECHO: "INERTIA OF PLATE,CUBE,dx=0,dy=7,Izz=7676.3,Parall_Izz=55552.8"
+ECHO: "INERTIA OF BRASS1,CUBE,dx=0,dy=5,Izz=1614.21,Parall_Izz=13000.3"
+ECHO: "INERTIA OF BRASS2,CUBE,dx=0,dy=5,Izz=1614.21,Parall_Izz=13000.3"
+ECHO: "TOTAL MOMENT OF INERTIA Izz = 110209"
+ECHO: "CENTER OF MASS, NO TRANSFORMATION  = [0, -4.64227, 0]"
+ECHO: "End Time = 4, Time Step = 0.02, Number of time steps = 200"
+ECHO: "Body Simple Frequency = 0.4323 seconds"
+ECHO: "Body Compound Frequency = 0.528706 seconds"

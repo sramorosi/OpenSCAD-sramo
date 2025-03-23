@@ -22,6 +22,34 @@ $vpd = 90;         // view point distance
 // use large value (~100) for printing, smaller (~40) for display
 FACETS = $preview ? 100 : 150; // [40,100]
 
+module BrickMount () {
+    // all units are mm
+    LEN = 30;  // horizontal distance
+    HGT = 38; 
+    GAP_HGT = 11.2/2; // HALF GAP HEIGHT, SB ABOUT 1 MM LESS THAN MEASURED
+    GAP_DEPTH = 11;
+    FACE_DEPTH = 4;
+    HALF = [[0,0],[GAP_HGT,0],
+    [GAP_HGT*0.3,GAP_DEPTH*0.4],
+    [GAP_HGT*0.3,GAP_DEPTH*0.75],
+    [GAP_HGT*0.5,GAP_DEPTH*0.83],
+    [GAP_HGT*0.8,GAP_DEPTH*0.7],
+    [GAP_HGT*0.95,GAP_DEPTH*0.3],
+    [GAP_HGT*1.1,GAP_DEPTH*0.3],
+    [GAP_HGT*1.1,GAP_DEPTH*0.7],
+    [GAP_HGT*0.7,GAP_DEPTH],
+    [0,GAP_DEPTH]];
+    translate([0,HGT/2,FACE_DEPTH]) rotate([90,0,90]) linear_extrude(LEN) {
+        polygon(HALF);
+        mirror([1,0,0]) polygon(HALF);
+    };
+    rounded_cube([LEN,HGT,FACE_DEPTH],r=4,center=false,$fn=FACETS);
+}
+*BrickMount();
+
+// Function to reverse an array
+function reverse_array(arr) = [for (i = len(arr) - 1; i >= 0; i = i - 1) arr[i]];
+    
 // Sine Wave
 module SineWave(L=200,Y_SINE=20,WIDTH=4,PERIODS=3,NPTS=100) {
     pts_up=[for (i=[0:NPTS]) [L*(i/NPTS),Y_SINE*sin(360*(i/NPTS*PERIODS)) + WIDTH/2] ];
@@ -364,7 +392,7 @@ module C7hook() {
         cube([thickness,16,baseH+height],center=true);
     }
 }
-C7hook($fn=120);
+*C7hook($fn=120);
 
 // spacers for juniper duck wings
 *washer(d=0.8*MM,t=3,d_pin=0.65*MM,$fn=FACETS);
@@ -404,11 +432,11 @@ module cClip(ID = 2, OD = 10, H = 5) {
         difference() {
             circle(d=OD);
             circle(d=ID);
-            polygon([[-ID/2,0],[OD/1.8,ID/1.3],[OD/1.8,-ID/1.3]]);
+            polygon([[-ID/2,0],[OD/1.5,ID/1.3],[OD/1.5,-ID/1.3]]); // 1.5 was 1.8
         }
 }
 *cClip(ID=6.4,OD=16.0,H=6,$fn = FACETS);  // Shower Rack Bumper
-*cClip(ID=4.45,OD=9.0,H=18.6,$fn = FACETS);  // Sink Rack Bumper
+cClip(ID=4.43,OD=9.0,H=18.6,$fn = FACETS);  // Sink Rack Bumper  4.43 was 4.45
 
 // Freezer Rack Support for Clara & Adam.  Units are in MM
 RACK_WIRE_D = 7.5;  // measured 7.3.  Add 2% for shrinkage
