@@ -68,13 +68,29 @@ module Kite(L=10) {
 }
 *Kite(L=ET_SIZE);
 
-module Bite_Tile(x=0,y=0,ang=0) {
+module Bite_Tile(x=0,y=0,ang=0,CORN_DIA=1) {
     // Cutter relieve for any external angles that are less than 180 deg
+    // For corner diameter = CORN_DIA
     translate([x,y,0]) 
         rotate([0,0,ang]) 
             translate([CORN_DIA/2,0,0]) 
                 circle(d=CORN_DIA,$fn=64);
 }
+
+module machine_hex_2d(FlatsD=12.7,CornerD=3.3) {
+    // generate a 2d pattern (svg) for machining a hex pattern on the inside
+    FlatsR=FlatsD/2;
+    // generate a list of hex corner points given angles
+    hex = [ for (a = [0 : 60 : 300]) [FlatsR*cos(a),FlatsR*sin(a)] ];
+    
+    color("yellow") for(i=[0:1:5]) {
+        Bite_Tile(x=hex[i][0],y=hex[i][1],ang=i*60+180,CORN_DIA=CornerD);
+    }
+    
+    polygon(hex);
+}
+
+machine_hex_2d();
 
 module EinsteinTile(KL=10,BITE=false) {
     difference() {
@@ -101,10 +117,10 @@ module EinsteinTile(KL=10,BITE=false) {
         }
     if (BITE) {
         // Cutter relieve for any external angles that are less than 180 deg
-        Bite_Tile(x=0,y=0,ang=150);
-        Bite_Tile(x=ET_SIZE*tan(30),y=ET_SIZE,ang=120);
-        Bite_Tile(x=2*ET_SIZE*cos(30),y=0,ang=45);
-        Bite_Tile(x=ET_SIZE*cos(30),y=-ET_SIZE*sin(30),ang=-75);
+        Bite_Tile(x=0,y=0,ang=150,CORN_DIA=CORN_DIA);
+        Bite_Tile(x=ET_SIZE*tan(30),y=ET_SIZE,ang=120,CORN_DIA=CORN_DIA);
+        Bite_Tile(x=2*ET_SIZE*cos(30),y=0,ang=45,CORN_DIA=CORN_DIA);
+        Bite_Tile(x=ET_SIZE*cos(30),y=-ET_SIZE*sin(30),ang=-75,CORN_DIA=CORN_DIA);
         }
     }
 }
@@ -436,7 +452,7 @@ module cClip(ID = 2, OD = 10, H = 5) {
         }
 }
 *cClip(ID=6.4,OD=16.0,H=6,$fn = FACETS);  // Shower Rack Bumper
-cClip(ID=4.43,OD=9.0,H=18.6,$fn = FACETS);  // Sink Rack Bumper  4.43 was 4.45
+*cClip(ID=4.43,OD=9.0,H=18.6,$fn = FACETS);  // Sink Rack Bumper  4.43 was 4.45
 
 // Freezer Rack Support for Clara & Adam.  Units are in MM
 RACK_WIRE_D = 7.5;  // measured 7.3.  Add 2% for shrinkage

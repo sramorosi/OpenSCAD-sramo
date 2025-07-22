@@ -12,7 +12,7 @@ module simpleTorus (bigR = 10, littleR = 2) {
     translate([bigR, 0, 0])
     circle(r = littleR);
 }
-simpleTorus($fn = FACETS);
+*simpleTorus($fn = FACETS);
 
 module csk(d=10) {  // Create a countersink (cone)
     rotate_extrude(angle=360,convexity=4) 
@@ -181,7 +181,7 @@ module dog_leg2(len1=50,ang=90,len2=50,w=15,t=15) {
         }
     }
 }
-dog_leg2();
+*dog_leg2();
 
 module dog_leg (len1=10,ang=45,len2=5,w=2,t=1) {
     // Create a Dog Leg part on the xy plane, along x axis
@@ -933,7 +933,7 @@ module P090L_pot (negative=false) {
         cube([1.5,10,0.5],center=true);
     }
 }
-P090L_pot(negative=true);
+*P090L_pot(negative=true);
 *translate([20,0,0]) P090L_pot(negative=false);
 
 module RV112FF_pot (L=19,negative=false) {
@@ -1166,7 +1166,7 @@ module Rotation_Pattern(number=3,radius=20,total_angle=360) {
       echo("INVALID ARGUMENTS IN Rotation_Pattern module");
   }
 }
-*Rotation_Pattern(5,30) cylinder(h=10,d=3,center=true);
+*Rotation_Pattern(5,30) cylinder(h=10,d=8,center=true);
 
 module rectPattern(x=10,y=20) { // four obects in a rectangular pattern
     translate([x/2,y/2,0]) children();
