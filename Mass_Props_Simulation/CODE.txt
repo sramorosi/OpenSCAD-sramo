@@ -1,31 +1,97 @@
-// Two Wheel Robot with 6" dia wheels, expansion Hub, Phone, low center of mass
-ECHO: "MASS OF WHEEL1,CYL,dens=0.83712,m=401.213"
-ECHO: "MASS OF WHEEL1-H,CYL,dens=-0.83712,m=-106.879"
-ECHO: "MASS OF WHEEL2,CYL,dens=0.83712,m=401.213"
-ECHO: "MASS OF WHEEL2-H,CYL,dens=-0.83712,m=-106.879"
-ECHO: "TOTAL MASS = 588.668"
-ECHO: "INERTIA OF WHEEL1,CYL,dx=0,dy=0,Izz=12048.9,Parall_Izz=0"
-ECHO: "INERTIA OF WHEEL1-H,CYL,dx=0,dy=0,Izz=-855.03,Parall_Izz=0"
-ECHO: "INERTIA OF WHEEL2,CYL,dx=0,dy=0,Izz=12048.9,Parall_Izz=0"
-ECHO: "INERTIA OF WHEEL2-H,CYL,dx=0,dy=0,Izz=-855.03,Parall_Izz=0"
-ECHO: "TOTAL MOMENT OF INERTIA Izz = 22387.8"
-ECHO: "CENTER OF MASS, NO TRANSFORMATION  = [0, 0, 0]"
-ECHO: "MASS OF HUB,CUBE,dens=0.473,m=209.005"
-ECHO: "MASS OF PHONE,CUBE,dens=1.47,m=165.375"
+No Cargo	Arm Angle		Set Arm Angle NC		Set Pitch NC
+For Desired Arm Angle	0	Set Arm Angle	0	Set Pitch	0
+For Desired Arm Angle	10	Set Arm Angle	4.37128	Set Pitch	5.62872
+For Desired Arm Angle	20	Set Arm Angle	8.86138	Set Pitch	11.1386
+For Desired Arm Angle	30	Set Arm Angle	13.5956	Set Pitch	16.4044
+For Desired Arm Angle	40	Set Arm Angle	18.7114	Set Pitch	21.2886
+For Desired Arm Angle	50	Set Arm Angle	24.3619	Set Pitch	25.6381
+For Desired Arm Angle	60	Set Arm Angle	30.7148	Set Pitch	29.2852
+For Desired Arm Angle	70	Set Arm Angle	37.9427	Set Pitch	32.0573
+For Desired Arm Angle	80	Set Arm Angle	46.2032	Set Pitch	33.7968
+For Desired Arm Angle	90	Set Arm Angle	55.6095	Set Pitch	34.3905
+For Desired Arm Angle	100	Set Arm Angle	66.2032	Set Pitch	33.7968
+					
+					
+LIGHT BOX CARGO			Set Arm Angle LT BLK		Set Pitch LT BLK
+For Desired Arm Angle	0	Set Arm Angle	0	Set Pitch	0
+For Desired Arm Angle	10	Set Arm Angle	2.80073	Set Pitch	7.19927
+For Desired Arm Angle	20	Set Arm Angle	5.70978	Set Pitch	14.2902
+For Desired Arm Angle	30	Set Arm Angle	8.84781	Set Pitch	21.1522
+For Desired Arm Angle	40	Set Arm Angle	12.3612	Set Pitch	27.6388
+For Desired Arm Angle	50	Set Arm Angle	16.4373	Set Pitch	33.5627
+For Desired Arm Angle	60	Set Arm Angle	21.3175	Set Pitch	38.6825
+For Desired Arm Angle	70	Set Arm Angle	27.2992	Set Pitch	42.7008
+For Desired Arm Angle	80	Set Arm Angle	34.7058	Set Pitch	45.2942
+For Desired Arm Angle	90	Set Arm Angle	43.8056	Set Pitch	46.1944
+For Desired Arm Angle	100	Set Arm Angle	54.7058	Set Pitch	45.2942
+
+// Freight Frenzy Two Wheel Robot with Blue 8" (20.2 cm) dia wheels, Control Hub
+ECHO: "MASS OF WHEEL1,CYL,dens=1.1,m=895.404"
+ECHO: "MASS OF WHEEL1-H,CYL,dens=-1.1,m=-590.206"
+ECHO: "MASS OF WHEEL2,CYL,dens=1.1,m=895.404"
+ECHO: "MASS OF WHEEL2-H,CYL,dens=-1.1,m=-590.206"
 ECHO: "MASS OF MOTOR1,CYL,dens=3.48,m=334.815"
 ECHO: "MASS OF MOTOR2,CYL,dens=3.48,m=334.815"
-ECHO: "MASS OF BATTERY,CUBE,dens=0.94,m=687.375"
-ECHO: "MASS OF PLATE,CUBE,dens=9.69,m=2267.46"
-ECHO: "TOTAL MASS = 3998.84"
-ECHO: "INERTIA OF HUB,CUBE,dx=0,dy=4,Izz=2004.53,Parall_Izz=3344.07"
-ECHO: "INERTIA OF PHONE,CUBE,dx=0,dy=-10,Izz=788.977,Parall_Izz=16537.5"
+ECHO: "MASS OF HUB1,CYL,dens=0.5,m=56.5487"
+ECHO: "MASS OF HUB2,CYL,dens=0.5,m=56.5487"
+ECHO: "Wheels & Motors TOTAL MASS = 1393.12"
+ECHO: "INERTIA OF WHEEL1,CYL,dx=0,dy=0,Izz=45670.1,Parall_Izz=0"
+ECHO: "INERTIA OF WHEEL1-H,CYL,dx=0,dy=0,Izz=-19842.7,Parall_Izz=0"
+ECHO: "INERTIA OF WHEEL2,CYL,dx=0,dy=0,Izz=45670.1,Parall_Izz=0"
+ECHO: "INERTIA OF WHEEL2-H,CYL,dx=0,dy=0,Izz=-19842.7,Parall_Izz=0"
 ECHO: "INERTIA OF MOTOR1,CYL,dx=0,dy=1,Izz=512.686,Parall_Izz=334.815"
 ECHO: "INERTIA OF MOTOR2,CYL,dx=0,dy=1,Izz=512.686,Parall_Izz=334.815"
-ECHO: "INERTIA OF BATTERY,CUBE,dx=0,dy=-1.5,Izz=12902.6,Parall_Izz=1546.59"
-ECHO: "INERTIA OF PLATE,CUBE,dx=0,dy=6,Izz=15494.3,Parall_Izz=81628.6"
-ECHO: "TOTAL MOMENT OF INERTIA Izz = 135942"
-ECHO: "CENTER OF MASS, NO TRANSFORMATION  = [0, -3.1073, 0]"
-
+ECHO: "INERTIA OF HUB1,CYL,dx=0,dy=0,Izz=254.469,Parall_Izz=0"
+ECHO: "INERTIA OF HUB2,CYL,dx=0,dy=0,Izz=254.469,Parall_Izz=0"
+ECHO: "Wheels & Motors TOTAL MOMENT OF INERTIA Izz = 53858.6"
+ECHO: "Wheels & Motors CENTER OF MASS, NO TRANSFORMATION  = [0, -0.480669, 0]"
+ECHO: "MASS OF HUB,CUBE,dens=0.473,m=209.005"
+ECHO: "MASS OF BATTERY,CUBE,dens=1.75,m=682.5"
+ECHO: "MASS OF SHAFT,CUBE,dens=4.76,m=377.754"
+ECHO: "MASS OF BRASS1,CUBE,dens=8.49,m=1092.03"
+ECHO: "MASS OF ARM_SVO,CYL,dens=1,m=141.372"
+ECHO: "Hub,Bat,Shaft,Brass TOTAL MASS = 2502.66"
+ECHO: "INERTIA OF HUB,CUBE,dx=0,dy=-3,Izz=3718.36,Parall_Izz=1881.04"
+ECHO: "INERTIA OF BATTERY,CUBE,dx=0,dy=6.5,Izz=10123.8,Parall_Izz=28835.6"
+ECHO: "INERTIA OF SHAFT,CUBE,dx=0,dy=4,Izz=161.175,Parall_Izz=6044.06"
+ECHO: "INERTIA OF BRASS1,CUBE,dx=0,dy=7,Izz=2229.55,Parall_Izz=53509.3"
+ECHO: "INERTIA OF ARM_SVO,CYL,dx=0,dy=4,Izz=636.173,Parall_Izz=2261.95"
+ECHO: "Hub,Bat,Shaft,Brass TOTAL MOMENT OF INERTIA Izz = 109401"
+ECHO: "Hub,Bat,Shaft,Brass CENTER OF MASS, NO TRANSFORMATION  = [0, -5.40622, 2.33514]"
+ECHO: "MASS OF ARM_TUBE,CUBE,dens=0.62,m=93.9998"
+ECHO: "MASS OF CLAW,CUBE,dens=0.25,m=157.5"
+ECHO: "MASS OF OMNI WHLS,CYL,dens=1,m=150.796"
+ECHO: "MASS OF BOX-LIGHT,CUBE,dens=0.385,m=50.4722"
+ECHO: "Arm,Claw,Omni TOTAL MASS = 452.768"
+ECHO: "INERTIA OF ARM_TUBE,CUBE,dx=0,dy=-11,Izz=4376.49,Parall_Izz=11374"
+ECHO: "INERTIA OF CLAW,CUBE,dx=0,dy=-30,Izz=2900.63,Parall_Izz=141750"
+ECHO: "INERTIA OF OMNI WHLS,CYL,dx=0,dy=-18,Izz=1206.37,Parall_Izz=48858"
+ECHO: "INERTIA OF BOX-LIGHT,CUBE,dx=0,dy=-35,Izz=217.084,Parall_Izz=61828.4"
+ECHO: "Arm,Claw,Omni TOTAL MOMENT OF INERTIA Izz = 272511"
+ECHO: "Arm,Claw,Omni CENTER OF MASS, NO TRANSFORMATION  = [0, 22.6161, 0.999163]"
+ECHO: "MASS OF HUB,CUBE,dens=0.473,m=209.005"
+ECHO: "MASS OF BATTERY,CUBE,dens=1.75,m=682.5"
+ECHO: "MASS OF SHAFT,CUBE,dens=4.76,m=377.754"
+ECHO: "MASS OF BRASS1,CUBE,dens=8.49,m=1092.03"
+ECHO: "MASS OF ARM_SVO,CYL,dens=1,m=141.372"
+ECHO: "MASS OF ARM_TUBE,CUBE,dens=0.62,m=93.9998"
+ECHO: "MASS OF CLAW,CUBE,dens=0.25,m=157.5"
+ECHO: "MASS OF OMNI WHLS,CYL,dens=1,m=150.796"
+ECHO: "MASS OF BOX-LIGHT,CUBE,dens=0.385,m=50.4722"
+ECHO: "Combo Arm & Body TOTAL MASS = 2955.42"
+ECHO: "INERTIA OF HUB,CUBE,dx=0,dy=-3,Izz=3718.36,Parall_Izz=1881.04"
+ECHO: "INERTIA OF BATTERY,CUBE,dx=0,dy=6.5,Izz=10123.8,Parall_Izz=28835.6"
+ECHO: "INERTIA OF SHAFT,CUBE,dx=0,dy=4,Izz=161.175,Parall_Izz=6044.06"
+ECHO: "INERTIA OF BRASS1,CUBE,dx=0,dy=7,Izz=2229.55,Parall_Izz=53509.3"
+ECHO: "INERTIA OF ARM_SVO,CYL,dx=0,dy=4,Izz=636.173,Parall_Izz=2261.95"
+ECHO: "INERTIA OF ARM_TUBE,CUBE,dx=0,dy=-11,Izz=4376.49,Parall_Izz=11374"
+ECHO: "INERTIA OF CLAW,CUBE,dx=0,dy=-30,Izz=2900.63,Parall_Izz=141750"
+ECHO: "INERTIA OF OMNI WHLS,CYL,dx=0,dy=-18,Izz=1206.37,Parall_Izz=48858"
+ECHO: "INERTIA OF BOX-LIGHT,CUBE,dx=0,dy=-35,Izz=217.084,Parall_Izz=61828.4"
+ECHO: "Combo Arm & Body TOTAL MOMENT OF INERTIA Izz = 381912"
+ECHO: "Combo Arm & Body CENTER OF MASS, NO TRANSFORMATION  = [0, -1.11323, 2.13047]"
+ECHO: "Maximum Velocity = 50, Maximum Acceleration = 100"
+ECHO: "TOTAL MASS =", 4348.55
 
 // Two Wheel Robot with 8" dia wheels, Control Hub, April 4 Version
 ECHO: "Gravity = 980.665, g/sec^2"
@@ -87,3 +153,32 @@ ECHO: "INERTIA OF BRASS1,CUBE,dx=0,dy=5,Izz=1614.21,Parall_Izz=13000.3"
 ECHO: "INERTIA OF BRASS2,CUBE,dx=0,dy=5,Izz=1614.21,Parall_Izz=13000.3"
 ECHO: "TOTAL MOMENT OF INERTIA Izz = 110209"
 ECHO: "CENTER OF MASS, NO TRANSFORMATION  = [0, -4.64227, 0]"
+
+// Two Wheel Robot with 6" dia wheels, expansion Hub, Phone, low center of mass
+ECHO: "MASS OF WHEEL1,CYL,dens=0.83712,m=401.213"
+ECHO: "MASS OF WHEEL1-H,CYL,dens=-0.83712,m=-106.879"
+ECHO: "MASS OF WHEEL2,CYL,dens=0.83712,m=401.213"
+ECHO: "MASS OF WHEEL2-H,CYL,dens=-0.83712,m=-106.879"
+ECHO: "TOTAL MASS = 588.668"
+ECHO: "INERTIA OF WHEEL1,CYL,dx=0,dy=0,Izz=12048.9,Parall_Izz=0"
+ECHO: "INERTIA OF WHEEL1-H,CYL,dx=0,dy=0,Izz=-855.03,Parall_Izz=0"
+ECHO: "INERTIA OF WHEEL2,CYL,dx=0,dy=0,Izz=12048.9,Parall_Izz=0"
+ECHO: "INERTIA OF WHEEL2-H,CYL,dx=0,dy=0,Izz=-855.03,Parall_Izz=0"
+ECHO: "TOTAL MOMENT OF INERTIA Izz = 22387.8"
+ECHO: "CENTER OF MASS, NO TRANSFORMATION  = [0, 0, 0]"
+ECHO: "MASS OF HUB,CUBE,dens=0.473,m=209.005"
+ECHO: "MASS OF PHONE,CUBE,dens=1.47,m=165.375"
+ECHO: "MASS OF MOTOR1,CYL,dens=3.48,m=334.815"
+ECHO: "MASS OF MOTOR2,CYL,dens=3.48,m=334.815"
+ECHO: "MASS OF BATTERY,CUBE,dens=0.94,m=687.375"
+ECHO: "MASS OF PLATE,CUBE,dens=9.69,m=2267.46"
+ECHO: "TOTAL MASS = 3998.84"
+ECHO: "INERTIA OF HUB,CUBE,dx=0,dy=4,Izz=2004.53,Parall_Izz=3344.07"
+ECHO: "INERTIA OF PHONE,CUBE,dx=0,dy=-10,Izz=788.977,Parall_Izz=16537.5"
+ECHO: "INERTIA OF MOTOR1,CYL,dx=0,dy=1,Izz=512.686,Parall_Izz=334.815"
+ECHO: "INERTIA OF MOTOR2,CYL,dx=0,dy=1,Izz=512.686,Parall_Izz=334.815"
+ECHO: "INERTIA OF BATTERY,CUBE,dx=0,dy=-1.5,Izz=12902.6,Parall_Izz=1546.59"
+ECHO: "INERTIA OF PLATE,CUBE,dx=0,dy=6,Izz=15494.3,Parall_Izz=81628.6"
+ECHO: "TOTAL MOMENT OF INERTIA Izz = 135942"
+ECHO: "CENTER OF MASS, NO TRANSFORMATION  = [0, -3.1073, 0]"
+
