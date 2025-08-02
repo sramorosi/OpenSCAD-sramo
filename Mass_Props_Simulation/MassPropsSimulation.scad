@@ -924,6 +924,9 @@ FRGTFRZY = true;
 if (FRGTFRZY) {
     // total robot mass = 4300 grams (measured 6/27/2025, no freight)
     
+    LOW = false; // LOW CG robot for true, HIGH CG robot for false
+    YS = LOW ? -1 : 1; // Y direction sine
+    
     // Freight, three different weights
     BOX_LIGHT = ["BOX-LIGHT","CUBE","yellow",0.385,5.08,5.08,5.08, 0,35,0];
     BOX_MED =   ["BOX-MED",  "CUBE","gold"  ,0.71 ,5.08,5.08,5.08, 0,35,0];
@@ -942,7 +945,7 @@ if (FRGTFRZY) {
     WHEEL2_HOLE_OBJ=["WHEEL2-H","CYL","white",-WHEEL_DENS,W_HOLE_DIA,2.54,0    ,0,0          ,18];
     
     //  max torque for a REV HD Hex SPUR 40:1 is  43,000 g-force - cm
-    MTR_DENS = 3.48;  // 335 grams
+    MTR_DENS = 3.48;  // to equal 335 grams
     MTR_D = 3.5;
     MTR_L = 10.0;
     MOTOR1 = ["MOTOR1", "CYL","silver", MTR_DENS,MTR_D,MTR_L,0,0,-1,11];
@@ -952,24 +955,30 @@ if (FRGTFRZY) {
     HUB2 = ["HUB2", "CYL","black", .5,6,4,0,0,0,-18];
     
     // BODY OBJECTS
-    ARM_AXLE_DIST = 4.0; // distance from shaft to wheel axis
-    HUB_OBJ =["HUB", "CUBE", "black",     0.473     ,14.3,3.0,10.3, 0,  3.0  ,10]; // Hub mass = 209 grams
-    BATTERY = ["BATTERY","CUBE","green", 1.75, 13.0,3, 10, 0,  -6.5  ,-10.5]; // Battery mass = 685 grams
-    SHAFT = ["SHAFT","CUBE","silver", ALUM_DEN*1.75,1.6,1.6,31,0,-ARM_AXLE_DIST,0]; // adjust to up mass
-    BRASS_CUBE1 = ["BRASS1","CUBE","goldenrod",BRASS_DENS,  3.5,3.5,10.5, 0, -7 ,10]; 
-    ARM_SERVO = ["ARM_SVO", "CYL" ,"blue", 1 ,6 ,5,0    ,0,     -ARM_AXLE_DIST ,0];
+    ARM_AXLE_DIST = 4.0; // cm, distance from shaft to wheel axis, due to Spur motor
+    // Hub mass = 209 grams
+    HUB_OBJ =["HUB", "CUBE", "black",     0.473     ,14.3,3.0,10.3, 0,  -1*YS*3.0  ,10];
+    // Battery mass = 685 grams 
+    BATTERY = ["BATTERY","CUBE","green", 1.75, 13.0,3, 10, 0,  YS*6.5  ,-10.5]; 
+    // adjust shaft mass to up total mass
+    SHAFT = ["SHAFT","CUBE","silver", ALUM_DEN*1.75,1.6,1.6,31,0,YS*ARM_AXLE_DIST,0]; 
+    BRASS_CUBE1 = ["BRASS1","CUBE","goldenrod",BRASS_DENS,  3.5,3.5,10.5, 0, YS*7 ,10]; 
+    ARM_SERVO = ["ARM_SVO", "CYL" ,"blue", 1 ,6 ,5,0    ,0,     YS*ARM_AXLE_DIST ,0];
     
     // ARM OBJECTS
     // aluminum tube 1" sqr, 0.0625" (1/16") walls, 14.6 cm long = 58 grams, density = 0.62 grams/cm^3
-    ARM_TUBE = ["ARM_TUBE","CUBE","silver", .62,  2.54,23.5, 2.54, 0,  11  ,0]; // see al tube above
-    CLAW = ["CLAW","CUBE","purple",        0.25, 5,14,9,     0,  30  ,0]; // claw assy = 160 grams
-    OMNIS = ["OMNI WHLS", "CYL" ,"black", 1 ,8 ,3,0    ,0,18          ,3]; // omni assy = 158 grams
+    
+    TUBE_LEN = 15; // cm (was 23.5)
+    ARM_TUBE = ["ARM_TUBE","CUBE","silver", .62,  2.54,TUBE_LEN, 2.54, 0,YS*ARM_AXLE_DIST+TUBE_LEN/2,0]; // see al tube above
+    CLAW_LEN = 14; // cm
+    CLAW = ["CLAW","CUBE","purple",   0.25, 5,CLAW_LEN,9, 0,YS*ARM_AXLE_DIST+TUBE_LEN+CLAW_LEN/2,0]; // claw assy = 160 grams
+    OMNIS = ["OMNI WHLS", "CYL" ,"black", 1 ,8 ,3,0    ,0,YS*ARM_AXLE_DIST+TUBE_LEN-5,3]; // omni assy = 158 grams
     
     WHEELS = [WHEEL1_OBJ,WHEEL1_HOLE_OBJ,WHEEL2_OBJ,WHEEL2_HOLE_OBJ,MOTOR1,MOTOR2,HUB1,HUB2] ;
     BODY = [HUB_OBJ, BATTERY, SHAFT,BRASS_CUBE1,ARM_SERVO] ;
-    ARM = [ARM_TUBE,CLAW,OMNIS, BOX_LIGHT];
+    ARM = [ARM_TUBE,CLAW];
     
-    COMBO = [HUB_OBJ, BATTERY, SHAFT,BRASS_CUBE1,ARM_SERVO,ARM_TUBE,CLAW,OMNIS,BOX_LIGHT];
+    COMBO = [HUB_OBJ, BATTERY, SHAFT,BRASS_CUBE1,ARM_SERVO,ARM_TUBE,CLAW];
 
     // Get total mass properties for objects
     wm = Mass_Totals(WHEELS,"Wheels & Motors");
@@ -988,13 +997,14 @@ if (FRGTFRZY) {
     echo("TOTAL MASS =",TOTALMASS);
     
     color("red") translate(wm[2]) sphere(r=1,$fn=FACETS);
-    drawObjects(OBJ=WHEELS); // put last to display propertly
+    translate([0,0,-40]) drawObjects(OBJ=WHEELS); // put last to display propertly
    
-    AA = 30; // Desired arm angle
+    AA = 120; // Desired arm angle
     ARP = [0,-ARM_AXLE_DIST,0];  // arm rotition point
     
     // solve for balanced arm angles, using the law of sines
-    ALEN = ARM_AXLE_DIST+cm[2][1];
+    ALEN = ARM_AXLE_DIST-YS*cm[2][1];
+    echo(ALEN=ALEN);
     BA = asin((ALEN/ARM_AXLE_DIST)*sin(AA)); // new body pitch, to keep robot from rolling
     NEW_AA = AA-BA;  // actual arm angle
     echo(str("For Desired Arm Angle,",AA,",Set Arm Angle,",NEW_AA,",Set Pitch,",BA));
@@ -1003,7 +1013,7 @@ if (FRGTFRZY) {
         color("orange")  translate(bm[2]) sphere(r=1,$fn=FACETS);
         drawObjects(OBJ=BODY); // put last to display propertly
         
-        translate(ARP) rotate([0,0,NEW_AA]) translate(-ARP) {
+        translate(-YS*ARP) rotate([0,0,NEW_AA]) translate(YS*ARP) {
             color("green") translate(am[2]) sphere(r=1,$fn=FACETS);
             drawObjects(OBJ=ARM); // put last to display propertly
             
@@ -1011,6 +1021,23 @@ if (FRGTFRZY) {
         }
     }
     
+    // write out the pitch vector, vs daa desired arm angle
+    for (daa = [-120:20:120]) {
+        // ba = body pitch, to keep center of gravity over wheels
+        ba = asin((ALEN/ARM_AXLE_DIST)*sin(daa)); 
+        new_aa = daa-ba;
+        // Java format for piecewise function
+        echo(str("pitchAngVec.addElement(",daa,",",ba,");"));
+    };
+    // write out the arm vector, vs daa desired arm angle
+    for (daa = [-120:20:120]) {
+        // ba = body pitch, to keep center of gravity over wheels
+        ba = asin((ALEN/ARM_AXLE_DIST)*sin(daa)); 
+        new_aa = daa-ba;
+        // Java format for piecewise function
+        echo(str("armAngVec.addElement(",daa,",",new_aa,");"));
+    };
+            
     END_TIME = 6.0;  // seconds, full cycle for simple = 0.29, compound = 0.74
     DT = 0.005; // delta time in seconds
     echo(str("End Time = ",END_TIME,", Time Step = ",DT,", Number of time steps = ",END_TIME/DT));
