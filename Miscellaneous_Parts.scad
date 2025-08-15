@@ -79,7 +79,8 @@ module Bite_Tile(x=0,y=0,ang=0,CORN_DIA=1) {
 
 module machine_hex_2d(FlatsD=12.7,CornerD=3.3) {
     // generate a 2d pattern (svg) for machining a hex pattern on the inside
-    FlatsR=FlatsD/2;
+    FlatsR=(FlatsD/2)/cos(30); // cosine for tip points
+    echo(FlatsR=FlatsR);
     // generate a list of hex corner points given angles
     hex = [ for (a = [0 : 60 : 300]) [FlatsR*cos(a),FlatsR*sin(a)] ];
     
@@ -90,7 +91,7 @@ module machine_hex_2d(FlatsD=12.7,CornerD=3.3) {
     polygon(hex);
 }
 
-machine_hex_2d();
+machine_hex_2d(FlatsD=0.505*MM); // Make 1% larger for cutter adjustment
 
 module EinsteinTile(KL=10,BITE=false) {
     difference() {

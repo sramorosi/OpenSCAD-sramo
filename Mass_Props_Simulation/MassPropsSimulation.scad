@@ -8,13 +8,16 @@
 //use <../Robot_Arm_Parts_lib.scad>
 use <../ME_lib.scad>  // force vectors and such
 
+// cm in an inch. Don't change.
+CM = 2.54;
+
 // use large value (~100) for printing, smaller (~40) for display
 FACETS = $preview ? 100 : 150; // [40,100]
 
 ECHO_V = false;  // this is a boolean to toggle echo of values in the log window
 
 G = 980.665;  // cm/sec^2  gravity
-echo(str("Gravity = ",G,", g/sec^2"));
+echo(str("Gravity = ",G,", cm/sec^2"));
 
 PET_DENSITY = 1.39;  // grams/cm^3
 POLYCARB_DENSITY = 1.20;  // grams/cm^3
@@ -79,7 +82,7 @@ function objCM(OBJ) =
     OBJCM;
 
 // Recursive function to add Izz of objects -- INCLUDES LOCATION
-function objIzz(OBJV,pos=[0,0,0],i=0) = 
+function objIzz(OBJV,ECHO=false,pos=[0,0,0],i=0) = 
     // Paralll axis function for moments of inertia
     // The inertia of the composite object is at location pos
     OBJV[i]==undef ? 0 : 
@@ -90,10 +93,10 @@ function objIzz(OBJV,pos=[0,0,0],i=0) =
     let (dx=pos[0]-OBJV[i][OX]) // sign does not matter
     let (dy=pos[1]-OBJV[i][OY]) // sign does not matter
     let (Parall_Izz=m*(pow(dx,2)+pow(dy,2)))
-    echo(str("INERTIA OF ",OBJV[i][ON],",",OBJV[i][OT],",dx=",dx,",dy=",dy,",Izz=",Izz,",Parall_Izz=",Parall_Izz))
+    let (junk = ECHO ? echo(str("INERTIA OF ",OBJV[i][ON],",",OBJV[i][OT],",dx=",dx,",dy=",dy,",Izz=",Izz,",Parall_Izz=",Parall_Izz)) : 0 )
     //[Inertia[0] + m*(pow(pos[1],2)+pow(pos[2],2)),  // for Ixx
     //Inertia[1] + m*(pow(pos[0],2)+pow(pos[2],2)),   // for Iyy
-    Izz + Parall_Izz + objIzz(OBJV,pos,i+1);  // ];
+    Izz + Parall_Izz + objIzz(OBJV,ECHO,pos,i+1);  // ];
 
 // There is also a Paralll axis fuction for products of inertia, but not sure when to use it
 
@@ -128,13 +131,13 @@ function cylInertia(OBJ) =
     Izz;
     //[Ixx,Iyy,Izz];
 
-function Mass_Totals(OBJ,TEXT="NONE") = 
-    let (OBJM = objMass(OBJ,true))
-    echo(str(TEXT," TOTAL MASS = ",OBJM))
-    let (OBJI = objIzz(OBJ)) //  defaults to around [0,0,0] 
-    echo(str(TEXT," TOTAL MOMENT OF INERTIA Izz = ",OBJI))
+function Mass_Totals(OBJ,TEXT="NONE",ECHO=true,ECHO_I=false) = 
+    let (OBJM = objMass(OBJ,ECHO))
+    let (qq = ECHO ? echo(str(TEXT,": MASS = ",OBJM)) : 0)
+    let (OBJI = objIzz(OBJ,ECHO_I)) //  defaults to around [0,0,0] 
+    let (rr = ECHO ? echo(str(TEXT,": MOMENT OF INERTIA Izz = ",OBJI)) : 0)
     let (CM = objCM(OBJ)) // get center of mass
-    echo(str(TEXT," CENTER OF MASS, NO TRANSFORMATION  = ",CM))
+    let (ss = ECHO ? echo(str(TEXT,": CENTER OF MASS  = ",CM)) : 0)
     [OBJM,OBJI,CM];
 
 module drawObjects(OBJ) {
@@ -922,15 +925,22 @@ if (TWR12cm) {
 // Freight Frenzy Two Wheel Robot with Blue 8" (20.2 cm) dia wheels, Control Hub
 FRGTFRZY = true;
 if (FRGTFRZY) {
-    // total robot mass = 4300 grams (measured 6/27/2025, no freight)
+    // total "new" robot mass = 3392 grams (8/9/2025, al side plates, 16 cm arm tube)
+    // total robot mass = 4105 grams (8/2/2025, no freight, no Omni)
+    // total robot mass = 4300 grams (6/27/2025, no freight)
     
     LOW = false; // LOW CG robot for true, HIGH CG robot for false
     YS = LOW ? -1 : 1; // Y direction sine
     
-    // Freight, three different weights
-    BOX_LIGHT = ["BOX-LIGHT","CUBE","yellow",0.385,5.08,5.08,5.08, 0,35,0];
-    BOX_MED =   ["BOX-MED",  "CUBE","gold"  ,0.71 ,5.08,5.08,5.08, 0,35,0];
-    BOX_HEAV =  ["BOX-HEAV", "CUBE","orange",1.03 ,5.08,5.08,5.08, 0,35,0];
+    NEW = true; // new (side plates) or old (freight frenzy printed holders)
+
+    // Oject v=["NAME",  "TYPE","COLOR", densi,X_Size,Y_Size  ,Z_Size,X_CM,Y_CM,Z_CM];
+        
+    // Freight, same size, three different weights/density
+    BOX_LIGHT = ["BOX-LIGHT","CUBE","yellow",0.385,5.08,5.08,5.08, 0,0,0]; // 52 g
+    BOX_MED =   ["BOX-MED",  "CUBE","gold"  ,0.71 ,5.08,5.08,5.08, 0,0,0];
+    BOX_HEAV =  ["BOX-HEAV", "CUBE","orange",1.03 ,5.08,5.08,5.08, 0,0,0];
+    translate([20,-7.5,0]) drawObjects([BOX_LIGHT]);
 
     // Each Blue wheel, mass = 302 g, Outside dia = 20.2 cm, Inside dia = 16.4 cm, thickness = 2.54 cm
     WHEEL_DIA = 20.2; // cm (8 inch)
@@ -938,106 +948,146 @@ if (FRGTFRZY) {
     WHEEL_DENS = 1.1 ; // g/cm^3  (rubber).  Does not include Hub at this time
     RAD_WHEEL = WHEEL_DIA/2;
     
-    // Oject v=["NAME",  "TYPE",       "COLOR", densi   ,X_Size,Y_Size  ,Z_Size,X_CM,Y_CM,Z_CM];
-    WHEEL1_OBJ =["WHEEL1",      "CYL" ,"blue",WHEEL_DENS ,WHEEL_DIA ,2.54,0    ,0,0          ,-18];
-    WHEEL1_HOLE_OBJ=["WHEEL1-H","CYL","white",-WHEEL_DENS,W_HOLE_DIA,2.54,0    ,0,0          ,-18];
-    WHEEL2_OBJ =["WHEEL2",      "CYL" ,"blue",WHEEL_DENS ,WHEEL_DIA ,2.54,0    ,0,0          ,18];
-    WHEEL2_HOLE_OBJ=["WHEEL2-H","CYL","white",-WHEEL_DENS,W_HOLE_DIA,2.54,0    ,0,0          ,18];
+    WHEEL1_OBJ =["WHEEL1",      "CYL" ,"blue",WHEEL_DENS ,WHEEL_DIA ,2.54,0 ,0,0 ,-18];
+    WHEEL1_HOLE_OBJ=["WHEEL1-H","CYL","white",-WHEEL_DENS,W_HOLE_DIA,2.54,0 ,0,0 ,-18];
+    WHEEL2_OBJ =["WHEEL2",      "CYL" ,"blue",WHEEL_DENS ,WHEEL_DIA ,2.54,0 ,0,0 ,18];
+    WHEEL2_HOLE_OBJ=["WHEEL2-H","CYL","white",-WHEEL_DENS,W_HOLE_DIA,2.54,0 ,0,0  ,18];
     
     //  max torque for a REV HD Hex SPUR 40:1 is  43,000 g-force - cm
     MTR_DENS = 3.48;  // to equal 335 grams
     MTR_D = 3.5;
     MTR_L = 10.0;
-    MOTOR1 = ["MOTOR1", "CYL","silver", MTR_DENS,MTR_D,MTR_L,0,0,-1,11];
-    MOTOR2 = ["MOTOR2", "CYL","silver", MTR_DENS,MTR_D,MTR_L,0,0,-1,-11];
+    MOTOR1 = ["MOTOR1", "CYL","silver", MTR_DENS,MTR_D,MTR_L,0,0,YS*1,11];
+    MOTOR2 = ["MOTOR2", "CYL","silver", MTR_DENS,MTR_D,MTR_L,0,0,YS*1,-11];
     
     HUB1 = ["HUB1", "CYL","black", .5,6,4,0,0,0,18];
     HUB2 = ["HUB2", "CYL","black", .5,6,4,0,0,0,-18];
-    
+
+    WHEELS = [WHEEL1_OBJ,WHEEL1_HOLE_OBJ,WHEEL2_OBJ,WHEEL2_HOLE_OBJ,HUB1,HUB2,MOTOR1,MOTOR2] ;
+        
     // BODY OBJECTS
-    ARM_AXLE_DIST = 4.0; // cm, distance from shaft to wheel axis, due to Spur motor
+    ARM_AXLE_DIST = NEW ? 15.0 : 4.0; // cm, distance from shaft to wheel axis, due to Spur motor
     // Hub mass = 209 grams
-    HUB_OBJ =["HUB", "CUBE", "black",     0.473     ,14.3,3.0,10.3, 0,  -1*YS*3.0  ,10];
-    // Battery mass = 685 grams 
-    BATTERY = ["BATTERY","CUBE","green", 1.75, 13.0,3, 10, 0,  YS*6.5  ,-10.5]; 
+    HUB_OBJ = NEW ?
+    ["REV HUB", "CUBE", "black", 0.55 ,14.3,3.0,10.3, 0,  YS*4.0  ,0] :
+    ["REV HUB", "CUBE", "black", 0.48 ,14.3,3.0,10.3, 0,  -1*YS*3.0  ,10];
+    // Battery mass (REV slim) = 610 grams 
+    BATTERY = NEW ?
+    ["BATTERY","CUBE","green", 1.56, 13.0,10, 3, 0,  YS*8.5  ,-10.5] : 
+    ["BATTERY","CUBE","green", 1.56, 13.0,3, 10, 0,  YS*6.5  ,-10.5]; 
     // adjust shaft mass to up total mass
-    SHAFT = ["SHAFT","CUBE","silver", ALUM_DEN*1.75,1.6,1.6,31,0,YS*ARM_AXLE_DIST,0]; 
+    SHAFT = ["SHAFT","CUBE","silver", ALUM_DEN*1.35,1.6,1.6,31,0,YS*ARM_AXLE_DIST,0]; 
+    PLATE1  = ["PLATE1","CUBE","silver", ALUM_DEN*1.5,3*CM,7.5*CM,0.125*CM,0,3*CM,5*CM];
+    PLATE2  = ["PLATE2","CUBE","silver", ALUM_DEN*1.5,3*CM,7.5*CM,0.125*CM,0,3*CM,-5*CM];
+    SQ15BEAM1 = ["15MM_BEAM1","CUBE","navy",ALUM_DEN*0.4,1.5,1.5,10*CM,3,2,0];
+    SQ15BEAM2 = ["15MM_BEAM2","CUBE","navy",ALUM_DEN*0.4,1.5,1.5,10*CM,-3,2,0];
     BRASS_CUBE1 = ["BRASS1","CUBE","goldenrod",BRASS_DENS,  3.5,3.5,10.5, 0, YS*7 ,10]; 
     ARM_SERVO = ["ARM_SVO", "CYL" ,"blue", 1 ,6 ,5,0    ,0,     YS*ARM_AXLE_DIST ,0];
     
+    BODY = NEW ? 
+    [HUB_OBJ, BATTERY, SHAFT,PLATE1,PLATE2,SQ15BEAM1,SQ15BEAM2] :
+    [HUB_OBJ, BATTERY, SHAFT,BRASS_CUBE1,ARM_SERVO,MOTOR1,MOTOR2];
+
     // ARM OBJECTS
     // aluminum tube 1" sqr, 0.0625" (1/16") walls, 14.6 cm long = 58 grams, density = 0.62 grams/cm^3
     
-    TUBE_LEN = 15; // cm (was 23.5)
+    TUBE_LEN = 16; // cm 
     ARM_TUBE = ["ARM_TUBE","CUBE","silver", .62,  2.54,TUBE_LEN, 2.54, 0,YS*ARM_AXLE_DIST+TUBE_LEN/2,0]; // see al tube above
     CLAW_LEN = 14; // cm
     CLAW = ["CLAW","CUBE","purple",   0.25, 5,CLAW_LEN,9, 0,YS*ARM_AXLE_DIST+TUBE_LEN+CLAW_LEN/2,0]; // claw assy = 160 grams
+        
+    // Omni no longer used
     OMNIS = ["OMNI WHLS", "CYL" ,"black", 1 ,8 ,3,0    ,0,YS*ARM_AXLE_DIST+TUBE_LEN-5,3]; // omni assy = 158 grams
     
-    WHEELS = [WHEEL1_OBJ,WHEEL1_HOLE_OBJ,WHEEL2_OBJ,WHEEL2_HOLE_OBJ,MOTOR1,MOTOR2,HUB1,HUB2] ;
-    BODY = [HUB_OBJ, BATTERY, SHAFT,BRASS_CUBE1,ARM_SERVO] ;
-    ARM = [ARM_TUBE,CLAW];
+    ARM = [ARM_SERVO,ARM_TUBE,CLAW];
     
-    COMBO = [HUB_OBJ, BATTERY, SHAFT,BRASS_CUBE1,ARM_SERVO,ARM_TUBE,CLAW];
+    // Combo mass object if for calculating body pitch given arm angles
+    COMBO = NEW ? 
+    [HUB_OBJ, BATTERY, SHAFT,PLATE1,PLATE2,SQ15BEAM1,SQ15BEAM2,ARM_SERVO,ARM_TUBE,CLAW] :
+    [HUB_OBJ, BATTERY, SHAFT,BRASS_CUBE1,ARM_SERVO,MOTOR1,MOTOR2,ARM_TUBE,CLAW];
 
     // Get total mass properties for objects
-    wm = Mass_Totals(WHEELS,"Wheels & Motors");
+    wm = Mass_Totals(WHEELS,"WHEELS");
     Mwheels = wm[0];
     Iwheels = wm[1];
     CMwheels = abs(wm[2][1]);
-    bm = Mass_Totals(BODY,"Hub,Bat,Shaft,Brass");
+    
+    bm = Mass_Totals(BODY,"BODY");
     Mbody = bm[0];
     Ibody = bm[1];
     CMbody = abs(bm[2][1]);
-    am = Mass_Totals(ARM,"Arm,Claw,Omni");
     
-    cm = Mass_Totals(COMBO,"Combo Arm & Body");
+    if (false) {
+        // trying to get an idea of the control terms
+        L=CMbody;
+        M=Mwheels;
+        m=Mbody;
+        G=9806.6; 
+        echo(str("m/M=",m/M," (M+m)/M*L=",(M+m)/(M*L)));
+    };
+ 
+    am = Mass_Totals(ARM,"Arm,Claw");
+    
+    cm = Mass_Totals(COMBO,"Combo Arm & Body",false);
     
     TOTALMASS = wm[0]+bm[0]+am[0];
     echo("TOTAL MASS =",TOTALMASS);
     
-    color("red") translate(wm[2]) sphere(r=1,$fn=FACETS);
-    translate([0,0,-40]) drawObjects(OBJ=WHEELS); // put last to display propertly
+    color("red") translate(wm[2]) sphere(r=0.5,$fn=FACETS);
    
-    AA = 120; // Desired arm angle
+    AA = 0; // Desired arm angle
+    
+    NEW_ARM_CG0 = rot_pt_z (pt=[am[2][0],am[2][1]-ARM_AXLE_DIST,0],zang=AA);
+    NEW_ARM_CG = [NEW_ARM_CG0[0],NEW_ARM_CG0[1]+ARM_AXLE_DIST,0];  
+    // EQUIVALENT MASS CUBE FOR ROTATE ARM TO GET NEW CG  
+    ROT_ARM = ["ROT_ARM","CUBE","red", am[0] ,1,1,1,NEW_ARM_CG[0],NEW_ARM_CG[1],0];
+    EQ_ARM = [ROT_ARM];
+    eq_arm = Mass_Totals(EQ_ARM,"Equivalent Arm",false);
+    COMBO2 = [HUB_OBJ, BATTERY, SHAFT,PLATE1,PLATE2,SQ15BEAM1,SQ15BEAM2,ROT_ARM];
+    eq_combo = Mass_Totals(COMBO2,"COMBO ROTATED ARM AND BODY",true,false);
+    
+    // solve for Body pitch Angle, using atan2 on new combo cg
+    BA = atan2(eq_combo[2][0],eq_combo[2][1]); // new BP, to keep robot from rolling
+    NEW_AA = AA+BA;  // This is the Set arm angle, to get desired arm angle
+    echo(str("For Servo Arm Angle,",AA,",Set Pitch,",BA,",New Global Arm Angle,",NEW_AA));
+    
+    translate([0,0,-35]) drawObjects(OBJ=WHEELS); // moved -Z for Top view
+    
     ARP = [0,-ARM_AXLE_DIST,0];  // arm rotition point
-    
-    // solve for balanced arm angles, using the law of sines
-    ALEN = ARM_AXLE_DIST-YS*cm[2][1];
-    echo(ALEN=ALEN);
-    BA = asin((ALEN/ARM_AXLE_DIST)*sin(AA)); // new body pitch, to keep robot from rolling
-    NEW_AA = AA-BA;  // actual arm angle
-    echo(str("For Desired Arm Angle,",AA,",Set Arm Angle,",NEW_AA,",Set Pitch,",BA));
-    
     rotate([0,0,BA]) {
         color("orange")  translate(bm[2]) sphere(r=1,$fn=FACETS);
-        drawObjects(OBJ=BODY); // put last to display propertly
-        
-        translate(-YS*ARP) rotate([0,0,NEW_AA]) translate(YS*ARP) {
-            color("green") translate(am[2]) sphere(r=1,$fn=FACETS);
+        color("green")  translate(eq_combo[2]) sphere(r=1,$fn=FACETS);
+
+        translate(-YS*ARP) rotate([0,0,AA]) translate(YS*ARP) {
+            color("blue") translate(am[2]) sphere(r=.5,$fn=FACETS);
             drawObjects(OBJ=ARM); // put last to display propertly
             
-            color("silver") translate(cm[2]) sphere(r=1,$fn=FACETS);
+            //color("black") translate(cm[2]) sphere(r=1,$fn=FACETS);
         }
+        
+        drawObjects(OBJ=BODY); // put last to display propertly
+
     }
     
     // write out the pitch vector, vs daa desired arm angle
-    for (daa = [-120:20:120]) {
+    for (daa = [-140:20:140]) {
         // ba = body pitch, to keep center of gravity over wheels
-        ba = asin((ALEN/ARM_AXLE_DIST)*sin(daa)); 
-        new_aa = daa-ba;
+        NEW_ARM_CG0 = rot_pt_z (pt=[am[2][0],am[2][1]-ARM_AXLE_DIST,0],zang=daa);
+        NEW_ARM_CG = [NEW_ARM_CG0[0],NEW_ARM_CG0[1]+ARM_AXLE_DIST,0];  
+        // EQUIVALENT MASS CUBE FOR ROTATE ARM TO GET NEW CG  
+        ROT_ARM = ["ROT_ARM","CUBE","red", am[0] ,1,1,1,NEW_ARM_CG[0],NEW_ARM_CG[1],0];
+        EQ_ARM = [ROT_ARM];
+        eq_arm = Mass_Totals(EQ_ARM,"Equivalent Arm",false);
+        COMBO2 = [HUB_OBJ, BATTERY, SHAFT,PLATE1,PLATE2,SQ15BEAM1,SQ15BEAM2,ROT_ARM];
+        eq_combo = Mass_Totals(COMBO2,"COMBO2",false);
+        
+        // solve for Body pitch Angle, using atan2 on new combo cg
+        ba = atan2(eq_combo[2][0],eq_combo[2][1]); // new BP, to keep robot from rolling
         // Java format for piecewise function
-        echo(str("pitchAngVec.addElement(",daa,",",ba,");"));
+        echo(str("pitchTermVec.addElement(",daa,",",eq_combo[2][1]/cm[2][1],");"));
+        *echo(str("pitchAngVec.addElement(",daa,",",ba,"); // new global arm angle is ",daa+ba));
     };
-    // write out the arm vector, vs daa desired arm angle
-    for (daa = [-120:20:120]) {
-        // ba = body pitch, to keep center of gravity over wheels
-        ba = asin((ALEN/ARM_AXLE_DIST)*sin(daa)); 
-        new_aa = daa-ba;
-        // Java format for piecewise function
-        echo(str("armAngVec.addElement(",daa,",",new_aa,");"));
-    };
-            
+/*            
     END_TIME = 6.0;  // seconds, full cycle for simple = 0.29, compound = 0.74
     DT = 0.005; // delta time in seconds
     echo(str("End Time = ",END_TIME,", Time Step = ",DT,", Number of time steps = ",END_TIME/DT));
@@ -1045,12 +1095,12 @@ if (FRGTFRZY) {
     INIT_ANG = -90; // DEG
     IAR = INIT_ANG*PI/180;  // initial angle radians
 
-    /* Simple pendulum frequency = 2*PI*sqrt(L/G),  for swing < 30 deg
-    SimpleFreq = 2*PI*sqrt(CMbody/G);
-    echo(str("Body Simple Frequency = ",SimpleFreq," seconds"));
+    // Simple pendulum frequency = 2*PI*sqrt(L/G),  for swing < 30 deg
+    //SimpleFreq = 2*PI*sqrt(CMbody/G);
+    //echo(str("Body Simple Frequency = ",SimpleFreq," seconds"));
     // Compound Pendulum frequency = 2*PI*sqrt(I/(m*G*CMr)) ,  for swing < 30 deg
-    CompoundFreq = 2*PI*sqrt(Ibody/(Mbody*G*CMbody));
-    echo(str("Body Compound Frequency = ",CompoundFreq," seconds"));  */
+    //CompoundFreq = 2*PI*sqrt(Ibody/(Mbody*G*CMbody));
+    //echo(str("Body Compound Frequency = ",CompoundFreq," seconds")); 
 
     // Set Point vector to set desired MOTOR VELOCITY vs time
     NEW_VELO = 60; // rad/sec 
@@ -1075,6 +1125,6 @@ if (FRGTFRZY) {
     *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KMT,Yscale=.1,Color="red"); // motor torque
     *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KX,Yscale=1,Color="green"); // horizontal position
     *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KR,Yscale=10,Color="brown"); // pendulum rotation gamma
-
+*/
 
 };
