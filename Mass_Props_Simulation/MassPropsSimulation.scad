@@ -1,5 +1,5 @@
 // Tools for calculating Mass Properties Design and 2D Dynamic analysis
-// Also, Two Wheel Balancing Robot model
+// Also, Two Wheel Balancing Robot models  STARTING AT LINE 600
 // by SrAmo  , 2025
 // In physics, kinematics is the study of motion without considering the forces causing it,
 // focusing on aspects like displacement, velocity, and acceleration, while dynamics examines
@@ -425,12 +425,12 @@ module drawAngVSTimeChart(SIM,Tscale=10,Index=1,Yscale=1.0,Color="blue") {
     color(Color,.5) polygon(TimeAngVec_1);
 };
 
-module drawXVSTimeChart(VEC,Tscale=10,Yscale=0.01) {
+module drawXVSTimeChart(VEC,Tscale=10,Yscale=1,YMEMB=1,COLOR="yellow") {
     l = len(VEC);
     Last_Time = VEC[l-1][0];
-    TimeXVec = [ for (j = [0:1:l-1])  [VEC[j][0]*Tscale,VEC[j][1]*Yscale] ];
-    TimeXVec_1 = concat(TimeXVec,[[Last_Time*Tscale,VEC[0][1]*Yscale-.1]]);
-    color("yellow",.5) polygon(TimeXVec_1);
+    TimeXVec = [ for (j = [0:1:l-1])  [VEC[j][0]*Tscale,VEC[j][YMEMB]*Yscale] ];
+    TimeXVec_1 = concat(TimeXVec,[[Last_Time*Tscale,VEC[0][YMEMB]*Yscale-.1]]);
+    color(COLOR,.5) polygon(TimeXVec_1);
 };
 function integrateVec(VEC,Tstep=0.01,ECHO_V=false,area=0,time=0) =
     let (l = len(VEC))
@@ -541,7 +541,58 @@ if (VELO_PROFILE) { // check velocity profiles
     drawAngVSTimeChart(SIM=POS_VEC,Tscale=1,Index=1,Yscale=1,Color="red");
     drawAngVSTimeChart(SIM=ACC_VEC,Tscale=1,Index=1,Yscale=1,Color="blue");
 };
-//  ## DATA BEGINES HERE ##
+function signZ(V) = (V>=0) ? 1 : -1; // sign function that does not return 0
+
+MaxVelo = 500;
+MaxAccel = 300;
+function calculateNextPos(CurrentPos,CurrentVelo,TargetPos,deltaTime) =
+    let (distToTarget = TargetPos - CurrentPos)
+    let (direction = (distToTarget >= 0) ? 1 : -1)
+    let (stoppingDistance = (CurrentVelo*CurrentVelo) / (2*MaxAccel))
+    let (accel = ((abs(distToTarget) <= stoppingDistance) && (signZ(CurrentVelo) == direction)) ? -direction*MaxAccel : direction*MaxAccel)
+    let (newVelo = CurrentVelo + accel*deltaTime)
+    let (newVelo2 = min(abs(newVelo),MaxVelo)*sign(newVelo))
+    let (newVelo3 = ((signZ(CurrentVelo) != signZ(newVelo2)) && (abs(distToTarget) <= stoppingDistance)) ? 0.0 : newVelo2)
+    let (newPos = CurrentPos + newVelo3*deltaTime + 0.5*accel*deltaTime*deltaTime)
+    let (newPos2 = (signZ(distToTarget) != (signZ(TargetPos - newPos))) ? TargetPos : newPos)
+    //let (newVelo4 = (sign(distToTarget) != (sign(TargetPos - newPos2))) ? 0 : newVelo3)
+    newPos ;
+
+function calculateNextVelo(CurrentPos,CurrentVelo,TargetPos,deltaTime) =
+    let (distToTarget = TargetPos - CurrentPos)
+    let (direction = (distToTarget >= 0) ? 1 : -1)
+    let (stoppingDistance = (CurrentVelo*CurrentVelo) / (2*MaxAccel))
+    let (accel = ((abs(distToTarget) <= stoppingDistance) && (signZ(CurrentVelo) == direction)) ? -direction*MaxAccel : direction*MaxAccel)
+    let (newVelo = CurrentVelo + accel*deltaTime)
+    let (newVelo2 = min(abs(newVelo),MaxVelo)*signZ(newVelo))
+    let (newVelo3 = ((signZ(CurrentVelo) != signZ(newVelo2)) && (abs(distToTarget) <= stoppingDistance)) ? 0.0 : newVelo2)
+    let (newPos = CurrentPos + newVelo3*deltaTime + 0.5*accel*deltaTime*deltaTime)
+    let (newPos2 = (signZ(distToTarget) != (signZ(TargetPos - newPos))) ? TargetPos : newPos)
+    let (newVelo4 = (signZ(distToTarget) != (signZ(TargetPos - newPos2))) ? 0 : newVelo3)
+    newVelo4 ;
+    
+function FillStateVec(CurrentPos=0,CurrentVelo=0,TargetPos=10,End_Time=2.0,Tstep=0.01,time=0,ECHO_V=false) =
+    let (nextPos = calculateNextPos(CurrentPos,CurrentVelo,TargetPos,Tstep))
+    let (nextVelo = calculateNextVelo(CurrentPos,CurrentVelo,TargetPos,Tstep))
+    (time+Tstep < End_Time+1.5*Tstep) ? 
+        let (z = (ECHO_V) ? echo(str(time,",",CurrentPos,",",CurrentVelo)) : 0)
+        concat([[time,CurrentPos,CurrentVelo]],FillStateVec(CurrentPos=nextPos,CurrentVelo=nextVelo,TargetPos=TargetPos,End_Time=End_Time,Tstep=Tstep,time=time+Tstep,ECHO_V=ECHO_V)) :
+        [] ;
+
+module MotionControlTest() {
+    DT = 0.02;
+    STARTPOS = 0.0;
+    STARTVELO = 0.0;
+    TARGETPOS = 400.0;
+    ENDTIME = 3.0;
+    MotionList = FillStateVec(CurrentPos=STARTPOS,CurrentVelo=STARTVELO,TargetPos=TARGETPOS,End_Time=ENDTIME,Tstep=DT,time=0,ECHO_V=true);
+    //echo(MotionList=MotionList);
+    drawXVSTimeChart(VEC=MotionList,Tscale=10,Yscale=.1,YMEMB=1,COLOR="yellow"); 
+    drawXVSTimeChart(VEC=MotionList,Tscale=10,Yscale=.1,YMEMB=2,COLOR="blue"); 
+};
+*MotionControlTest();
+
+//  ################# DATA BEGINES HERE #######################
 
 // Pendulum
 Pend = false; // Simple Pendulum
@@ -656,91 +707,6 @@ if (WW) {
     translate(FINAL_POS) color("blue") cube([0.5,10,1],center=true); // indicator for how far ww moves
 };
 
-// Two Wheel Robot with 6" dia wheels, expansion Hub, Phone, low center of mass
-TWR6 = false;
-if (TWR6) {
-    WHEEL_DIA = 15.5; // cm
-    WHEEL_DENS = 0.768 * 1.09 ; // Includes wheel hub g/cm^3
-    RAD_WHEEL = WHEEL_DIA/2;
-    // Oject v=["NAME",  "TYPE",       "COLOR", densi   ,X_Size,Y_Size  ,Z_Size,X_CM,Y_CM,Z_CM];
-    
-    // Each Grey wheel, mass = 270 g, Outside dia = 15.5 cm, Inside dia = 2.8 cm, thickness = 2.54 cm
-    //     backsolve density to match mass = 0.583, Izz = 8382
-    WHEEL1_OBJ =["WHEEL1",      "CYL" ,"blue",WHEEL_DENS ,WHEEL_DIA,2.54,0    ,0,0          ,-15];
-    WHEEL1_HOLE_OBJ=["WHEEL1-H","CYL","white",-WHEEL_DENS,8.0      ,2.54,0    ,0,0          ,-15];
-    WHEEL2_OBJ =["WHEEL2",      "CYL" ,"blue",WHEEL_DENS ,WHEEL_DIA,2.54,0    ,0,0          ,15];
-    WHEEL2_HOLE_OBJ=["WHEEL2-H","CYL","white",-WHEEL_DENS,8.0      ,2.54,0    ,0,0          ,15];
-    
-    //  max torque for a REV HD Hex SPUR 40:1 is  43,000 g-force - cm
-    MTR_DENS = 3.48;
-    MTR_D = 3.5;
-    MTR_L = 10.0;
-    MOTOR1 = ["MOTOR1", "CYL","silver", MTR_DENS,MTR_D,MTR_L,0,0,-1,10];
-    MOTOR2 = ["MOTOR2", "CYL","silver", MTR_DENS,MTR_D,MTR_L,0,0,-1,-10];
-    
-    HUB_OBJ =["HUB", "CUBE", "black",     0.473     ,10.3,3.0,14.3, 0,-4,0]; // Hub mass = 209 grams
-    PHONE = ["PHONE","CUBE", "blue",      1.47,        1.0, 7.5, 15.0, 0, 10.0, 0]; // Phone mass = 165 grams
-    BATTERY = ["BATTERY","CUBE","green", 0.94, 13.0,7.5, 7.5, 0,1.5,0]; // Battery mass = 685 grams
-    // total mass = 4588 grams
-    PLATE = ["PLATE","CUBE","gold", 9.69,  9,1,26, 0,-6,0]; // adjust density to get total mass
-    
-    WHEELS = [WHEEL1_OBJ,WHEEL1_HOLE_OBJ,WHEEL2_OBJ,WHEEL2_HOLE_OBJ] ;
-    BODY = [HUB_OBJ,PHONE,MOTOR1,MOTOR2, BATTERY, PLATE] ;
-
-    // Get total mass properties for object
-    wm = Mass_Totals(WHEELS);
-    Mwheels = wm[0];
-    Iwheels = wm[1];
-    CMwheels = abs(wm[2][1]);
-    bm = Mass_Totals(BODY);
-    Mbody = bm[0];
-    Ibody = bm[1];
-    CMbody = abs(bm[2][1]);
-    
-    END_TIME = 6.0;  // seconds, full cycle for simple = 0.29, compound = 0.74
-    DT = 0.02; // delta time in seconds
-    echo(str("End Time = ",END_TIME,", Time Step = ",DT,", Number of time steps = ",END_TIME/DT));
-
-    INIT_ANG = -90; // DEG
-    IAR = INIT_ANG*PI/180;  // initial angle radians
-
-    // Simple pendulum frequency = 2*PI*sqrt(L/G),  for swing < 30 deg
-    SimpleFreq = 2*PI*sqrt(CMbody/G);
-    echo(str("Body Simple Frequency = ",SimpleFreq," seconds"));
-    // Compound Pendulum frequency = 2*PI*sqrt(I/(m*G*CMr)) ,  for swing < 30 deg
-    CompoundFreq = 2*PI*sqrt(Ibody/(Mbody*G*CMbody));
-    echo(str("Body Compound Frequency = ",CompoundFreq," seconds"));
-
-    // Set Point vector to set desired MOTOR VELOCITY vs time
-    NEW_VELO = 20; // rad/sec 
-    Set_Point_VELO = [[0,0],[0.02,0],[0.03,NEW_VELO],[3.0,NEW_VELO],[3.1,0],[END_TIME,0]];
-
-    dummy = echo_header_cart(); // for spreadsheet
-    
-    // Initial state Vector=[time,x,y,r,  vx,vy,vr,  ax,ay,ar, MT, SP, x,y,r,  vx,vy,vr,  ax,ay,ar]; 
-    KIN_0=[0,CMbody*cos(INIT_ANG),CMbody*sin(INIT_ANG),IAR, 0,0,0,0,0,0,0,INIT_ANG, 0,0,IAR, 0,0,0, 0,0,0,999];
-    
-    dummy2 = echo_VEC(VEC=KIN_0);
-    
-    SIM1=    time_step_Cart(DELTA_T=DT,END_T=END_TIME,Mp=Mbody,Lp=CMbody,Ip=Ibody,Mc=Mwheels, Lc=CMwheels, Ic=Iwheels,WHEELR=RAD_WHEEL,VECT=KIN_0,SetPtVSTime=Set_Point_VELO,Kp=-12,Kg=0,Kv=100);
-    // SetPtVSTime=Set_Point_ANG,Kp=-20,Kg=Mbody*CMbody,Kv=-1950);
-
-    *drawCartSIM_Vector(SIM=SIM1,dispVelo=false,Rwheel=RAD_WHEEL);
-
-    TS=10;
-    translate([0,30,0]) {
-        drawXVSTimeChart(VEC=Set_Point_VELO,Tscale=TS,Yscale=1);
-        drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KVX2,Yscale=1,Color="blue");
-        drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KMT,Yscale=.1,Color="red"); // motor torque
-        *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KR,Yscale=20,Color="green");
-
-        color("red") translate([0,CMwheels,0]) sphere(r=1,$fn=FACETS);
-        color("orange") translate([0,-CMbody,0]) sphere(r=1,$fn=FACETS);
-        drawObjects(OBJ=WHEELS); // put last to display propertly
-        drawObjects(OBJ=BODY); // put last to display propertly
-    };
-
-};
 // Two Wheel Robot with Blue 8" (20.2 cm) dia wheels, Control Hub, balancing
 TWR8 = false;
 if (TWR8) {
@@ -831,38 +797,32 @@ if (TWR8) {
     
     AA = 0; 
     color("orange") rotate([0,0,AA]) translate(bm[2]) sphere(r=1,$fn=FACETS);
-    *drawObjects(OBJ=WHEELS); // put last to display propertly
+    drawObjects(OBJ=WHEELS); // put last to display propertly
     drawObjects(OBJ=BODY); // put last to display propertly
 
 };
 
-// Two Wheel Robot with Black 12 cm dia wheels, Control Hub
-TWR12cm = false;
-if (TWR12cm) {
-    echo("TWO WHEEL ROBOT WITH 12 CM BLACK WHEELS, MASS ABOVE AXIS");
-    // Each Black wheel, mass = 54 g, Outside dia = 12 cm, Inside dia = 0 cm, thickness = .57 cm
-    WHEEL_DIA = 12; // cm 
-    WHEEL_DENS = 0.84 ; // g/cm^3.  Does not include Hub
-    RAD_WHEEL = WHEEL_DIA/2;
+// C Two Wheel Robot with Black 9.6 cm dia goBilda Rhino wheels, April 2026
+C_TWB = true;
+if (C_TWB) {
+    echo("C TWO WHEEL ROBOT WITH 9.6 CM BLACK goBilda Rhino WHEELS");
+
+    WHEEL_DIA = 9.6; // cm 
+    WTH = 3.2; // cm
+    WHEEL_DENS = 1.008 ; // g/cm^3.
+    RAD_W = WHEEL_DIA/2;
     
-    // Oject v=["NAME",  "TYPE",       "COLOR", densi   ,X_Size,Y_Size  ,Z_Size,X_CM,Y_CM,Z_CM];
-    WHEEL1_OBJ =["WHEEL1",      "CYL" ,"black",WHEEL_DENS ,WHEEL_DIA ,.57,0    ,0,0          ,-15];
-    WHEEL2_OBJ =["WHEEL2",      "CYL" ,"black",WHEEL_DENS ,WHEEL_DIA ,.57,0    ,0,0          ,15];
+    // Oject v=["NAME","TYPE","COLOR",dens,X_Size,Y_SiZE,Z_Size,X_CM,Y_CM,Z_CM];
+    WHEEL1_OBJ =["WHEEL1","CYL" ,"black",WHEEL_DENS ,WHEEL_DIA ,WTH,0 ,0,0,-12.3];
+    WHEEL2_OBJ =["WHEEL2","CYL" ,"black",WHEEL_DENS ,WHEEL_DIA ,WTH,0 ,0,0,12.3];
+     
+    WHL_ASSY_L =["WHL_ASSY_L", "CUBE", "green",0.456,7.6,24,6.5, 0,12,-12.3]; 
+    WHL_ASSY_R =["WHL_ASSY_R", "CUBE", "red",0.456,7.6,24,6.5, 0,12,12.3]; 
+    BATTERY = ["BATTERY","CUBE","black", 1.55, 13,10, 3, 0,8,17]; // mass = 600 grams
+    MTR_BEAM = ["MTR_BEAM","CUBE","silver", 2.53,4.8,4.8,31, 0,17.25+RAD_W,0]; 
     
-    //  max torque for a goBilda Yellow Jacket 19.2:1 is  24,300 g-force - cm
-    MTR_DENS = 4.7; // back solved, total mass with hub = 456 g
-    MTR_D = 3.5;
-    MTR_L = 10.0;
-    MOTOR1 = ["MOTOR1", "CYL","silver", MTR_DENS,MTR_D,MTR_L,0,0,0,10];
-    MOTOR2 = ["MOTOR2", "CYL","silver", MTR_DENS,MTR_D,MTR_L,0,0,0,-10];
-    
-    //HUB_OBJ =["HUB", "CUBE", "black",     0.473     ,10.3,3.0,14.3, 0,-5.5,0]; // Hub mass = 209 grams
-    HUB_OBJ =["HUB", "CUBE", "black",     0.473     ,14.3,3.0,10.3, 0,6.0,0]; // Hub mass = 209 grams
-    BATTERY = ["BATTERY","CUBE","green", 1.6, 13.0,3, 10, 0,9.1,0]; // Battery mass = 620 grams
-    PLATE = ["PLATE","CUBE","white", 2.05,15.5,0.5,29.5, 0,4.2,0]; // adjust density to get total mass
-    
-    WHEELS = [WHEEL1_OBJ,WHEEL2_OBJ,MOTOR1,MOTOR2] ;
-    BODY = [HUB_OBJ, BATTERY, PLATE] ;
+    WHEELS = [WHEEL1_OBJ,WHEEL2_OBJ] ;
+    BODY = [WHL_ASSY_L, WHL_ASSY_R,BATTERY, MTR_BEAM] ;
 
     // Get total mass properties for object
     wm = Mass_Totals(WHEELS);
@@ -887,6 +847,7 @@ if (TWR12cm) {
     // Compound Pendulum frequency = 2*PI*sqrt(I/(m*G*CMr)) ,  for swing < 30 deg
     CompoundFreq = 2*PI*sqrt(Ibody/(Mbody*G*CMbody));
     echo(str("Body Compound Frequency = ",CompoundFreq," seconds"));
+    echo(str("CMbody=",CMbody,", Mbody=",Mbody));
 
     // Set Point vector to set desired MOTOR VELOCITY vs time
     NEW_VELO = .001; // rad/sec 
@@ -901,10 +862,10 @@ if (TWR12cm) {
     
     dummy2 = echo_VEC(VEC=KIN_0);
     
-    SIM1=    time_step_Cart(DELTA_T=DT,END_T=END_TIME,Mp=Mbody,Lp=CMbody,Ip=Ibody,Mc=Mwheels, Lc=CMwheels, Ic=Iwheels,WHEELR=RAD_WHEEL,VECT=KIN_0,SetPtVSTime=Set_Point_VELO,Kp=14,Kg=0,Kv=150);
+    SIM1=    time_step_Cart(DELTA_T=DT,END_T=END_TIME,Mp=Mbody,Lp=CMbody,Ip=Ibody,Mc=Mwheels, Lc=CMwheels, Ic=Iwheels,WHEELR=RAD_W,VECT=KIN_0,SetPtVSTime=Set_Point_VELO,Kp=14,Kg=0,Kv=150);
     // SetPtVSTime=Set_Point_ANG,Kp=-20,Kg=Mbody*CMbody,Kv=-1950);
 
-    drawCartSIM_Vector(SIM=SIM1,dispVelo=false,Rwheel=RAD_WHEEL);
+    *drawCartSIM_Vector(SIM=SIM1,dispVelo=false,Rwheel=RAD_W);
 
     TS=10;
     *drawXVSTimeChart(VEC=Set_Point_VELO,Tscale=TS,Yscale=1); // velocity setpoint
@@ -913,8 +874,7 @@ if (TWR12cm) {
     *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KX,Yscale=1,Color="green"); // horizontal position
     *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KR,Yscale=1,Color="brown"); // pendulum rotation gamma
 
-    color("red") translate([0,CMwheels,0]) sphere(r=1,$fn=FACETS);
-    
+    color("red") translate([0,CMwheels,0]) sphere(r=1,$fn=FACETS); 
     AA = 0; 
     color("orange") rotate([0,0,AA]) translate(bm[2]) sphere(r=1,$fn=FACETS);
     drawObjects(OBJ=WHEELS); // put last to display propertly
@@ -922,8 +882,8 @@ if (TWR12cm) {
 
 };
 
-// Freight Frenzy Two Wheel Robot with Blue 8" (20.2 cm) dia wheels, Control Hub
-FRGTFRZY = true;
+// BLUE Two Wheel Robot 8" (20.2 cm) dia wheels, WITH ARM, Control Hub
+FRGTFRZY = false;
 if (FRGTFRZY) {
     // total "new" robot mass = 3392 grams (8/9/2025, al side plates, 16 cm arm tube)
     // total robot mass = 4105 grams (8/2/2025, no freight, no Omni)
@@ -932,15 +892,13 @@ if (FRGTFRZY) {
     LOW = false; // LOW CG robot for true, HIGH CG robot for false
     YS = LOW ? -1 : 1; // Y direction sine
     
-    NEW = true; // new (side plates) or old (freight frenzy printed holders)
-
     // Oject v=["NAME",  "TYPE","COLOR", densi,X_Size,Y_Size  ,Z_Size,X_CM,Y_CM,Z_CM];
         
     // Freight, same size, three different weights/density
     BOX_LIGHT = ["BOX-LIGHT","CUBE","yellow",0.385,5.08,5.08,5.08, 0,0,0]; // 52 g
-    BOX_MED =   ["BOX-MED",  "CUBE","gold"  ,0.71 ,5.08,5.08,5.08, 0,0,0];
-    BOX_HEAV =  ["BOX-HEAV", "CUBE","orange",1.03 ,5.08,5.08,5.08, 0,0,0];
-    translate([20,-7.5,0]) drawObjects([BOX_LIGHT]);
+    BOX_MED =   ["BOX-MED",  "CUBE","gold"  ,0.71 ,5.08,5.08,5.08, 0,40,0];
+    BOX_HEAV =  ["BOX-HEAV", "CUBE","orange",1.03 ,5.08,5.08,5.08, 0,45,0];
+    //translate([20,-7.5,0]) drawObjects([BOX_LIGHT]);
 
     // Each Blue wheel, mass = 302 g, Outside dia = 20.2 cm, Inside dia = 16.4 cm, thickness = 2.54 cm
     WHEEL_DIA = 20.2; // cm (8 inch)
@@ -966,15 +924,11 @@ if (FRGTFRZY) {
     WHEELS = [WHEEL1_OBJ,WHEEL1_HOLE_OBJ,WHEEL2_OBJ,WHEEL2_HOLE_OBJ,HUB1,HUB2,MOTOR1,MOTOR2] ;
         
     // BODY OBJECTS
-    ARM_AXLE_DIST = NEW ? 15.0 : 4.0; // cm, distance from shaft to wheel axis, due to Spur motor
+    ARM_AXLE_DIST = 15.0; // cm, distance from shaft to wheel axis, due to Spur motor
     // Hub mass = 209 grams
-    HUB_OBJ = NEW ?
-    ["REV HUB", "CUBE", "black", 0.55 ,14.3,3.0,10.3, 0,  YS*4.0  ,0] :
-    ["REV HUB", "CUBE", "black", 0.48 ,14.3,3.0,10.3, 0,  -1*YS*3.0  ,10];
+    HUB_OBJ = ["REV HUB", "CUBE", "black", 0.55 ,10.3,3.0,14.3, 0,  YS*4.0  ,0];
     // Battery mass (REV slim) = 610 grams 
-    BATTERY = NEW ?
-    ["BATTERY","CUBE","green", 1.56, 13.0,10, 3, 0,  YS*8.5  ,-10.5] : 
-    ["BATTERY","CUBE","green", 1.56, 13.0,3, 10, 0,  YS*6.5  ,-10.5]; 
+    BATTERY =     ["BATTERY","CUBE","green", 1.56, 13.0,10, 3, 0,  YS*8.5  ,-10.5] ; 
     // adjust shaft mass to up total mass
     SHAFT = ["SHAFT","CUBE","silver", ALUM_DEN*1.35,1.6,1.6,31,0,YS*ARM_AXLE_DIST,0]; 
     PLATE1  = ["PLATE1","CUBE","silver", ALUM_DEN*1.5,3*CM,7.5*CM,0.125*CM,0,3*CM,5*CM];
@@ -982,11 +936,10 @@ if (FRGTFRZY) {
     SQ15BEAM1 = ["15MM_BEAM1","CUBE","navy",ALUM_DEN*0.4,1.5,1.5,10*CM,3,2,0];
     SQ15BEAM2 = ["15MM_BEAM2","CUBE","navy",ALUM_DEN*0.4,1.5,1.5,10*CM,-3,2,0];
     BRASS_CUBE1 = ["BRASS1","CUBE","goldenrod",BRASS_DENS,  3.5,3.5,10.5, 0, YS*7 ,10]; 
-    ARM_SERVO = ["ARM_SVO", "CYL" ,"blue", 1 ,6 ,5,0    ,0,     YS*ARM_AXLE_DIST ,0];
+    ARM_SERVO = ["ARM_SVO", "CYL" ,"blue", 1 ,6 ,5,0    ,-3,     YS*ARM_AXLE_DIST ,0];
+    SHAFT_WGTS = ["SHAFT_WGTS", "CYL" ,"black", 1.77 ,6 ,5,0    ,0,     YS*ARM_AXLE_DIST ,8];
     
-    BODY = NEW ? 
-    [HUB_OBJ, BATTERY, SHAFT,PLATE1,PLATE2,SQ15BEAM1,SQ15BEAM2] :
-    [HUB_OBJ, BATTERY, SHAFT,BRASS_CUBE1,ARM_SERVO,MOTOR1,MOTOR2];
+    BODY = [HUB_OBJ, BATTERY, SHAFT,PLATE1,PLATE2,SQ15BEAM1,SQ15BEAM2,SHAFT_WGTS];
 
     // ARM OBJECTS
     // aluminum tube 1" sqr, 0.0625" (1/16") walls, 14.6 cm long = 58 grams, density = 0.62 grams/cm^3
@@ -994,17 +947,15 @@ if (FRGTFRZY) {
     TUBE_LEN = 16; // cm 
     ARM_TUBE = ["ARM_TUBE","CUBE","silver", .62,  2.54,TUBE_LEN, 2.54, 0,YS*ARM_AXLE_DIST+TUBE_LEN/2,0]; // see al tube above
     CLAW_LEN = 14; // cm
-    CLAW = ["CLAW","CUBE","purple",   0.25, 5,CLAW_LEN,9, 0,YS*ARM_AXLE_DIST+TUBE_LEN+CLAW_LEN/2,0]; // claw assy = 160 grams
+    CLAW = ["CLAW","CUBE","purple",   0.25, 5,CLAW_LEN,9, -2,YS*ARM_AXLE_DIST+TUBE_LEN+CLAW_LEN/2,0]; // claw assy = 160 grams
         
     // Omni no longer used
-    OMNIS = ["OMNI WHLS", "CYL" ,"black", 1 ,8 ,3,0    ,0,YS*ARM_AXLE_DIST+TUBE_LEN-5,3]; // omni assy = 158 grams
+    //OMNIS = ["OMNI WHLS", "CYL" ,"black", 1 ,8 ,3,0    ,0,YS*ARM_AXLE_DIST+TUBE_LEN-5,3]; // omni assy = 158 grams
     
-    ARM = [ARM_SERVO,ARM_TUBE,CLAW];
+    ARM = [ARM_SERVO,ARM_TUBE,CLAW]; // ,BOX_HEAV
     
     // Combo mass object if for calculating body pitch given arm angles
-    COMBO = NEW ? 
-    [HUB_OBJ, BATTERY, SHAFT,PLATE1,PLATE2,SQ15BEAM1,SQ15BEAM2,ARM_SERVO,ARM_TUBE,CLAW] :
-    [HUB_OBJ, BATTERY, SHAFT,BRASS_CUBE1,ARM_SERVO,MOTOR1,MOTOR2,ARM_TUBE,CLAW];
+    COMBO = concat(BODY,ARM); 
 
     // Get total mass properties for objects
     wm = Mass_Totals(WHEELS,"WHEELS");
@@ -1035,7 +986,7 @@ if (FRGTFRZY) {
     
     color("red") translate(wm[2]) sphere(r=0.5,$fn=FACETS);
    
-    AA = 0; // Desired arm angle
+    AA = -0; // Desired arm angle
     
     NEW_ARM_CG0 = rot_pt_z (pt=[am[2][0],am[2][1]-ARM_AXLE_DIST,0],zang=AA);
     NEW_ARM_CG = [NEW_ARM_CG0[0],NEW_ARM_CG0[1]+ARM_AXLE_DIST,0];  
@@ -1043,7 +994,7 @@ if (FRGTFRZY) {
     ROT_ARM = ["ROT_ARM","CUBE","red", am[0] ,1,1,1,NEW_ARM_CG[0],NEW_ARM_CG[1],0];
     EQ_ARM = [ROT_ARM];
     eq_arm = Mass_Totals(EQ_ARM,"Equivalent Arm",false);
-    COMBO2 = [HUB_OBJ, BATTERY, SHAFT,PLATE1,PLATE2,SQ15BEAM1,SQ15BEAM2,ROT_ARM];
+    COMBO2 = concat(BODY,EQ_ARM);
     eq_combo = Mass_Totals(COMBO2,"COMBO ROTATED ARM AND BODY",true,false);
     
     // solve for Body pitch Angle, using atan2 on new combo cg
@@ -1054,7 +1005,7 @@ if (FRGTFRZY) {
     translate([0,0,-35]) drawObjects(OBJ=WHEELS); // moved -Z for Top view
     
     ARP = [0,-ARM_AXLE_DIST,0];  // arm rotition point
-    rotate([0,0,BA]) {
+    rotate([0,0,-0]) {
         color("orange")  translate(bm[2]) sphere(r=1,$fn=FACETS);
         color("green")  translate(eq_combo[2]) sphere(r=1,$fn=FACETS);
 
@@ -1069,24 +1020,36 @@ if (FRGTFRZY) {
 
     }
     
+    // This cylinder represents the barrier
+    //color("grey") translate([8.7,-7.5,0]) cylinder(h=100,d=3,center=true,$fn=32);
+    
     // write out the pitch vector, vs daa desired arm angle
-    for (daa = [-140:20:140]) {
+    for (daa = [-160:20:160]) {
         // ba = body pitch, to keep center of gravity over wheels
         NEW_ARM_CG0 = rot_pt_z (pt=[am[2][0],am[2][1]-ARM_AXLE_DIST,0],zang=daa);
         NEW_ARM_CG = [NEW_ARM_CG0[0],NEW_ARM_CG0[1]+ARM_AXLE_DIST,0];  
         // EQUIVALENT MASS CUBE FOR ROTATE ARM TO GET NEW CG  
-        ROT_ARM = ["ROT_ARM","CUBE","red", am[0] ,1,1,1,NEW_ARM_CG[0],NEW_ARM_CG[1],0];
-        EQ_ARM = [ROT_ARM];
-        eq_arm = Mass_Totals(EQ_ARM,"Equivalent Arm",false);
-        COMBO2 = [HUB_OBJ, BATTERY, SHAFT,PLATE1,PLATE2,SQ15BEAM1,SQ15BEAM2,ROT_ARM];
-        eq_combo = Mass_Totals(COMBO2,"COMBO2",false);
+        ROT_ARM_F = ["ROT_ARM","CUBE","red", am[0] ,1,1,1,NEW_ARM_CG[0],NEW_ARM_CG[1],0];
+        EQ_ARM_F = [ROT_ARM_F];
+        eq_arm = Mass_Totals(EQ_ARM_F,"Equivalent Arm",false);
+        COMBO_FOR = concat(BODY,EQ_ARM_F);
+        FOR_combo = Mass_Totals(COMBO_FOR,"COMBO_FOR",false);
         
         // solve for Body pitch Angle, using atan2 on new combo cg
-        ba = atan2(eq_combo[2][0],eq_combo[2][1]); // new BP, to keep robot from rolling
+        ba = atan2(FOR_combo[2][0],FOR_combo[2][1]); // new BP, to keep robot from rolling
         // Java format for piecewise function
-        echo(str("pitchTermVec.addElement(",daa,",",eq_combo[2][1]/cm[2][1],");"));
-        *echo(str("pitchAngVec.addElement(",daa,",",ba,"); // new global arm angle is ",daa+ba));
+        //echo(str("pitchTermVec.addElement(",daa,",",eq_combo[2][1]/cm[2][1],");"));
+        echo(str("pitchAngVec.addElement(",daa,",",ba,"); // new global arm angle is ",daa+ba));
     };
+    
+    // Simple pendulum frequency = 2*PI*sqrt(L/G),  for swing < 30 deg
+    SimpleFreq = 2*PI*sqrt(CMbody/G);
+    echo(str("Body Simple Frequency = ",SimpleFreq," seconds"));
+    // Compound Pendulum frequency = 2*PI*sqrt(I/(m*G*CMr)) ,  for swing < 30 deg
+    CompoundFreq = 2*PI*sqrt(Ibody/(Mbody*G*CMbody));
+    echo(str("Body Compound Frequency = ",CompoundFreq," seconds")); 
+    echo(str("CMbody=",CMbody,", Mbody=",Mbody));
+
 /*            
     END_TIME = 6.0;  // seconds, full cycle for simple = 0.29, compound = 0.74
     DT = 0.005; // delta time in seconds
@@ -1095,12 +1058,7 @@ if (FRGTFRZY) {
     INIT_ANG = -90; // DEG
     IAR = INIT_ANG*PI/180;  // initial angle radians
 
-    // Simple pendulum frequency = 2*PI*sqrt(L/G),  for swing < 30 deg
-    //SimpleFreq = 2*PI*sqrt(CMbody/G);
-    //echo(str("Body Simple Frequency = ",SimpleFreq," seconds"));
-    // Compound Pendulum frequency = 2*PI*sqrt(I/(m*G*CMr)) ,  for swing < 30 deg
-    //CompoundFreq = 2*PI*sqrt(Ibody/(Mbody*G*CMbody));
-    //echo(str("Body Compound Frequency = ",CompoundFreq," seconds")); 
+
 
     // Set Point vector to set desired MOTOR VELOCITY vs time
     NEW_VELO = 60; // rad/sec 

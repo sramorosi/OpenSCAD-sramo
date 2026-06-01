@@ -91,7 +91,7 @@ module machine_hex_2d(FlatsD=12.7,CornerD=3.3) {
     polygon(hex);
 }
 
-machine_hex_2d(FlatsD=0.505*MM); // Make 1% larger for cutter adjustment
+*machine_hex_2d(FlatsD=0.508*MM); // Make 1% larger for cutter adjustment
 
 module EinsteinTile(KL=10,BITE=false) {
     difference() {
@@ -601,23 +601,32 @@ module door_handle(inside=true) {
 *color("grey") door_handle(inside=true,$fn=48);
 
 module berry_sieve() {
-    berryHole = 7.5; // size for berry.  7.5 is a bit small. Go to 8 mm?
-    mesht = 0.5;  // mesh thickness
+    // Updated on 8/23/2025: fixed mesh math.  Made sieve bigger
+    berryHole = 8.0; // Hex outside Dia. size for berry.  7.5 is a bit small. Go to 8 mm?
+    mesht = 0.1;  // mesh thickness
     comb = berryHole+mesht;
+    x_step = (berryHole+mesht)*cos(30);
+    RingID = 200;
+    RingOD = RingID+6;
+    Count = round(RingOD/(x_step));
+    echo(str("Number of holes is less than ",Count*Count,", Count = ",Count));
     thk=4;  // thickness of sieve
+    
     union() {
         difference() {
-            cylinder(h=thk,d=168,center=true);
-            translate([-100,-200,0]) for (i= [1:30]) {
-                for (j=[1:30]) {
-                    translate([i*(berryHole-mesht),j*comb+(i-1)*comb/2,-2*thk]) cylinder(h=4*thk,d=berryHole,$fn=6);
+            cylinder(h=thk,d=RingOD,center=true);
+            translate([-RingOD/2,-RingOD,0]) 
+                for (i= [1:Count]) { // 1:Count
+                    for (j=[-3:Count-3]) { // -1:Count+2
+                        translate([i*x_step,j*comb+(i+Count/2)*comb/2,-2*thk]) 
+                            cylinder(h=4*thk,d=berryHole,$fn=6,center=false); // hexes
                 }
             }
         }
-        translate([0,0,thk/2]) washer(d=180,t=2*thk,d_pin=167,$fn=96);
+        translate([0,0,thk/2]) washer(d=RingOD,t=2*thk,d_pin=RingID,$fn=96);
     }
 }
-*berry_sieve();
+berry_sieve();
 
 // Spice Jar Tilt (Deg)
 TILT = 35;  // [0:1:80]

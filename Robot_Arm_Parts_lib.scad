@@ -638,7 +638,7 @@ module servo_horn (l=servo_horn_l, d1=servo_horn_d1, d2=servo_horn_d2, t=servo_h
 module svoScrews() { // 2D pattern
     translate([-svo_shaft,0,0]) 
         rectPattern(svo_screw_l,svo_screw_w) 
-            circle(d=3.5);  // min dia for 1/8" mill
+            circle(d=4.2);  // min dia for 1/8" mill = 3.5 mm
 }
 module svo2D() { // for SVG, for X-carve
     svoScrews($fn=24);
@@ -678,7 +678,7 @@ module servo_body (vis=true){ // true = normal,  false = for subtraction
         }
     }
 }
-*servo_body(vis=true);
+*servo_body(vis=false);
 
 module servo_shim (l=61,w=25.4,t=3) {
     $fa=$preview ? 6 : 1; // minimum angle fragment
@@ -688,9 +688,10 @@ module servo_shim (l=61,w=25.4,t=3) {
         servo_body (vis=false,$fn=16);
     }
 }
-*servo_shim();
+servo_shim(t=6);
 
-module servo_shim_spacer(l=svo_flange_l,w=svo_w-1,t=1.5) {
+module servo_shim_spacers(l=svo_flange_l,w=svo_w-1,t=1.5) {
+    // Two smaller shims for under screw pairs
     $fa=$preview ? 6 : 1; // minimum angle fragment
     flange_z = -9.65;
     difference () {
@@ -698,7 +699,7 @@ module servo_shim_spacer(l=svo_flange_l,w=svo_w-1,t=1.5) {
         servo_body (vis=false,$fn=16);
     }
 }
-*servo_shim_spacer();
+*servo_shim_spacers();
 
 module half_inch_hex_hub() { // modeled after ServoCity 0.500" Hex Clamping Hub SKU 545674 
     color("Silver")  difference() {

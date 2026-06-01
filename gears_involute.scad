@@ -862,17 +862,14 @@ module 32P_Actobotics (teeth=32,thickness=6,bore=4)
 }
 *32P_Actobotics(teeth=32);
 *32P_Actobotics(teeth=51,thickness=8,$fn=60);
+
+// SHIRT_GEAR is for making art for shirts
 module SHIRT_GEAR() {
     gear (
-        number_of_teeth = 18,
-        circular_pitch= 20, //1*25.4, //32*180*pi/180,
-        gear_thickness = 40,
-        rim_thickness = 0,
-        rim_width = 0, // controls the circles diameter
-        hub_thickness = 0,  // ?
-        hub_diameter=0,// controls the circles diameter
-        bore_diameter=80, // center bore
-        backlash = 0,
-        circles=0);
+        number_of_teeth = 5, // was 18 for into the deep
+        circular_pitch= 20, // was 20 for into the deep
+        pressure_angle=16, // was 28 for into the deep
+        bore_diameter=6 // was 80 for into the deep
+        );
 }
 SHIRT_GEAR($fn=80);
