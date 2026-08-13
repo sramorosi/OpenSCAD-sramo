@@ -802,89 +802,9 @@ if (TWR8) {
 
 };
 
-// C Two Wheel Robot with Black 9.6 cm dia goBilda Rhino wheels, April 2026
-C_TWB = true;
-if (C_TWB) {
-    echo("C TWO WHEEL ROBOT WITH 9.6 CM BLACK goBilda Rhino WHEELS");
-
-    WHEEL_DIA = 9.6; // cm 
-    WTH = 3.2; // cm
-    WHEEL_DENS = 1.008 ; // g/cm^3.
-    RAD_W = WHEEL_DIA/2;
-    
-    // Oject v=["NAME","TYPE","COLOR",dens,X_Size,Y_SiZE,Z_Size,X_CM,Y_CM,Z_CM];
-    WHEEL1_OBJ =["WHEEL1","CYL" ,"black",WHEEL_DENS ,WHEEL_DIA ,WTH,0 ,0,0,-12.3];
-    WHEEL2_OBJ =["WHEEL2","CYL" ,"black",WHEEL_DENS ,WHEEL_DIA ,WTH,0 ,0,0,12.3];
-     
-    WHL_ASSY_L =["WHL_ASSY_L", "CUBE", "green",0.456,7.6,24,6.5, 0,12,-12.3]; 
-    WHL_ASSY_R =["WHL_ASSY_R", "CUBE", "red",0.456,7.6,24,6.5, 0,12,12.3]; 
-    BATTERY = ["BATTERY","CUBE","black", 1.55, 13,10, 3, 0,8,17]; // mass = 600 grams
-    MTR_BEAM = ["MTR_BEAM","CUBE","silver", 2.53,4.8,4.8,31, 0,17.25+RAD_W,0]; 
-    
-    WHEELS = [WHEEL1_OBJ,WHEEL2_OBJ] ;
-    BODY = [WHL_ASSY_L, WHL_ASSY_R,BATTERY, MTR_BEAM] ;
-
-    // Get total mass properties for object
-    wm = Mass_Totals(WHEELS);
-    Mwheels = wm[0];
-    Iwheels = wm[1];
-    CMwheels = abs(wm[2][1]);
-    bm = Mass_Totals(BODY);
-    Mbody = bm[0];
-    Ibody = bm[1];
-    CMbody = abs(bm[2][1]);
-    
-    END_TIME = .1;  // seconds, full cycle for simple = 0.29, compound = 0.74
-    DT = 0.005; // delta time in seconds
-    echo(str("End Time = ",END_TIME,", Time Step = ",DT,", Number of time steps = ",END_TIME/DT));
-
-    INIT_ANG = 0; // DEG
-    IAR = INIT_ANG*PI/180;  // initial angle radians
-
-    // Simple pendulum frequency = 2*PI*sqrt(L/G),  for swing < 30 deg
-    SimpleFreq = 2*PI*sqrt(CMbody/G);
-    echo(str("Body Simple Frequency = ",SimpleFreq," seconds"));
-    // Compound Pendulum frequency = 2*PI*sqrt(I/(m*G*CMr)) ,  for swing < 30 deg
-    CompoundFreq = 2*PI*sqrt(Ibody/(Mbody*G*CMbody));
-    echo(str("Body Compound Frequency = ",CompoundFreq," seconds"));
-    echo(str("CMbody=",CMbody,", Mbody=",Mbody));
-
-    // Set Point vector to set desired MOTOR VELOCITY vs time
-    NEW_VELO = .001; // rad/sec 
-    Set_Point_VELO = [[0,0],[0.01,0],[0.04,NEW_VELO],[0.05,NEW_VELO],[0.08,0],[END_TIME,0]];
-    //Set_Point_VELO = [[0,0],[END_TIME,0]];
-    //Set_Point_VELO = makeVeloProfile(TIME=END_TIME-4,DIST=50);
-
-    dummy = echo_header_cart(); // for spreadsheet
-    
-    // Initial state Vector=[time,x,y,r,  vx,vy,vr,  ax,ay,ar, MT, SP, x,y,r,  vx,vy,vr,  ax,ay,ar]; 
-    KIN_0=[0,bm[2][0],bm[2][1],IAR, 0,0,0,0,0,0,0,0, 0,0,0, 0,0,0, 0,0,0,999];
-    
-    dummy2 = echo_VEC(VEC=KIN_0);
-    
-    SIM1=    time_step_Cart(DELTA_T=DT,END_T=END_TIME,Mp=Mbody,Lp=CMbody,Ip=Ibody,Mc=Mwheels, Lc=CMwheels, Ic=Iwheels,WHEELR=RAD_W,VECT=KIN_0,SetPtVSTime=Set_Point_VELO,Kp=14,Kg=0,Kv=150);
-    // SetPtVSTime=Set_Point_ANG,Kp=-20,Kg=Mbody*CMbody,Kv=-1950);
-
-    *drawCartSIM_Vector(SIM=SIM1,dispVelo=false,Rwheel=RAD_W);
-
-    TS=10;
-    *drawXVSTimeChart(VEC=Set_Point_VELO,Tscale=TS,Yscale=1); // velocity setpoint
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KVX2,Yscale=1,Color="blue"); // horizontal velocity
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KMT,Yscale=1,Color="red"); // motor torque
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KX,Yscale=1,Color="green"); // horizontal position
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KR,Yscale=1,Color="brown"); // pendulum rotation gamma
-
-    color("red") translate([0,CMwheels,0]) sphere(r=1,$fn=FACETS); 
-    AA = 0; 
-    color("orange") rotate([0,0,AA]) translate(bm[2]) sphere(r=1,$fn=FACETS);
-    drawObjects(OBJ=WHEELS); // put last to display propertly
-    drawObjects(OBJ=BODY); // put last to display propertly
-
-};
-
 // BLUE Two Wheel Robot 8" (20.2 cm) dia wheels, WITH ARM, Control Hub
-FRGTFRZY = false;
-if (FRGTFRZY) {
+BLUE = false;
+if (BLUE) {
     // total "new" robot mass = 3392 grams (8/9/2025, al side plates, 16 cm arm tube)
     // total robot mass = 4105 grams (8/2/2025, no freight, no Omni)
     // total robot mass = 4300 grams (6/27/2025, no freight)
@@ -1085,4 +1005,84 @@ if (FRGTFRZY) {
     *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KR,Yscale=10,Color="brown"); // pendulum rotation gamma
 */
 
+};// C Two Wheel Robot with Black 9.6 cm dia goBilda Rhino wheels, April 2026
+C_TWB = true;
+if (C_TWB) {
+    echo("C TWO WHEEL ROBOT WITH 9.6 CM BLACK goBilda Rhino WHEELS");
+
+    WHEEL_DIA = 9.6; // cm 
+    WTH = 3.2; // cm
+    WHEEL_DENS = 1.008 ; // g/cm^3.
+    RAD_W = WHEEL_DIA/2;
+    
+    // Oject v=["NAME","TYPE","COLOR",dens,X_Size,Y_SiZE,Z_Size,X_CM,Y_CM,Z_CM];
+    WHEEL1_OBJ =["WHEEL1","CYL" ,"black",WHEEL_DENS ,WHEEL_DIA ,WTH,0 ,0,0,-12.3];
+    WHEEL2_OBJ =["WHEEL2","CYL" ,"black",WHEEL_DENS ,WHEEL_DIA ,WTH,0 ,0,0,12.3];
+     
+    W_ASSY_DENS = 0.6;
+    WHL_ASSY_L =["WHL_ASSY_L", "CUBE","green",W_ASSY_DENS,7.6,22,6.5, 0,11,-12.3]; 
+    WHL_ASSY_R =["WHL_ASSY_R", "CUBE","red", W_ASSY_DENS,7.6,22,6.5, 0,11,12.3]; 
+    BATTERY = ["BATTERY","CUBE","black", 1.55, 13,10, 3, 0,6.5,7.5]; // mass = 600 grams
+    MTR_BEAM = ["MTR_BEAM","CUBE","silver", 2.53,4.8,4.8,31, 0,12.5+RAD_W,0]; 
+    
+    WHEELS = [WHEEL1_OBJ,WHEEL2_OBJ] ;
+    BODY = [WHL_ASSY_L, WHL_ASSY_R,BATTERY, MTR_BEAM] ;
+
+    // Get total mass properties for object
+    wm = Mass_Totals(WHEELS);
+    Mwheels = wm[0];
+    Iwheels = wm[1];
+    CMwheels = abs(wm[2][1]);
+    bm = Mass_Totals(BODY);
+    Mbody = bm[0];
+    Ibody = bm[1];
+    CMbody = abs(bm[2][1]);
+    
+    END_TIME = .1;  // seconds, full cycle for simple = 0.29, compound = 0.74
+    DT = 0.005; // delta time in seconds
+    echo(str("End Time = ",END_TIME,", Time Step = ",DT,", Number of time steps = ",END_TIME/DT));
+
+    INIT_ANG = 0; // DEG
+    IAR = INIT_ANG*PI/180;  // initial angle radians
+
+    // Simple pendulum frequency = 2*PI*sqrt(L/G),  for swing < 30 deg
+    SimpleFreq = 2*PI*sqrt(CMbody/G);
+    echo(str("Body Simple Frequency = ",SimpleFreq," seconds"));
+    // Compound Pendulum frequency = 2*PI*sqrt(I/(m*G*CMr)) ,  for swing < 30 deg
+    CompoundFreq = 2*PI*sqrt(Ibody/(Mbody*G*CMbody));
+    echo(str("Body Compound Frequency = ",CompoundFreq," seconds"));
+    echo(str("CMbody=",CMbody,", Mbody=",Mbody));
+
+    // Set Point vector to set desired MOTOR VELOCITY vs time
+    NEW_VELO = .001; // rad/sec 
+    Set_Point_VELO = [[0,0],[0.01,0],[0.04,NEW_VELO],[0.05,NEW_VELO],[0.08,0],[END_TIME,0]];
+    //Set_Point_VELO = [[0,0],[END_TIME,0]];
+    //Set_Point_VELO = makeVeloProfile(TIME=END_TIME-4,DIST=50);
+
+    dummy = echo_header_cart(); // for spreadsheet
+    
+    // Initial state Vector=[time,x,y,r,  vx,vy,vr,  ax,ay,ar, MT, SP, x,y,r,  vx,vy,vr,  ax,ay,ar]; 
+    KIN_0=[0,bm[2][0],bm[2][1],IAR, 0,0,0,0,0,0,0,0, 0,0,0, 0,0,0, 0,0,0,999];
+    
+    dummy2 = echo_VEC(VEC=KIN_0);
+    
+    SIM1=    time_step_Cart(DELTA_T=DT,END_T=END_TIME,Mp=Mbody,Lp=CMbody,Ip=Ibody,Mc=Mwheels, Lc=CMwheels, Ic=Iwheels,WHEELR=RAD_W,VECT=KIN_0,SetPtVSTime=Set_Point_VELO,Kp=14,Kg=0,Kv=150);
+    // SetPtVSTime=Set_Point_ANG,Kp=-20,Kg=Mbody*CMbody,Kv=-1950);
+
+    *drawCartSIM_Vector(SIM=SIM1,dispVelo=false,Rwheel=RAD_W);
+
+    TS=10;
+    *drawXVSTimeChart(VEC=Set_Point_VELO,Tscale=TS,Yscale=1); // velocity setpoint
+    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KVX2,Yscale=1,Color="blue"); // horizontal velocity
+    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KMT,Yscale=1,Color="red"); // motor torque
+    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KX,Yscale=1,Color="green"); // horizontal position
+    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KR,Yscale=1,Color="brown"); // pendulum rotation gamma
+
+    color("red") translate([0,CMwheels,0]) sphere(r=1,$fn=FACETS); 
+    AA = 0; 
+    color("orange") rotate([0,0,AA]) translate(bm[2]) sphere(r=1,$fn=FACETS);
+    drawObjects(OBJ=WHEELS); // put last to display propertly
+    drawObjects(OBJ=BODY); // put last to display propertly
+
 };
+
