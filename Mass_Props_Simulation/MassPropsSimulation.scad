@@ -7,6 +7,7 @@
 //
 //use <../Robot_Arm_Parts_lib.scad>
 use <../ME_lib.scad>  // force vectors and such
+use <CurveTools.scad>
 
 // cm in an inch. Don't change.
 CM = 2.54;
@@ -416,182 +417,6 @@ module drawCartSIM_Vector(SIM=undef,dispVelo=false,Rwheel=10,i=0) {
     };
 };
 
-// module to draw xy chart of angle vs time for a simulation
-module drawAngVSTimeChart(SIM,Tscale=10,Index=1,Yscale=1.0,Color="blue") {
-    l = len(SIM);
-    Last_Time = SIM[l-1][KT];
-    TimeAngVec = [ for (j = [0:1:l-1])  [SIM[j][KT]*Tscale,SIM[j][Index]*Yscale] ];
-    TimeAngVec_1 = concat(TimeAngVec,[[Last_Time*Tscale,SIM[0][Index]*Yscale]]);
-    color(Color,.5) polygon(TimeAngVec_1);
-};
-
-module drawXVSTimeChart(VEC,Tscale=10,Yscale=1,YMEMB=1,COLOR="yellow") {
-    l = len(VEC);
-    Last_Time = VEC[l-1][0];
-    TimeXVec = [ for (j = [0:1:l-1])  [VEC[j][0]*Tscale,VEC[j][YMEMB]*Yscale] ];
-    TimeXVec_1 = concat(TimeXVec,[[Last_Time*Tscale,VEC[0][YMEMB]*Yscale-.1]]);
-    color(COLOR,.5) polygon(TimeXVec_1);
-};
-function integrateVec(VEC,Tstep=0.01,ECHO_V=false,area=0,time=0) =
-    let (l = len(VEC))
-    let (End_Time = VEC[l-1][0])
-    let (V0 = lookup(time,VEC))
-    let (V1 = lookup(time+Tstep,VEC))
-    let (trapezoidalArea = ((V0 + V1)/2)*Tstep)
-    let (new_area = area + trapezoidalArea)
-    (time+Tstep < End_Time+1.5*Tstep) ? 
-        let (z = (ECHO_V) ? echo(str(time,",",area)) : 0)
-        concat([[time,new_area]],integrateVec(VEC=VEC,Tstep=Tstep,ECHO_V=ECHO_V,area=new_area,time=time+Tstep)) :
-        echo(str("Final Integration: ",new_area)) 
-        [] ;
-
-function pitchVec(ACCELVEC,Tstep=0.01,ECHO_V=false,time=0) =
-    let (l = len(ACCELVEC))
-    let (End_Time = ACCELVEC[l-1][0])
-    let (pitch = atan2(lookup(time,ACCELVEC),G)) // atan2(y,x)
-    (time+Tstep < End_Time+1.5*Tstep) ? 
-        let (z = (ECHO_V) ? echo(str(time,",",pitch)) : 0)
-        concat([[time,pitch]],pitchVec(ACCELVEC=ACCELVEC,Tstep=Tstep,ECHO_V=ECHO_V,time=time+Tstep)) :
-        [] ;
-
-function derivativeVec(VEC,Tstep=0.01,ECHO_V=false,time=0) =
-    let (l = len(VEC))
-    let (End_Time = VEC[l-1][0])
-    let (V0 = lookup(time,VEC))
-    let (V1 = lookup(time+Tstep,VEC))
-    let (slope = (time==0) ? 0 : ((V1-V0)/Tstep)) // force first value to be 0
-    (time+Tstep < End_Time+1.5*Tstep) ? 
-        let (z = (ECHO_V) ? echo(str(time,",",slope)) : 0)
-        concat([[time,slope]],derivativeVec(VEC=VEC,Tstep=Tstep,ECHO_V=ECHO_V,time=time+Tstep)) :
-        [] ;
-
-function makeVeloProfile(TIME=1.0,DIST=4.0) = 
-    // Velocity Profile for an approximate Triangle Wave Acceleration
-    let (MAX_V = 2*DIST/TIME)  // check if value is reasonable on robot
-    let (MAX_A = 4*MAX_V/TIME) // for echo
-    echo(str("Maximum Velocity = ",MAX_V,", Maximum Acceleration = ",MAX_A))
-    [[.00*TIME,.00*MAX_V],
-    [.05*TIME,.02*MAX_V],
-    [.10*TIME,.08*MAX_V],
-    [.15*TIME,.18*MAX_V],
-    [.20*TIME,.32*MAX_V],
-    [.25*TIME,.50*MAX_V],
-    [.30*TIME,.68*MAX_V],
-    [.35*TIME,.82*MAX_V],
-    [.40*TIME,.92*MAX_V],
-    [.45*TIME,.98*MAX_V],
-    [.50*TIME,1.00*MAX_V],
-    [.55*TIME,.98*MAX_V],
-    [.60*TIME,.92*MAX_V],
-    [.65*TIME,.82*MAX_V],
-    [.70*TIME,.68*MAX_V],
-    [.75*TIME,.50*MAX_V],
-    [.80*TIME,.32*MAX_V],
-    [.85*TIME,.18*MAX_V],
-    [.90*TIME,.08*MAX_V],
-    [.95*TIME,.02*MAX_V],
-    [1.00*TIME,.00*MAX_V]];
-
-    //[[0,0],[0.125*TIME,0.122*MAX_V], [0.25*TIME,0.5*MAX_V], [0.375*TIME,0.875*MAX_V], [0.5*TIME,MAX_V], [0.625*TIME,0.875*MAX_V], [0.75*TIME,0.5*MAX_V], [0.875*TIME,0.122*MAX_V], [TIME,0]];
-
-// NOT WORKING.  CALCULUS FOR SECOND AND THIRD SEGMENT IS WRONG
-function mkTriangleAwaveVeloProfile(TIME=1.0,DIST=1.0) = 
-    // Velocity Profile for an approximate Triangle Wave Acceleration
-    // Using calculus derived formulas
-    let (MAX_V = 2*DIST/TIME)  // check if value is reasonable on robot
-    let (MAX_A = 4*MAX_V/TIME) // for echo
-    let (A_SLOPE = MAX_A/(TIME/4))
-    echo(str("Maximum Velocity = ",MAX_V,", Maximum Acceleration = ",MAX_A,", A SLOPE = ",A_SLOPE))
-    [for (t =[0:TIME/20:TIME]) t<TIME/4 ? [t,(A_SLOPE/2)*t^2] : t<TIME*3/4 ? [t,(-(A_SLOPE/2)*t^2)] : 
-        [t,2*t^2 + t] ];
-
-module make_profiles(DIST=1,TIME=1,Tscale=1) { 
-    // DIST is in cm
-    // 
-    // Use this to make the Position and Pitch Vectors
-    //
-    MAX_V = 2*DIST/TIME;  
-    MAX_A = 4*MAX_V/TIME; // if Maximum Acceleration is > G, then problems?
-    
-    echo(str("For distance of ",DIST," (cm) in ",TIME," seconds, Max Velocity is ",MAX_V," (cm/sec) and Max Acceleration is ",MAX_A," cm/sec^2"));
-    T = TIME;
-    ACC_VEC = [[0,0],[0.25*T,MAX_A],[0.5*T,0],[0.75*T,-MAX_A],[T,0]];
-    PITCH_VEC = pitchVec(ACCELVEC=ACC_VEC,Tstep=0.05,ECHO_V=true);
-    VELO_VEC = integrateVec(ACC_VEC,Tstep=0.05,ECHO_V=false); // Use ECHO for spreadsheet
-    POS_VEC = integrateVec(VELO_VEC,Tstep=0.05,ECHO_V=true);  // Use ECHO for spreadsheet
-    translate([0,0,0]) {
-        drawAngVSTimeChart(SIM=ACC_VEC,Tscale=Tscale,Index=1,Yscale=1,Color="blue");
-        drawAngVSTimeChart(SIM=VELO_VEC,Tscale=Tscale,Index=1,Yscale=1,Color="yellow");
-        drawAngVSTimeChart(SIM=POS_VEC,Tscale=Tscale,Index=1,Yscale=1,Color="orange");
-        drawAngVSTimeChart(SIM=PITCH_VEC,Tscale=Tscale,Index=1,Yscale=1,Color="green");
-    };
-};
-*make_profiles(DIST=20,TIME=2,Tscale=10);
-
-VELO_PROFILE = false;
-if (VELO_PROFILE) { // check velocity profiles
-    TIME = 1;
-    DIST = .5; // whatever units
-    VELO_VEC = makeVeloProfile(TIME=TIME,DIST=DIST);
-    //VELO_VEC2 = mkTriangleAwaveVeloProfile(TIME=TIME,DIST=DIST); // calculus version, not working
-    POS_VEC = integrateVec(VELO_VEC,Tstep=0.01);
-    ACC_VEC = derivativeVec(VELO_VEC,Tstep=0.01,ECHO_V=false);
-    drawAngVSTimeChart(SIM=VELO_VEC,Tscale=1,Index=1,Yscale=1,Color="green");
-    //drawAngVSTimeChart(SIM=VELO_VEC2,Tscale=1,Index=1,Yscale=1,Color="lawngreen");
-    drawAngVSTimeChart(SIM=POS_VEC,Tscale=1,Index=1,Yscale=1,Color="red");
-    drawAngVSTimeChart(SIM=ACC_VEC,Tscale=1,Index=1,Yscale=1,Color="blue");
-};
-function signZ(V) = (V>=0) ? 1 : -1; // sign function that does not return 0
-
-MaxVelo = 500;
-MaxAccel = 300;
-function calculateNextPos(CurrentPos,CurrentVelo,TargetPos,deltaTime) =
-    let (distToTarget = TargetPos - CurrentPos)
-    let (direction = (distToTarget >= 0) ? 1 : -1)
-    let (stoppingDistance = (CurrentVelo*CurrentVelo) / (2*MaxAccel))
-    let (accel = ((abs(distToTarget) <= stoppingDistance) && (signZ(CurrentVelo) == direction)) ? -direction*MaxAccel : direction*MaxAccel)
-    let (newVelo = CurrentVelo + accel*deltaTime)
-    let (newVelo2 = min(abs(newVelo),MaxVelo)*sign(newVelo))
-    let (newVelo3 = ((signZ(CurrentVelo) != signZ(newVelo2)) && (abs(distToTarget) <= stoppingDistance)) ? 0.0 : newVelo2)
-    let (newPos = CurrentPos + newVelo3*deltaTime + 0.5*accel*deltaTime*deltaTime)
-    let (newPos2 = (signZ(distToTarget) != (signZ(TargetPos - newPos))) ? TargetPos : newPos)
-    //let (newVelo4 = (sign(distToTarget) != (sign(TargetPos - newPos2))) ? 0 : newVelo3)
-    newPos ;
-
-function calculateNextVelo(CurrentPos,CurrentVelo,TargetPos,deltaTime) =
-    let (distToTarget = TargetPos - CurrentPos)
-    let (direction = (distToTarget >= 0) ? 1 : -1)
-    let (stoppingDistance = (CurrentVelo*CurrentVelo) / (2*MaxAccel))
-    let (accel = ((abs(distToTarget) <= stoppingDistance) && (signZ(CurrentVelo) == direction)) ? -direction*MaxAccel : direction*MaxAccel)
-    let (newVelo = CurrentVelo + accel*deltaTime)
-    let (newVelo2 = min(abs(newVelo),MaxVelo)*signZ(newVelo))
-    let (newVelo3 = ((signZ(CurrentVelo) != signZ(newVelo2)) && (abs(distToTarget) <= stoppingDistance)) ? 0.0 : newVelo2)
-    let (newPos = CurrentPos + newVelo3*deltaTime + 0.5*accel*deltaTime*deltaTime)
-    let (newPos2 = (signZ(distToTarget) != (signZ(TargetPos - newPos))) ? TargetPos : newPos)
-    let (newVelo4 = (signZ(distToTarget) != (signZ(TargetPos - newPos2))) ? 0 : newVelo3)
-    newVelo4 ;
-    
-function FillStateVec(CurrentPos=0,CurrentVelo=0,TargetPos=10,End_Time=2.0,Tstep=0.01,time=0,ECHO_V=false) =
-    let (nextPos = calculateNextPos(CurrentPos,CurrentVelo,TargetPos,Tstep))
-    let (nextVelo = calculateNextVelo(CurrentPos,CurrentVelo,TargetPos,Tstep))
-    (time+Tstep < End_Time+1.5*Tstep) ? 
-        let (z = (ECHO_V) ? echo(str(time,",",CurrentPos,",",CurrentVelo)) : 0)
-        concat([[time,CurrentPos,CurrentVelo]],FillStateVec(CurrentPos=nextPos,CurrentVelo=nextVelo,TargetPos=TargetPos,End_Time=End_Time,Tstep=Tstep,time=time+Tstep,ECHO_V=ECHO_V)) :
-        [] ;
-
-module MotionControlTest() {
-    DT = 0.02;
-    STARTPOS = 0.0;
-    STARTVELO = 0.0;
-    TARGETPOS = 400.0;
-    ENDTIME = 3.0;
-    MotionList = FillStateVec(CurrentPos=STARTPOS,CurrentVelo=STARTVELO,TargetPos=TARGETPOS,End_Time=ENDTIME,Tstep=DT,time=0,ECHO_V=true);
-    //echo(MotionList=MotionList);
-    drawXVSTimeChart(VEC=MotionList,Tscale=10,Yscale=.1,YMEMB=1,COLOR="yellow"); 
-    drawXVSTimeChart(VEC=MotionList,Tscale=10,Yscale=.1,YMEMB=2,COLOR="blue"); 
-};
-*MotionControlTest();
-
 //  ################# DATA BEGINES HERE #######################
 
 // Pendulum
@@ -634,9 +459,6 @@ if (Pend) {
     SIM1=time_step_Pendulum(DELTA_T=DT,END_T=END_TIME,M=M1,L=CM1,I=I1,PRIOR=KIN_0, SetPtVSTime=Set_Point_Vect, Kp=-100, Kg=M1*CM1, Kv=-1800);
 
     drawSIM_Vector(SIM=SIM1,dispVelo=true);
-
-    //drawXVSTimeChart(VEC=Set_Point_Vect,Tscale=100,Yscale=1);
-    //drawAngVSTimeChart(SIM=SIM1,Tscale=100,Index=KR,Yscale=180/PI);
 
     color("red") rotate([0,0,INIT_ANG-90]) translate([0,CM1,0]) sphere(r=0.4,$fn=FACETS);
     drawObjects(OBJ=OBJECTS); // put last to display propertly
@@ -787,11 +609,6 @@ if (TWR8) {
     *drawCartSIM_Vector(SIM=SIM1,dispVelo=false,Rwheel=RAD_WHEEL);
 
     TS=10;
-    *drawXVSTimeChart(VEC=Set_Point_VELO,Tscale=TS,Yscale=1); // velocity setpoint
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KVX2,Yscale=1,Color="blue"); // horizontal velocity
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KMT,Yscale=.1,Color="red"); // motor torque
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KX,Yscale=1,Color="green"); // horizontal position
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KR,Yscale=10,Color="brown"); // pendulum rotation gamma
 
     color("red") translate(wm[2]) sphere(r=1,$fn=FACETS);
     
@@ -970,42 +787,9 @@ if (BLUE) {
     echo(str("Body Compound Frequency = ",CompoundFreq," seconds")); 
     echo(str("CMbody=",CMbody,", Mbody=",Mbody));
 
-/*            
-    END_TIME = 6.0;  // seconds, full cycle for simple = 0.29, compound = 0.74
-    DT = 0.005; // delta time in seconds
-    echo(str("End Time = ",END_TIME,", Time Step = ",DT,", Number of time steps = ",END_TIME/DT));
+};
 
-    INIT_ANG = -90; // DEG
-    IAR = INIT_ANG*PI/180;  // initial angle radians
-
-
-
-    // Set Point vector to set desired MOTOR VELOCITY vs time
-    NEW_VELO = 60; // rad/sec 
-    //Set_Point_VELO = [[0,0],[0.02,0],[0.03,NEW_VELO],[3.0,NEW_VELO],[3.1,0],[END_TIME,0]];
-    Set_Point_VELO = makeVeloProfile(TIME=END_TIME-4,DIST=50);
-
-    dummy = echo_header_cart(); // for spreadsheet
-    
-    // Initial state Vector=[time,x,y,r,  vx,vy,vr,  ax,ay,ar, MT, SP, x,y,r,  vx,vy,vr,  ax,ay,ar]; 
-    KIN_0=[0,CMbody*cos(INIT_ANG),CMbody*sin(INIT_ANG),IAR, 0,0,0,0,0,0,0,INIT_ANG, 0,0,IAR, 0,0,0, 0,0,0,999];
-    
-    dummy2 = echo_VEC(VEC=KIN_0);
-    
-    //SIM1=    time_step_Cart(DELTA_T=DT,END_T=END_TIME,Mp=Mbody,Lp=CMbody,Ip=Ibody,Mc=Mwheels, Lc=CMwheels, Ic=Iwheels,WHEELR=RAD_WHEEL,VECT=KIN_0,SetPtVSTime=Set_Point_VELO,Kp=-14,Kg=0,Kv=150);
-    // SetPtVSTime=Set_Point_ANG,Kp=-20,Kg=Mbody*CMbody,Kv=-1950);
-
-    *drawCartSIM_Vector(SIM=SIM1,dispVelo=false,Rwheel=RAD_WHEEL);
-
-    TS=10;
-    *drawXVSTimeChart(VEC=Set_Point_VELO,Tscale=TS,Yscale=1); // velocity setpoint
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KVX2,Yscale=1,Color="blue"); // horizontal velocity
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KMT,Yscale=.1,Color="red"); // motor torque
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KX,Yscale=1,Color="green"); // horizontal position
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KR,Yscale=10,Color="brown"); // pendulum rotation gamma
-*/
-
-};// C Two Wheel Robot with Black 9.6 cm dia goBilda Rhino wheels, April 2026
+// C Two Wheel Robot with Black 9.6 cm dia goBilda Rhino wheels, April 2026
 C_TWB = true;
 if (C_TWB) {
     echo("C TWO WHEEL ROBOT WITH 9.6 CM BLACK goBilda Rhino WHEELS");
@@ -1072,17 +856,15 @@ if (C_TWB) {
     *drawCartSIM_Vector(SIM=SIM1,dispVelo=false,Rwheel=RAD_W);
 
     TS=10;
-    *drawXVSTimeChart(VEC=Set_Point_VELO,Tscale=TS,Yscale=1); // velocity setpoint
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KVX2,Yscale=1,Color="blue"); // horizontal velocity
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KMT,Yscale=1,Color="red"); // motor torque
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KX,Yscale=1,Color="green"); // horizontal position
-    *drawAngVSTimeChart(SIM=SIM1,Tscale=TS,Index=KR,Yscale=1,Color="brown"); // pendulum rotation gamma
+    *drawXvsTimeChart(VEC=Set_Point_VELO,Tscale=TS,Yscale=1); // velocity setpoint
+    *drawXvsTimeChart(VEC=SIM1,Tscale=TS,YMEMB=KVX2,Yscale=1,COLOR="blue"); // horizontal velocity
+    *drawXvsTimeChart(VEC=SIM1,Tscale=TS,YMEMB=KMT,Yscale=1,COLOR="red"); // motor torque
+    *drawXvsTimeChart(VEC=SIM1,Tscale=TS,YMEMB=KX,Yscale=1,COLOR="green"); // horizontal position
+    *drawXvsTimeChart(VEC=SIM1,Tscale=TS,YMEMB=KR,Yscale=1,COLOR="brown"); // pendulum rotation gamma
 
     color("red") translate([0,CMwheels,0]) sphere(r=1,$fn=FACETS); 
     AA = 0; 
     color("orange") rotate([0,0,AA]) translate(bm[2]) sphere(r=1,$fn=FACETS);
     drawObjects(OBJ=WHEELS); // put last to display propertly
     drawObjects(OBJ=BODY); // put last to display propertly
-
 };
-
