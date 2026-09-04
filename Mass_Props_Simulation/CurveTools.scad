@@ -3,7 +3,7 @@ module drawXvsTimeChart(VEC,Tscale=10,Yscale=1,YMEMB=1,COLOR="yellow") {
     l = len(VEC);
     Last_Time = VEC[l-1][0];
     TimeXVec = [ for (j = [0:1:l-1])  [VEC[j][0]*Tscale,VEC[j][YMEMB]*Yscale] ];
-    TimeXVec_1 = concat(TimeXVec,[[Last_Time*Tscale,VEC[0][YMEMB]*Yscale-.1]]);
+    TimeXVec_1 = concat(TimeXVec,[[Last_Time*Tscale,VEC[0][YMEMB]*Yscale-.01]]);
     color(COLOR,.5) polygon(TimeXVec_1);
 };
 function integrateVec(VEC,Tstep=0.01,ECHO_V=false,area=0,time=0) =
@@ -29,6 +29,39 @@ function derivativeVec(VEC,Tstep=0.01,ECHO_V=false,time=0) =
         let (z = (ECHO_V) ? echo(str(time,",",slope)) : 0)
         concat([[time,slope]],derivativeVec(VEC=VEC,Tstep=Tstep,ECHO_V=ECHO_V,time=time+Tstep)) :
         [] ;
+        
+function sineVec(AMP=1.0,Tstep=0.01,ECHO_V=false,ANGLE=0,TIME=0) =
+    // ALWAYS GENERATES 18 PIECES, OR 19 POINTS
+    let (value = sin(ANGLE)*AMP)
+    (ANGLE <= 180) ? 
+        let (z = (ECHO_V) ? echo(str(TIME,",",value)) : 0)
+        concat([[TIME,value]],sineVec(AMP=AMP,Tstep=Tstep,
+        ECHO_V=ECHO_V,ANGLE=ANGLE+10, TIME=TIME+Tstep)) :
+        [] ;
+
+function addVec(VEC,XADD=0,YADD=0) =
+      [for (i=[0:len(VEC)-1]) [VEC[i][0]+XADD,VEC[i][1]+YADD] ] ;
+
+function scaleVec(VEC,XADD=1,YADD=1) =
+      [for (i=[0:len(VEC)-1]) [VEC[i][0]*XADD,VEC[i][1]*YADD] ] ;
+          
+// CONCATINATES TWO VECTORS (LISTS)
+function cat(L1, L2) = [for (i=[0:len(L1)+len(L2)-1]) 
+                        i < len(L1)? L1[i] : L2[i-len(L1)]] ;
+// SAME but without indicies
+function cat2(L1, L2) = [for(L=[L1, L2], a=L) a];
+    
+SINEVEC = sineVec(AMP=20,Tstep=.1,ECHO_V=false);
+VEC2 = addVec(SINEVEC,2.8); // deceleration curve,  includes cruise
+VEC3 = scaleVec(VEC2,1,-1); // swap sign for deceleration
+NEWVEC=cat(SINEVEC,VEC3);
+VELO_VEC = integrateVec(NEWVEC,Tstep=0.1,ECHO_V=false); // Use ECHO for spreadsheet
+POS_VEC = integrateVec(VELO_VEC,Tstep=0.1,ECHO_V=false); // Use ECHO for spreadsheet
+
+//echo(NEWVEC);
+drawXvsTimeChart(VEC=NEWVEC,Tscale=10,YMEMB=1,Yscale=1,COLOR="blue");
+drawXvsTimeChart(VEC=VELO_VEC,Tscale=10,YMEMB=1,Yscale=1,COLOR="yellow");
+drawXvsTimeChart(VEC=POS_VEC,Tscale=10,YMEMB=1,Yscale=1,COLOR="green");
 
 module trapezoidalMotionProfile(DIST=1,maxVel=1,maxAccel=1,Tscale=1) { 
     // Given Distance to move, Maximum Velocity, Maximum Acceleration
@@ -61,5 +94,5 @@ module trapezoidalMotionProfile(DIST=1,maxVel=1,maxAccel=1,Tscale=1) {
         drawXvsTimeChart(VEC=POS_VEC,Tscale=Tscale,YMEMB=1,Yscale=1,COLOR="green");
     };
 };
-trapezoidalMotionProfile(DIST=15,maxVel=20,maxAccel=35,Tscale=10);
+*trapezoidalMotionProfile(DIST=15,maxVel=20,maxAccel=35,Tscale=10);
 
